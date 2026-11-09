@@ -314,6 +314,13 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 <script src="logica.js"></script>
 <script>
 (function(){
+  // Regreso de Google ("Conectar con Google"): la función logistica-google manda aquí ?google=ok|error&msg=
+  var RG = new URLSearchParams(location.search);
+  if(RG.get('google') && window.opener && window.opener !== window){
+    try { window.opener.postMessage({logisticaGoogle: RG.get('google'), msg: RG.get('msg')||''}, location.origin) } catch(e){}
+    window.close();
+    return;
+  }
   var L = window.Logistica, $ = function(id){ return document.getElementById(id) }, esc = L.esc, fecha = L.fecha;
   // ---------- Supabase ----------
   // Los datos viven en el esquema logistica (sin acceso directo desde la API). Solo se leen con
@@ -541,7 +548,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   $('conectar').addEventListener('click', function(){
     // La ventana se abre en el clic (si no, el navegador la bloquea); la dirección se pone al tener el código
     var w = window.open('', 'conectarGoogle', 'width=520,height=700');
-    sb.rpc('logistica_google_inicio').then(function(r){
+    sb.rpc('logistica_google_inicio', {p_vuelta: location.origin + location.pathname}).then(function(r){
       if(r.error || !r.data){ if(w) w.close(); $('subido').innerHTML = '<span class="aviso">No se pudo iniciar la conexión con Google.</span>'; return; }
       var url = 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
         client_id: GOOGLE_CLIENT_ID, redirect_uri: SUPABASE_URL + '/functions/v1/logistica-google', response_type: 'code',
@@ -551,7 +558,13 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
       var t = setInterval(function(){ if(!w || w.closed){ clearInterval(t); leerDrive(); } }, 800);
     });
   });
-  window.addEventListener('message', function(e){ if(e.data && e.data.logisticaGoogle) leerDrive() });
+  function resultadoGoogle(estado, msg){
+    if(estado==='ok') leerDrive();
+    else { leerDrive(); setTimeout(function(){ $('subido').innerHTML = '<span class="aviso">No se pudo conectar con Google: '+esc(msg||'intenta de nuevo')+'.</span>' }, 1500); }
+  }
+  window.addEventListener('message', function(e){ if(e.origin===location.origin && e.data && e.data.logisticaGoogle) resultadoGoogle(e.data.logisticaGoogle, e.data.msg) });
+  // Si Google regresó en la misma pestaña (sin ventanita), mostrar el resultado y limpiar la dirección
+  if(RG.get('google')){ var est = RG.get('google'), m = RG.get('msg'); history.replaceState(null, '', location.pathname); setTimeout(function(){ resultadoGoogle(est, m) }, 300); }
   sb.auth.getSession().then(function(r){ if(r.data && r.data.session) leerDrive(); else sesionVisible(false); });
 })();
 </script>
