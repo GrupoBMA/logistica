@@ -107,7 +107,8 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .slot{position:relative;display:flex;flex-direction:column;gap:10px;min-height:150px;padding:14px;border-radius:14px;background:var(--surface);border:1px solid var(--border);text-align:left;cursor:pointer;transition:transform .12s ease,border-color .12s ease}
 .slot:hover{border-color:var(--text);transform:translateY(-2px)}
 .slot:active{transform:translateY(0)}
-.slot .top{display:grid;grid-template-columns:minmax(max-content,1fr) auto minmax(max-content,1fr);align-items:center;gap:10px}
+.slot .top{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px}
+.slot .top .mini5{justify-self:center}
 .slot .top .izq{display:flex;align-items:center;gap:10px;min-width:0}
 .slot .top .sold{justify-self:end}
 .slot .top .rem{flex:1;min-width:0;font-size:15px;font-weight:700;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
