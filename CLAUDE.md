@@ -34,28 +34,25 @@ Ir de poco en poco, empezando por lo más importante: el vehículo, su entrega y
 - Qué significa la **X** en los pasos del taller (hoy se pinta en rojo).
 - Mochis, Culiacán, Mazatlán, Vallarta y Lo de Marcos vienen en azul claro (6FA8DC). Hoy van con sucursales.
 - El umbral de **45 días** para marcar una unidad como atrasada (`VIEJA`).
-- Elegir entre la propuesta A y la B.
+- ~~Elegir entre la propuesta A y la B~~: **el usuario eligió la B** (9-nov-2026). Lo que le gustó es que se usa como un videojuego, es intuitiva y es fácil encontrar todo. Ojo: no quiere gráficos de videojuego; una versión pixel-art se descartó. Las siguientes mejoras siguen esa línea.
 
-## Estado actual (9-nov-2026): dos propuestas
+## Estado actual (9-nov-2026)
 
-Las dos leen los mismos datos y usan las mismas reglas de **`logica.js`** (compartido). Ese archivo convierte cada renglón del Excel en una unidad con: modelo y detalle cortos (`nombre()`), tipo (`tipo()`, como sunldemexico.com), estado, zona, distribuidor, bodega, días y prioridad del flete.
+`index.html` es la app, que se usa como un videojuego (era la "propuesta B"; la propuesta A, de lista y flujo, se quitó cuando el usuario eligió esta). Es un solo archivo sin librerías, con letra Geist. Las reglas viven en **`logica.js`**, que convierte cada renglón del Excel en una unidad con: modelo y detalle cortos (`nombre()`), tipo (`tipo()`, como sunldemexico.com), estado, zona, distribuidor, bodega, días y prioridad del flete.
 
-**Estados del flujo:** Esperando piezas (color en el vehículo) → Por empezar (sin pasos) → En taller (algún paso, menos de 5) → **Mandar flete** (5 OK) → En camino → Entregada. "En camino" y "Entregada" no existen en la hoja VENTAS (*pendiente*: Entregada vendrá de la hoja ENTREGADO).
+**Estados:** Esperando piezas (color en el vehículo) → Por empezar (sin pasos) → En taller (algún paso, menos de 5) → **Mandar flete** (5 OK) → En camino → Entregada. "En camino" y "Entregada" no existen en la hoja VENTAS (*pendiente*: Entregada vendrá de la hoja ENTREGADO).
 
 **Tipos:** Motocarro 150 cc, 200 cc, 300 cc doble rodado, 300 cc cabina cerrada, Mototaxis, ATV, UTV, Minimotos, Areneros. "Motocarro 300 cc" a secas (la pipa), "Motocarro 350 cc" y "Accesorios y otros" (el toldo) son extras, porque la página no los tiene.
 
-- **Propuesta A (`index.html`, puerto 8768): lista + flujo.**
-  - Pestaña **Mandar flete** (se abre al entrar): las de 5 OK en una sola columna, por destino o por tipo, ordenadas por fecha y con su número de prioridad.
-  - Pestaña **Flujo**: la ruta de 6 etapas con conteos y 3 avisos (listas para flete, esperando piezas, con faltante). Al tocar una etapa salen sus unidades.
-  - Ficha lateral con "qué sigue", el recorrido y los datos.
-- **Propuesta B (`juego/index.html`, puerto 8769): se usa como un videojuego** (en la forma de usarse, no en el dibujo).
-  - Menú fijo con contadores: Mandar flete, En taller, Por empezar, Esperando piezas, Con faltante y Todas.
-  - Cada vista tiene un **objetivo** en una frase. En Mandar flete, la prioridad 1 sale destacada como "Siguiente en salir".
-  - Las unidades van en **casillas** con un ícono de estado (palomita, llave, play, candado) y un punto si tienen faltante.
-  - Categorías por tipo con conteo, **buscador global**, medidor de "listas para salir" y **atajos**: 1–6 cambian de vista, / busca y Esc cierra.
+**Cómo se usa:**
+- **Menú fijo** a la izquierda (en celular, una fila que se desliza) con contadores: Mandar flete, En taller, Por empezar, Esperando piezas, Con faltante y Todas. Abajo, el medidor "Listas para salir".
+- Cada vista tiene un **objetivo** en una frase. En Mandar flete, la prioridad 1 sale destacada como "Siguiente en salir" y las demás van por número de prioridad (fecha de venta).
+- Las unidades van en **casillas** con un ícono de estado (palomita = lista, llave = en taller, play = por empezar, candado = esperando piezas) y un punto amarillo si tienen faltante. En taller llevan una barra de 5.
+- **Categorías por tipo** con conteo, **buscador global** (busca en todas las vistas), selector de **bodega** (Todas, Granja, Bodega 2) y **atajos**: 1–6 cambian de vista, / busca y Esc cierra.
+- **Ficha** lateral: qué sigue con esa unidad, sus 5 pasos y sus datos (destino, zona, bodega, tipo, fecha, vendedor, remisión, faltante).
 - **Datos de prueba:** `datos/datos.js` (fuera del repo) lo genera `python datos/extraer_excel.py "<ruta del Excel>" datos/datos.js`. En la página publicada no existe, así que se ve vacía. Después vendrán de Supabase con inicio de sesión.
-- **Diseño:** el skill `design-taste-frontend` en modo pantalla de app, letra Geist. Hay modo claro y modo oscuro, y las dos funcionan en celular.
-- **Probar:** `.claude/launch.json` tiene `logistica` (8768) y `logistica-juego` (8769).
+- **Diseño:** el skill `design-taste-frontend` en modo pantalla de app. Hay modo claro y modo oscuro, y funciona en celular.
+- **Probar:** `.claude/launch.json` levanta `python -m http.server 8768`.
 
 ## Regla estricta: nada con datos reales en el repo
 
