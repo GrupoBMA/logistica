@@ -19,6 +19,7 @@
   --lock:#5b5e8a; --lock-bg:#ecebf7;
   --warn:#8a4b05; --warn-bg:#fff4d6;
   --neg:#b3261e; --neg-bg:#fdecea;
+  --xpaso:#e8b400; --xpaso-bg:#fff4c7; --xpaso-ink:#7a5800;
   --font:"Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
   color-scheme:light;
 }
@@ -29,7 +30,7 @@
     --text:#f3f4f0; --muted:#b3b5ae; --faint:#979991;
     --primary:#f3f4f0; --on-primary:#121310;
     --ok:#5cc184; --ok-bg:#16291d; --work:#7fb0f5; --work-bg:#15233a;
-    --lock:#aeb0e6; --lock-bg:#20213a; --warn:#e9b65a; --warn-bg:#2b2210; --neg:#ec6a5f; --neg-bg:#2e1715; color-scheme:dark;
+    --lock:#aeb0e6; --lock-bg:#20213a; --warn:#e9b65a; --warn-bg:#2b2210; --neg:#ec6a5f; --neg-bg:#2e1715; --xpaso:#f2c94c; --xpaso-bg:#2e2610; --xpaso-ink:#f2c94c; color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
@@ -38,7 +39,7 @@
   --text:#f3f4f0; --muted:#b3b5ae; --faint:#979991;
   --primary:#f3f4f0; --on-primary:#121310;
   --ok:#5cc184; --ok-bg:#16291d; --work:#7fb0f5; --work-bg:#15233a;
-  --lock:#aeb0e6; --lock-bg:#20213a; --warn:#e9b65a; --warn-bg:#2b2210; --neg:#ec6a5f; --neg-bg:#2e1715; color-scheme:dark;
+  --lock:#aeb0e6; --lock-bg:#20213a; --warn:#e9b65a; --warn-bg:#2b2210; --neg:#ec6a5f; --neg-bg:#2e1715; --xpaso:#f2c94c; --xpaso-bg:#2e2610; --xpaso-ink:#f2c94c; color-scheme:dark;
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
@@ -137,11 +138,11 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .bar5{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
 .bar5 i{height:6px;border-radius:3px;background:var(--raised)}
 .bar5 i.ok{background:var(--ok)}
-.bar5 i.x{background:var(--work)}
+.bar5 i.x{background:var(--xpaso)}
 .mini5{display:grid;grid-template-columns:repeat(5,10px);gap:3px;flex:none;align-self:center}
 .mini5 i{height:4px;border-radius:2px;background:var(--raised)}
 .mini5 i.ok{background:var(--ok)}
-.mini5 i.x{background:var(--work)}
+.mini5 i.x{background:var(--xpaso)}
 .slot .miss{font-size:13px;line-height:18px;color:var(--warn);background:var(--warn-bg);border-radius:6px;padding:4px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .empty{grid-column:1/-1;padding:32px;border:1px dashed var(--control);border-radius:14px;color:var(--muted);text-align:center}
 .legend{display:flex;flex-wrap:wrap;gap:16px;margin:28px 0 0;color:var(--muted);font-size:13px}
@@ -165,7 +166,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .st5 div{padding:10px 4px;border-radius:10px;background:var(--raised);text-align:center;font-size:12px;line-height:16px;color:var(--muted)}
 .st5 div b{display:block;font-size:15px;color:var(--text);margin-bottom:2px}
 .st5 div.ok{background:var(--ok-bg);color:var(--ok)} .st5 div.ok b{color:var(--ok)}
-.st5 div.x{background:var(--work-bg);color:var(--work)} .st5 div.x b{color:var(--work)}
+.st5 div.x{background:var(--xpaso-bg);color:var(--xpaso-ink)} .st5 div.x b{color:var(--xpaso-ink)}
 .kv{display:grid;grid-template-columns:120px 1fr;margin:0}
 .kv dt{color:var(--muted);padding:9px 0;border-bottom:1px solid var(--border)}
 .kv dd{margin:0;padding:9px 0;border-bottom:1px solid var(--border)}
