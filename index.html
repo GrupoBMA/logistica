@@ -85,7 +85,8 @@ button.cb:hover{border-color:var(--text)}
 .cb .chips .falta{background:var(--warn-bg);color:var(--warn)}
 .cb .lado{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;white-space:nowrap}
 .cb .lado .bar5{width:72px}
-.cb .hora{font-size:12px;color:var(--muted);text-align:right;margin-top:6px}
+.cb .hora{font-size:12px;color:var(--muted);text-align:right;margin-top:6px;white-space:nowrap}
+.cb .hora .fch{margin-right:8px;color:var(--text);font-weight:500}
 .nota{color:var(--muted);font-size:13px;line-height:18px;margin:0 0 18px}
 .ic.entregada{background:var(--raised);color:var(--text)}
 .ic.nueva{background:var(--work-bg);color:var(--work)}
@@ -622,7 +623,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
               '<span style="min-width:0"><span class="t">Remisión '+esc(c.remision||'—')+' <span class="r">· '+esc(m.modelo)+' · '+esc(L.cap((c.destino||'').toLowerCase()))+'</span></span>' +
               '<span class="d" style="display:block">'+esc(x.t)+(x.d?'. '+esc(x.d):'')+'</span>' +
               (x.chips.length ? '<span class="chips">'+x.chips.join('')+'</span>' : '') + '</span>' +
-              '<span class="der"><span class="lado">'+lado+'</span><span class="hora" style="display:block">'+String(h.getHours()).padStart(2,'0')+':'+String(h.getMinutes()).padStart(2,'0')+'</span></span></'+tag+'>';
+              '<span class="der"><span class="lado">'+lado+'</span><span class="hora" style="display:block"><span class="fch">'+fecha(h)+'</span>'+String(h.getHours()).padStart(2,'0')+':'+String(h.getMinutes()).padStart(2,'0')+'</span></span></'+tag+'>';
           }).join('') + '</div></section>';
       }).join('');
   }
