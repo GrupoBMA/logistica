@@ -1,0 +1,11 @@
+# El repo es público: nada de ventas, clientes, remisiones ni teléfonos.
+# Datos reales sacados del Excel y su extractor
+datos/
+*.xlsx
+*.xls
+*.csv
+# Capturas y archivos de trabajo del diseño
+.taste-skill/
+.local/
+__pycache__/
+launch.json

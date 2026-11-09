@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BMA Logística</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Estilo: achromatic ledger. Cromo sin color; el color solo vive en los datos (zona de destino y avance). */
+:root{
+  --ground:#f3f4f2;   /* gris piedra del patio de la granja */
+  --surface:#ffffff; --raised:#eeeeec; --active:#e6e7e4;
+  --border:#e3e4e1; --rule:#eeefec; --control:#d2d4cf;
+  --text:#0d0e0c; --muted:#5f625c; --faint:#6b6e68;
+  --primary:#151614;
+  --negative:#b3261e; --neg-bg:#fdecea; --neg-ink:#7d1a14;
+  --warn-bg:#fff6dc; --warn-ink:#8a4b05;
+  --ok:#256b3f;
+  /* Zonas de destino (los colores del Excel, ajustados para leerse en pantalla) */
+  --z-cerca:#f29a1f; --z-lejos:#a8640b; --z-foranea:#e4c412; --z-sucursal:#2f6fc4; --z-granja:#cf2f24; --z-sin:#b9bbb5;
+  --radius-card:8px; --radius-control:6px; --gap:16px; --pad:24px;
+  --font:"Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0c0d0c; --surface:#151614; --raised:#20211f; --active:#2a2b28;
+    --border:#262724; --rule:#1e1f1d; --control:#3d3f3a;
+    --text:#f4f5f2; --muted:#b2b4ae; --faint:#959791;
+    --primary:#f4f5f2; --negative:#ec6a5f; --neg-bg:#2e1715; --neg-ink:#f19a92;
+    --warn-bg:#2b2210; --warn-ink:#e9b65a; --ok:#5cc184;
+    --z-sin:#55574f; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0c0d0c; --surface:#151614; --raised:#20211f; --active:#2a2b28;
+  --border:#262724; --rule:#1e1f1d; --control:#3d3f3a;
+  --text:#f4f5f2; --muted:#b2b4ae; --faint:#959791;
+  --primary:#f4f5f2; --negative:#ec6a5f; --neg-bg:#2e1715; --neg-ink:#f19a92;
+  --warn-bg:#2b2210; --warn-ink:#e9b65a; --ok:#5cc184;
+  --z-sin:#55574f; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--ground);color:var(--text);font:14px/20px var(--font);-webkit-tap-highlight-color:transparent}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--text);outline-offset:2px;border-radius:4px}
+.num{font-variant-numeric:tabular-nums}
+
+/* Columna única centrada: 1160px. Todo comparte los mismos bordes izquierdo y derecho. */
+.col{max-width:1160px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-left))}
+
+/* Barra superior */
+.bar{background:var(--ground)}
+.bar.scrolled{box-shadow:inset 0 -1px 0 var(--border)}
+.bar .col{height:52px;display:flex;align-items:center;gap:28px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;white-space:nowrap}
+.brand svg{flex:none}
+.brand span{font-weight:400;color:var(--muted)}
+.nav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.nav a{padding:6px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-weight:500;white-space:nowrap}
+.nav a[aria-current="page"]{background:var(--active);color:var(--text)}
+.nav a.pronto{opacity:.75}
+.nav a.pronto small{font-size:12px;color:var(--faint);margin-left:4px}
+.stamp{margin-left:auto;color:var(--muted);font-size:12px;white-space:nowrap}
+
+/* Título */
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding:28px 0 20px}
+h1{font-size:24px;line-height:30px;font-weight:700;letter-spacing:-.01em;margin:0}
+.finding{margin:6px 0 0;color:var(--muted);font-size:15px;line-height:22px;max-width:70ch}
+.finding b{color:var(--text);font-weight:500}
+.btn{height:36px;padding:0 14px;border-radius:var(--radius-control);border:1px solid var(--control);background:var(--surface);font-weight:500;white-space:nowrap}
+.btn.primary{background:var(--primary);color:var(--surface);border-color:var(--primary)}
+.btn:hover{border-color:var(--text)}
+.btn:active{transform:translateY(1px)}
+
+/* Flujo de la entrega: la firma de esta app */
+.flow{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card)}
+.stage{position:relative;text-align:left;background:none;border:0;padding:16px 20px 18px;border-left:1px solid var(--border);display:flex;flex-direction:column;gap:2px;min-width:0}
+.stage:first-child{border-left:0}
+.stage:hover{background:var(--raised)}
+.stage[aria-pressed="true"]{box-shadow:inset 0 -2px 0 var(--text)}
+.stage[aria-pressed="true"] .s-label{color:var(--text)}
+.stage:not(:first-child)::before{content:"";position:absolute;left:-7px;top:22px;width:12px;height:12px;background:var(--surface);border-top:1px solid var(--border);border-right:1px solid var(--border);transform:rotate(45deg)}
+.s-label{color:var(--muted);font-weight:500}
+.s-num{font-size:30px;line-height:38px;font-weight:500;letter-spacing:-.01em}
+.s-sub{color:var(--muted);font-size:12px;line-height:16px;min-height:16px}
+.s-track{margin-top:10px;height:4px;border-radius:2px;background:var(--raised);overflow:hidden}
+.s-track i{display:block;height:100%;background:var(--text)}
+
+/* Zonas */
+.zones{margin-top:var(--gap);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:16px 20px}
+.zones-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:10px}
+.zones h2,.list-head h2{font-size:16px;line-height:22px;font-weight:500;margin:0}
+.zones-top p{margin:0;color:var(--muted);font-size:12px}
+.zbar{display:flex;height:12px;gap:2px;border-radius:3px;overflow:hidden}
+.zbar i{display:block;height:100%}
+.zlegend{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:12px}
+.zchip{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 10px;border-radius:6px;border:1px solid transparent;background:none}
+.zchip:hover{background:var(--raised)}
+.zchip[aria-pressed="true"]{border-color:var(--text);background:var(--surface)}
+.zchip b{font-weight:500}
+.zchip .n{color:var(--muted)}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+
+/* Lista */
+.list{margin-top:28px;padding-bottom:64px}
+.list-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;margin-bottom:8px}
+.search{height:36px;width:300px;max-width:100%;padding:0 12px 0 36px;border:1px solid var(--control);border-radius:var(--radius-control);background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%236b6e68' stroke-width='1.6'%3E%3Ccircle cx='6' cy='6' r='4.8'/%3E%3Cpath d='m9.6 9.6 3.4 3.4'/%3E%3C/svg%3E") 13px 50% no-repeat}
+.search::placeholder{color:var(--faint)}
+select.sel{height:36px;padding:0 10px;border:1px solid var(--control);border-radius:var(--radius-control);background:var(--surface)}
+.toggle{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border:1px solid var(--control);border-radius:var(--radius-control);background:var(--surface)}
+.toggle[aria-pressed="true"]{border-color:var(--text);box-shadow:inset 0 0 0 1px var(--text)}
+.count{margin-left:auto;color:var(--muted)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:13px;margin:4px 0 6px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+
+table{width:100%;border-collapse:collapse}
+th{font-size:13px;font-weight:400;color:var(--muted);text-align:left;padding:10px 12px;white-space:nowrap}
+th.num,td.num{text-align:right}
+td{padding:12px;border-top:1px solid var(--border);vertical-align:top}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:var(--surface)}
+tbody tr.zone-row td{cursor:default;background:none;padding:22px 12px 8px;border-top:0}
+.zone-row b{font-size:14px;font-weight:500}
+.zone-row .zr{display:flex;align-items:center;gap:10px}
+.zone-row .zr .n{color:var(--muted)}
+.unit{font-weight:500;line-height:20px}
+.sub{color:var(--muted);font-size:13px;line-height:18px;margin-top:2px}
+.dest{display:flex;gap:8px;align-items:flex-start}
+.dest .dot{margin-top:5px}
+
+.steps{display:inline-flex;gap:3px}
+.step{font-style:normal;width:22px;height:22px;border-radius:4px;display:grid;place-items:center;font-size:11px;font-weight:500;line-height:1;border:1px solid var(--control);color:var(--faint);background:var(--surface)}
+.step.ok{background:var(--text);border-color:var(--text);color:var(--surface)}
+.step.x{background:var(--neg-bg);border-color:var(--negative);color:var(--neg-ink)}
+.pill{display:inline-block;padding:2px 8px;border-radius:4px;font-size:13px;line-height:18px;white-space:nowrap;flex:none}
+.pill.warn{background:var(--warn-bg);color:var(--warn-ink)}
+.pill.flat{background:var(--raised);color:var(--muted)}
+.miss{max-width:220px}
+.miss .pill{white-space:normal}
+.dash{color:var(--faint)}
+.days{font-weight:500}
+td.c-days{white-space:nowrap;width:72px}
+.days.old{color:var(--negative)}
+.empty td{padding:28px 12px;color:var(--muted);text-align:center;border:1px dashed var(--control);border-radius:8px}
+
+/* Ficha */
+.scrim{position:fixed;inset:0;background:rgba(10,10,10,.28);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s ease,visibility 0s .18s}
+.scrim.on{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .18s ease}
+.sheet{position:fixed;top:0;right:0;bottom:0;width:min(440px,100%);background:var(--surface);box-shadow:-12px 0 32px rgba(0,0,0,.12);transform:translateX(102%);visibility:hidden;transition:transform .22s cubic-bezier(.2,.8,.2,1),visibility 0s .22s;display:flex;flex-direction:column;z-index:10}
+.sheet.on{transform:none;visibility:visible;transition:transform .22s cubic-bezier(.2,.8,.2,1)}
+.sheet header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:20px 24px 16px;border-bottom:1px solid var(--border)}
+.sheet h2{font-size:18px;line-height:24px;margin:0;font-weight:700}
+.x-close{width:36px;height:36px;border-radius:6px;border:1px solid var(--control);background:var(--surface);flex:none;display:grid;place-items:center}
+.sheet .body{padding:8px 24px 24px;overflow:auto}
+.kv{display:grid;grid-template-columns:120px 1fr;gap:0 12px;margin:0}
+.kv dt{color:var(--muted);padding:10px 0;border-bottom:1px solid var(--rule)}
+.kv dd{margin:0;padding:10px 0;border-bottom:1px solid var(--rule)}
+.track{list-style:none;margin:18px 0 0;padding:0}
+.track h3{font-size:14px;margin:0 0 8px;font-weight:500}
+.track li{display:flex;align-items:center;gap:12px;padding:8px 0}
+.track li .step{width:26px;height:26px;font-size:12px}
+.track li span:last-child{margin-left:auto;color:var(--muted);font-size:12px}
+
+@media (max-width:860px){
+  .flow{grid-template-columns:repeat(2,1fr)}
+  .stage:nth-child(3){border-left:0}
+  .stage:nth-child(n+3){border-top:1px solid var(--border)}
+  .stage:nth-child(3)::before{display:none}
+  .stamp{display:none}
+}
+@media (max-width:680px){
+  .bar .col{gap:12px}
+  .brand span{display:none}
+  .head{flex-direction:column;align-items:stretch}
+  .head .btn{align-self:flex-start}
+  .s-num{font-size:26px;line-height:32px}
+  .stage{padding:14px 16px}
+  .search{width:100%}
+  .count{margin-left:0}
+  thead{display:none}
+  table,tbody,tr,td{display:block}
+  tbody tr:not(.zone-row){display:grid;grid-template-columns:1fr auto;gap:6px 12px;padding:14px 4px;border-top:1px solid var(--border)}
+  td{border:0;padding:0}
+  td.c-dest{grid-column:1;order:2}
+  td.c-unit{grid-column:1;order:1}
+  td.c-days{grid-column:2;grid-row:1;order:1}
+  td.c-steps{grid-column:2;grid-row:2;order:2}
+  td.c-miss,td.c-flete{grid-column:1/-1;order:3}
+  td.vacio{display:none}
+  .miss{max-width:none}
+  tbody tr.zone-row td{padding:20px 4px 4px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="bar" id="bar">
+  <div class="col">
+    <div class="brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><rect x="1" y="5" width="13" height="11" rx="1.5" fill="currentColor"/><path d="M14 9h4.5l3.5 4v3h-8z" fill="currentColor" opacity=".55"/><circle cx="6" cy="18.5" r="2.5" fill="var(--ground)" stroke="currentColor" stroke-width="1.6"/><circle cx="17.5" cy="18.5" r="2.5" fill="var(--ground)" stroke="currentColor" stroke-width="1.6"/></svg>
+      BMA <span>Logística</span>
+    </div>
+    <nav class="nav" aria-label="Secciones">
+      <a href="#" aria-current="page">Ventas</a>
+      <a href="#" class="pronto" aria-disabled="true">Recreativos<small>pronto</small></a>
+      <a href="#" class="pronto" aria-disabled="true">Entregado<small>pronto</small></a>
+      <a href="#" class="pronto" aria-disabled="true">Fleteros<small>pronto</small></a>
+    </nav>
+    <div class="stamp" id="stamp"></div>
+  </div>
+</header>
+
+<main class="col">
+  <div class="head">
+    <div>
+      <h1>Entregas por salir</h1>
+      <p class="finding" id="finding"></p>
+    </div>
+    <button class="btn primary" type="button">Nueva entrega</button>
+  </div>
+
+  <section class="flow" id="flow" aria-label="Avance de las entregas"></section>
+
+  <section class="zones" aria-labelledby="zt">
+    <div class="zones-top"><h2 id="zt">Hacia dónde van</h2><p id="zsub"></p></div>
+    <div class="zbar" id="zbar" aria-hidden="true"></div>
+    <div class="zlegend" id="zlegend"></div>
+  </section>
+
+  <section class="list" aria-labelledby="lt">
+    <div class="list-head">
+      <h2 id="lt" style="margin-right:8px">Unidades</h2>
+      <input class="search" id="q" type="search" placeholder="Buscar unidad, destino, remisión o vendedor" aria-label="Buscar">
+      <select class="sel" id="vend" aria-label="Vendedor"></select>
+      <button class="toggle" id="falt" type="button" aria-pressed="false">Con faltante</button>
+      <span class="count num" id="count"></span>
+    </div>
+    <div class="legend" aria-hidden="true">
+      <span><i class="step ok">A</i>Hecho</span>
+      <span><i class="step">A</i>Pendiente</span>
+      <span><i class="step x">A</i>Marcado con X</span>
+      <span>A Armado · H Herrería · F Forrado · P Pintura · R Revisión</span>
+    </div>
+    <table>
+      <thead><tr><th>Unidad</th><th>Destino</th><th>Taller</th><th>Faltante</th><th>Flete</th><th class="num">Días</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </section>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="st" aria-hidden="true">
+  <header><div><h2 id="st"></h2><div class="sub" id="ss"></div></div><button class="x-close" id="close" type="button" aria-label="Cerrar"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button></header>
+  <div class="body" id="sb"></div>
+</aside>
+
+<!-- Datos de prueba: solo en esta computadora (datos/ no se sube al repo). Después vendrán de Supabase. -->
+<script src="datos/datos.js"></script>
+<script>
+(function(){
+  var CORTE = window.CORTE ? new Date(window.CORTE + 'T12:00:00') : new Date();
+  var PASOS = [['A','Armado'],['H','Herrería'],['F','Forrado'],['P','Pintura'],['R','Revisión']];
+  var ZONAS = [
+    {id:'cerca',    nombre:'Local cerca',        nota:'se entrega con flete local'},
+    {id:'lejos',    nombre:'Local más lejos',    nota:'flete local, ruta larga'},
+    {id:'foranea',  nombre:'Foránea',            nota:'necesita tráiler'},
+    {id:'sucursal', nombre:'Sucursales',         nota:'Wash, Américas, AGS, Tepic y ruta Pacífico'},
+    {id:'granja',   nombre:'Recoge en granja',   nota:'el cliente pasa por ella'},
+    {id:'sin',      nombre:'Sin destino',        nota:'falta capturar'}
+  ];
+  // Motoplaza va con local cerca (naranja en el Excel) y la ruta Pacífico con sucursales: por confirmar.
+  var rows = (window.VENTAS || []).map(function(r, i){
+    var z = r.zona === 'motoplaza' ? 'cerca' : r.zona === 'pacifico' ? 'sucursal' : r.zona;
+    var f = r.fecha ? new Date(r.fecha + 'T12:00:00') : null;
+    var hechos = r.pasos.filter(function(p){return p==='ok'}).length;
+    var etapa = r.pasos[4]==='ok' ? (r.fletero ? 'flete' : 'lista') : (hechos>0 || r.pasos.indexOf('x')>-1 ? 'taller' : 'espera');
+    return Object.assign({}, r, {i:i, z:z, fechaD:f, dias: f ? Math.round((CORTE - f)/864e5) : null, etapa:etapa, hechos:hechos});
+  });
+
+  var ETAPAS = [
+    {id:'espera', nombre:'Sin entrar a taller', sub:function(l){return 'la más antigua: ' + maxDias(l) + ' días'}},
+    {id:'taller', nombre:'En taller',           sub:function(l){return pasoComun(l)}},
+    {id:'lista',  nombre:'Lista, sin flete',    sub:function(l){return l.length ? 'revisión terminada' : '—'}},
+    {id:'flete',  nombre:'Con flete asignado',  sub:function(l){return l.length ? 'esperando salir' : 'ninguna todavía'}}
+  ];
+  function maxDias(l){ return l.reduce(function(m,r){return Math.max(m, r.dias||0)},0) }
+  function pasoComun(l){
+    if(!l.length) return '—';
+    var c = {}; l.forEach(function(r){ var k = r.pasos.findIndex(function(p){return p!=='ok'}); if(k>-1){ c[k]=(c[k]||0)+1 } });
+    var best = Object.keys(c).sort(function(a,b){return c[b]-c[a]})[0];
+    return best==null ? '—' : 'la mayoría falta ' + PASOS[best][1].toLowerCase();
+  }
+
+  var st = {etapa:null, zona:null, q:'', vend:'', falt:false};
+  var $ = function(id){return document.getElementById(id)};
+  var fmtMes = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  function fecha(d){ return d ? d.getDate() + ' ' + fmtMes[d.getMonth()] : '—' }
+  function money(n){ return '$' + n.toLocaleString('es-MX') }
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}) }
+  function zona(id){ return ZONAS.find(function(z){return z.id===id}) }
+
+  $('stamp').textContent = !window.CORTE ? '' : 'Lista al ' + CORTE.getDate() + ' ' + fmtMes[CORTE.getMonth()] + ' ' + CORTE.getFullYear();
+
+  // Hallazgo: la frase de arriba se arma con los mismos datos que la lista.
+  (function(){
+    var listas = rows.filter(function(r){return r.etapa==='lista'}).length;
+    var falt = rows.filter(function(r){return r.faltante}).length;
+    var viejas = rows.filter(function(r){return r.dias>60}).length;
+    if(!rows.length){ $('finding').textContent = 'Todavía no hay entregas cargadas.'; return; }
+    $('finding').innerHTML = '<b>' + rows.length + ' unidades</b> por entregar. <b>' + listas + ' ya pasaron revisión</b> y no tienen flete; ' + viejas + ' llevan más de 60 días y ' + falt + ' tienen un faltante.';
+  })();
+
+  // Vendedores
+  var vends = Array.from(new Set(rows.map(function(r){return r.vendedor}))).sort();
+  $('vend').innerHTML = '<option value="">Todos los vendedores</option>' + vends.map(function(v){return '<option>'+esc(v)+'</option>'}).join('');
+
+  function base(skip){
+    var q = st.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    return rows.filter(function(r){
+      if(skip!=='etapa' && st.etapa && r.etapa!==st.etapa) return false;
+      if(skip!=='zona' && st.zona && r.z!==st.zona) return false;
+      if(st.vend && r.vendedor!==st.vend) return false;
+      if(st.falt && !r.faltante) return false;
+      if(q.length){ var t=(r.vehiculo+' '+r.destino+' '+r.remision+' '+r.vendedor+' '+r.faltante+' '+r.fletero).toLowerCase(); if(!q.every(function(w){return t.indexOf(w)>-1})) return false; }
+      return true;
+    });
+  }
+
+  function drawFlow(){
+    var l = base('etapa');
+    $('flow').innerHTML = ETAPAS.map(function(e){
+      var sub = l.filter(function(r){return r.etapa===e.id});
+      var pct = l.length ? sub.length / l.length * 100 : 0;
+      return '<button class="stage" type="button" data-e="'+e.id+'" aria-pressed="'+(st.etapa===e.id)+'">' +
+        '<span class="s-label">'+e.nombre+'</span><span class="s-num num">'+sub.length+'</span>' +
+        '<span class="s-sub">'+e.sub(sub)+'</span><span class="s-track"><i style="width:'+pct.toFixed(1)+'%"></i></span></button>';
+    }).join('');
+  }
+
+  function drawZones(){
+    var l = base('zona');
+    var tot = l.length;
+    $('zsub').textContent = tot + ' unidades en ' + ZONAS.filter(function(z){return l.some(function(r){return r.z===z.id})}).length + ' zonas';
+    $('zbar').innerHTML = ZONAS.map(function(z){
+      var n = l.filter(function(r){return r.z===z.id}).length;
+      return n ? '<i style="flex:'+n+';background:var(--z-'+z.id+')" title="'+z.nombre+': '+n+'"></i>' : '';
+    }).join('');
+    $('zlegend').innerHTML = ZONAS.map(function(z){
+      var n = l.filter(function(r){return r.z===z.id}).length;
+      if(!n && st.zona!==z.id) return '';
+      return '<button class="zchip" type="button" data-z="'+z.id+'" aria-pressed="'+(st.zona===z.id)+'" title="'+z.nota+'">' +
+        '<i class="dot" style="background:var(--z-'+z.id+')"></i><b>'+z.nombre+'</b><span class="n num">'+n+'</span></button>';
+    }).join('');
+  }
+
+  function stepsHTML(r){
+    return '<span class="steps" aria-label="'+PASOS.map(function(p,k){return p[1]+': '+(r.pasos[k]==='ok'?'hecho':r.pasos[k]==='x'?'X':'pendiente')}).join(', ')+'">' +
+      PASOS.map(function(p,k){ return '<i class="step '+r.pasos[k]+'">'+p[0]+'</i>' }).join('') + '</span>';
+  }
+
+  function drawRows(){
+    var l = base();
+    $('count').textContent = l.length === rows.length ? rows.length + ' unidades' : l.length + ' de ' + rows.length + ' unidades';
+    if(!l.length){ $('rows').innerHTML = '<tr class="empty"><td colspan="6">Ninguna unidad con estos filtros.</td></tr>'; return; }
+    var html = '';
+    ZONAS.forEach(function(z){
+      var g = l.filter(function(r){return r.z===z.id}).sort(function(a,b){return (b.dias||0)-(a.dias||0)});
+      if(!g.length) return;
+      html += '<tr class="zone-row"><td colspan="6"><div class="zr"><i class="dot" style="background:var(--z-'+z.id+')"></i><b>'+z.nombre+'</b><span class="n num">'+g.length+'</span><span class="sub" style="margin:0">'+z.nota+'</span></div></td></tr>';
+      g.forEach(function(r){
+        html += '<tr data-i="'+r.i+'" tabindex="0">' +
+          '<td class="c-unit"><div class="unit">'+esc(r.vehiculo)+'</div><div class="sub">Rem. '+esc(r.remision||'—')+' · '+esc(r.vendedor)+(r.prepara?' · prepara '+esc(r.prepara):'')+'</div></td>' +
+          '<td class="c-dest"><div class="dest"><i class="dot" style="background:var(--z-'+r.z+')"></i><div><div>'+esc(r.destino||'—')+'</div><div class="sub">Activa en '+esc(r.activacion||'—')+'</div></div></div></td>' +
+          '<td class="c-steps">'+stepsHTML(r)+'</td>' +
+          '<td class="c-miss miss'+(r.faltante?'':' vacio')+'">'+(r.faltante?'<span class="pill warn">'+esc(r.faltante)+'</span>':'<span class="dash">—</span>')+'</td>' +
+          '<td class="c-flete'+(r.fletero||r.costo?'':' vacio')+'">'+(r.fletero||r.costo?'<div>'+esc(r.fletero||'Sin fletero')+'</div>'+(r.costo?'<div class="sub num">'+money(r.costo)+'</div>':''):'<span class="dash">—</span>')+'</td>' +
+          '<td class="c-days num"><div class="days'+(r.dias>60?' old':'')+'">'+(r.dias==null?'—':r.dias)+'</div><div class="sub">'+fecha(r.fechaD)+'</div></td></tr>';
+      });
+    });
+    $('rows').innerHTML = html;
+  }
+
+  function draw(){ drawFlow(); drawZones(); drawRows(); }
+
+  $('flow').addEventListener('click', function(e){ var b=e.target.closest('.stage'); if(!b) return; st.etapa = st.etapa===b.dataset.e ? null : b.dataset.e; draw(); });
+  $('zlegend').addEventListener('click', function(e){ var b=e.target.closest('.zchip'); if(!b) return; st.zona = st.zona===b.dataset.z ? null : b.dataset.z; draw(); });
+  $('q').addEventListener('input', function(e){ st.q=e.target.value; draw(); });
+  $('vend').addEventListener('change', function(e){ st.vend=e.target.value; draw(); });
+  $('falt').addEventListener('click', function(e){ st.falt=!st.falt; e.currentTarget.setAttribute('aria-pressed', st.falt); draw(); });
+
+  // Ficha
+  function abrir(i){
+    var r = rows[i]; var z = zona(r.z);
+    $('st').textContent = r.vehiculo;
+    $('ss').textContent = 'Remisión ' + (r.remision||'—') + ' · vendida el ' + fecha(r.fechaD) + (r.dias!=null?' · hace '+r.dias+' días':'');
+    var kv = [['Vendedor',r.vendedor],['Destino',r.destino||'—'],['Zona',z.nombre+' — '+z.nota],['Activación',r.activacion||'—'],['Prepara',r.prepara||'—'],['Fletero',r.fletero||'—'],['Costo de envío',r.costo?money(r.costo):'—'],['Llegada (ETA)',r.eta||'—'],['Faltante',r.faltante||'—']];
+    $('sb').innerHTML = '<dl class="kv">' + kv.map(function(p){return '<dt>'+p[0]+'</dt><dd>'+esc(p[1])+'</dd>'}).join('') + '</dl>' +
+      '<ol class="track"><h3>Taller</h3>' + PASOS.map(function(p,k){ var s=r.pasos[k]; return '<li><i class="step '+s+'">'+p[0]+'</i><span>'+p[1]+'</span><span>'+(s==='ok'?'Hecho':s==='x'?'Marcado con X':'Pendiente')+'</span></li>' }).join('') + '</ol>';
+    $('sheet').classList.add('on'); $('scrim').classList.add('on'); $('sheet').setAttribute('aria-hidden','false'); $('close').focus();
+  }
+  function cerrar(){ $('sheet').classList.remove('on'); $('scrim').classList.remove('on'); $('sheet').setAttribute('aria-hidden','true'); }
+  $('rows').addEventListener('click', function(e){ var t=e.target.closest('tr[data-i]'); if(t) abrir(+t.dataset.i); });
+  $('rows').addEventListener('keydown', function(e){ var t=e.target.closest('tr[data-i]'); if(t && (e.key==='Enter'||e.key===' ')){ e.preventDefault(); abrir(+t.dataset.i); } });
+  $('close').addEventListener('click', cerrar); $('scrim').addEventListener('click', cerrar);
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') cerrar(); });
+  window.addEventListener('scroll', function(){ $('bar').classList.toggle('scrolled', scrollY>4) }, {passive:true});
+
+  draw();
+})();
+</script>
+</body>
+</html>
