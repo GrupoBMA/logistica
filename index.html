@@ -96,7 +96,34 @@ kbd{font:500 11px/16px var(--font);min-width:18px;height:18px;padding:0 5px;bord
 h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin:0}
 .objective{display:flex;align-items:center;gap:10px;margin:8px 0 0;font-size:16px;line-height:24px}
 .objective span:last-child{color:var(--muted)}
-.cats{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:20px 0 18px}
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:20px 0 18px}
+.cats{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.modo{display:inline-flex;background:var(--raised);border-radius:10px;padding:3px;gap:2px}
+.modo button{width:38px;height:34px;border:0;border-radius:8px;background:none;color:var(--muted);display:grid;place-items:center}
+.modo button:hover{color:var(--text)}
+.modo button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+
+/* Vista de lista (como el modo Detalles de una carpeta de Windows) */
+.lista{display:flex;flex-direction:column;gap:6px}
+.lhead,.fila{display:grid;grid-template-columns:40px 92px minmax(0,1.6fr) 150px minmax(0,1.2fr) 74px 74px;align-items:center;gap:16px;padding:0 16px}
+.lhead{font-size:12px;color:var(--muted);padding-bottom:2px}
+.lhead span:nth-child(6),.lhead span:nth-child(7){text-align:right}
+.fila{min-height:64px;padding:10px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--border);text-align:left;cursor:pointer;width:100%}
+.fila:hover{border-color:var(--text)}
+.fila .ic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center}
+.fila .c-rem{font-weight:700;font-size:15px}
+.fila .c-veh{min-width:0}
+.fila .c-veh b{display:block;font-size:16px;line-height:21px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fila .c-veh small{display:block;color:var(--muted);font-size:13px;line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fila .c-veh .falta{color:var(--warn)}
+.fila .c-veh .rem-m{display:none;color:var(--muted);font-weight:500}
+.fila .c-pasos{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);white-space:nowrap}
+.fila .c-pasos .bar5{flex:1}
+.fila .c-dest{min-width:0}
+.fila .c-fecha{text-align:right;font-size:14px;white-space:nowrap}
+.fila .c-dias{text-align:right;font-size:20px;font-weight:700;line-height:24px}
+.fila .c-dias.old{color:var(--neg)}
+.fila .c-dias small{display:block;font-size:11px;font-weight:400;line-height:14px;color:var(--muted)}
 .filter{display:inline-flex;align-items:center;gap:10px;font-size:14px;color:var(--muted)}
 .filter select{height:40px;min-width:240px;padding:0 36px 0 12px;border:1px solid var(--control);border-radius:10px;background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236b6d66' stroke-width='1.6'%3E%3Cpath d='m2.5 4.5 3.5 3.5 3.5-3.5'/%3E%3C/svg%3E") right 12px center no-repeat;color:var(--text);font:inherit;font-size:15px;font-weight:500;appearance:none;-webkit-appearance:none;cursor:pointer}
 .filter select:hover{border-color:var(--text)}
@@ -186,6 +213,11 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   .mi .c{font-size:15px}
   h1{font-size:24px;line-height:30px}
   .slots{grid-template-columns:1fr}
+  .lhead{display:none}
+  .fila{grid-template-columns:36px minmax(0,1fr) auto;grid-template-areas:'ic veh dias' 'ic dest dias';gap:4px 12px;padding:12px}
+  .fila .c-rem,.fila .c-pasos,.fila .c-fecha{display:none}
+  .fila .c-ic{grid-area:ic} .fila .c-veh{grid-area:veh} .fila .c-dest{grid-area:dest} .fila .c-dias{grid-area:dias}
+  .fila .c-veh .rem-m{display:inline}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -215,7 +247,13 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 
   <main>
     <div class="view-head"><h1 id="vt"></h1><p class="objective" id="vo"></p></div>
-    <div class="cats" id="cats"></div>
+    <div class="toolbar">
+      <div class="cats" id="cats"></div>
+      <div class="modo" role="group" aria-label="Ver como" id="modo">
+        <button type="button" data-m="tarjetas" aria-pressed="true" title="Ver como tarjetas" aria-label="Ver como tarjetas"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2.5" y="2.5" width="5" height="5" rx="1"/><rect x="10.5" y="2.5" width="5" height="5" rx="1"/><rect x="2.5" y="10.5" width="5" height="5" rx="1"/><rect x="10.5" y="10.5" width="5" height="5" rx="1"/></svg></button>
+        <button type="button" data-m="lista" aria-pressed="false" title="Ver como lista" aria-label="Ver como lista"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6.5 4.5h9M6.5 9h9M6.5 13.5h9"/><circle cx="3" cy="4.5" r=".9" fill="currentColor"/><circle cx="3" cy="9" r=".9" fill="currentColor"/><circle cx="3" cy="13.5" r=".9" fill="currentColor"/></svg></button>
+      </div>
+    </div>
     <div class="slots" id="slots"></div>
     <div class="legend" id="legend"></div>
   </main>
@@ -256,6 +294,8 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     {id:'todas',   nombre:'Todas',            sub:'Todo el inventario', objetivo:'Todas las unidades vendidas que aún no se entregan.', filtro:function(){return true}, orden:'estado'}
   ];
   var st = {vista:'flete', bodega:'', tipo:'', q:''};
+  var modo = 'tarjetas';
+  try { if(localStorage.getItem('logistica.modo')==='lista') modo = 'lista' } catch(e){}
 
   function base(){ return st.bodega ? TODAS.filter(function(u){return u.bodega===st.bodega}) : TODAS }
   function buscar(l){
@@ -286,6 +326,18 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   function destino(u){
     var c = u.color_destino;
     return '<span class="dpill" title="'+esc(L.nombreDe(L.ZONAS,u.z))+'"><span class="d"'+(c?' style="background:'+c+'"':'')+'></span><span class="t">'+esc(L.lugar(u))+'</span></span>';
+  }
+  function fila(u){
+    var barras = '<span class="bar5" aria-hidden="true">'+u.pasos.map(function(x){return '<i class="'+x+'"></i>'}).join('')+'</span>';
+    return '<button class="fila" type="button" data-i="'+u.i+'" aria-label="Remisión '+esc(u.remision||'sin número')+', '+esc(u.modelo)+', '+L.nombreDe(L.ESTADOS,u.estado)+', '+esc(L.lugar(u))+(u.faltante?', con faltante':'')+'">' +
+      '<span class="c-ic"><span class="ic '+u.estado+'" title="'+L.nombreDe(L.ESTADOS,u.estado)+'">'+ICON[u.estado]+'</span></span>' +
+      '<span class="c-rem num">'+esc(u.remision||'—')+'</span>' +
+      '<span class="c-veh"><b>'+esc(u.modelo)+(u.cant>1?' × '+u.cant:'')+' <span class="rem-m num">· '+esc(u.remision||'—')+'</span></b>' +
+        (u.faltante ? '<small class="falta">Falta: '+esc(u.faltante.toLowerCase())+'</small>' : '<small>'+esc(u.detalle)+'</small>') + '</span>' +
+      '<span class="c-pasos">'+barras+'<span class="num">'+u.ok+'/5</span></span>' +
+      '<span class="c-dest">'+destino(u)+'</span>' +
+      '<span class="c-fecha num">'+fecha(u.f)+'</span>' +
+      '<span class="c-dias num'+(u.dias>VIEJA?' old':'')+'">'+(u.dias==null?'—':u.dias)+'<small>días</small></span></button>';
   }
   function slot(u){
     var grande = true; // las 5 rayitas grandes en todas las casillas (pedido del usuario)
@@ -318,7 +370,12 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     $('vt').textContent = buscando ? 'Resultados de “'+st.q.trim()+'”' : v.nombre;
     $('vo').innerHTML = buscando ? '<span></span><span>'+unidades(l.length)+', de todas las vistas.</span>' : '<span class="ic '+v.id+'" style="width:26px;height:26px;border-radius:7px;display:inline-grid;place-items:center;flex:none">'+ICON[v.id]+'</span><span>'+v.objetivo+'</span>';
 
-    $('slots').innerHTML = l.length ? l.map(slot).join('') : '<div class="empty">'+(buscando?'Nada coincide con la búsqueda.':'No hay unidades aquí.')+'</div>';
+    $('modo').querySelectorAll('button').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.m===modo) });
+    $('slots').className = modo==='lista' ? 'lista' : 'slots';
+    var vacio = '<div class="empty">'+(buscando?'Nada coincide con la búsqueda.':'No hay unidades aquí.')+'</div>';
+    $('slots').innerHTML = !l.length ? vacio : modo==='lista'
+      ? '<div class="lhead" aria-hidden="true"><span></span><span>Remisión</span><span>Vehículo</span><span>Taller</span><span>Destino</span><span>Vendida</span><span>Días</span></div>' + l.map(fila).join('')
+      : l.map(slot).join('');
     $('legend').innerHTML = ['flete','taller','empezar','piezas'].map(function(e){ return '<span><span class="ic '+e+'">'+ICON[e]+'</span>'+L.nombreDe(L.ESTADOS,e)+'</span>' }).join('') +
       '<span><span class="miss" style="font-size:12px;padding:1px 6px;border-radius:4px;color:var(--warn);background:var(--warn-bg)">Falta: …</span>Con faltante</span>';
   }
@@ -348,7 +405,8 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   $('cats').addEventListener('click', function(e){ if(e.target.id==='tipoClear'){ st.tipo=''; drawView(); } });
   $('bodegas').addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return; st.bodega=b.dataset.b; $('bodegas').querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed', x===b)}); draw(); });
   $('q').addEventListener('input', function(e){ st.q=e.target.value; st.tipo=''; draw(); });
-  document.addEventListener('click', function(e){ var s=e.target.closest('.slot'); if(s) abrir(+s.dataset.i) });
+  $('modo').addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return; modo=b.dataset.m; try{ localStorage.setItem('logistica.modo', modo) }catch(err){} drawView(); });
+  document.addEventListener('click', function(e){ var s=e.target.closest('.slot,.fila'); if(s) abrir(+s.dataset.i) });
   $('close').addEventListener('click', cerrar); $('scrim').addEventListener('click', cerrar);
   document.addEventListener('keydown', function(e){
     if(e.key==='Escape'){ if($('insp').classList.contains('on')) return cerrar(); if(document.activeElement===$('q')){ $('q').value=''; st.q=''; $('q').blur(); draw(); } return; }
