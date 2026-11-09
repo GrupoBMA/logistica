@@ -133,8 +133,12 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .prog5 .bar5{flex:1}
 .bar5{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
 .bar5 i{height:6px;border-radius:3px;background:var(--raised)}
-.bar5 i.ok{background:var(--work)}
-.bar5 i.x{background:var(--neg)}
+.bar5 i.ok{background:var(--ok)}
+.bar5 i.x{background:var(--work)}
+.mini5{display:grid;grid-template-columns:repeat(5,10px);gap:3px;flex:none;align-self:center}
+.mini5 i{height:4px;border-radius:2px;background:var(--raised)}
+.mini5 i.ok{background:var(--ok)}
+.mini5 i.x{background:var(--work)}
 .slot .miss{font-size:13px;line-height:18px;color:var(--warn);background:var(--warn-bg);border-radius:6px;padding:4px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .empty{grid-column:1/-1;padding:32px;border:1px dashed var(--control);border-radius:14px;color:var(--muted);text-align:center}
 .legend{display:flex;flex-wrap:wrap;gap:16px;margin:28px 0 0;color:var(--muted);font-size:13px}
@@ -157,8 +161,8 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .st5{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:18px}
 .st5 div{padding:10px 4px;border-radius:10px;background:var(--raised);text-align:center;font-size:12px;line-height:16px;color:var(--muted)}
 .st5 div b{display:block;font-size:15px;color:var(--text);margin-bottom:2px}
-.st5 div.ok{background:var(--work-bg);color:var(--work)} .st5 div.ok b{color:var(--work)}
-.st5 div.x{background:var(--neg-bg);color:var(--neg)} .st5 div.x b{color:var(--neg)}
+.st5 div.ok{background:var(--ok-bg);color:var(--ok)} .st5 div.ok b{color:var(--ok)}
+.st5 div.x{background:var(--work-bg);color:var(--work)} .st5 div.x b{color:var(--work)}
 .kv{display:grid;grid-template-columns:120px 1fr;margin:0}
 .kv dt{color:var(--muted);padding:9px 0;border-bottom:1px solid var(--border)}
 .kv dd{margin:0;padding:9px 0;border-bottom:1px solid var(--border)}
@@ -280,9 +284,11 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     return '<span class="dpill" title="'+esc(L.nombreDe(L.ZONAS,u.z))+'"><span class="d"'+(c?' style="background:'+c+'"':'')+'></span><span class="t">'+esc(L.lugar(u))+'</span></span>';
   }
   function slot(u){
-    var mid = u.estado==='taller' ? '<span class="prog5"><span class="bar5" aria-hidden="true">'+u.pasos.map(function(x){return '<i class="'+x+'"></i>'}).join('')+'</span><span>'+u.ok+' de 5</span></span>' : '';
+    var grande = st.vista==='taller' && !st.q.trim();
+    var mid = grande ? '<span class="prog5"><span class="bar5" aria-hidden="true">'+u.pasos.map(function(x){return '<i class="'+x+'"></i>'}).join('')+'</span><span>'+u.ok+' de 5</span></span>' : '';
     return '<button class="slot" type="button" data-i="'+u.i+'" aria-label="Remisión '+esc(u.remision||'sin número')+', '+esc(u.modelo)+', '+L.nombreDe(L.ESTADOS,u.estado)+', '+esc(L.lugar(u))+(u.faltante?', con faltante':'')+'">' +
       '<span class="top"><span class="ic '+u.estado+'" title="'+L.nombreDe(L.ESTADOS,u.estado)+'">'+ICON[u.estado]+'</span><span class="rem num"><small>Remisión</small>'+esc(u.remision||'—')+'</span>' +
+        (!grande ? '<span class="mini5" title="Pasos del taller: '+u.ok+' de 5 en OK" aria-hidden="true">'+u.pasos.map(function(x){return '<i class="'+x+'"></i>'}).join('')+'</span>' : '') +
         '<span class="sold num"><small>Vendida</small>'+fecha(u.f)+'</span></span>' +
       '<span><span class="m">'+esc(u.modelo)+(u.cant>1?' <span class="q">× '+u.cant+'</span>':'')+'</span><span class="dt">'+esc(u.detalle)+'</span></span>' + mid +
       (u.faltante ? '<span class="miss" title="Falta: '+esc(u.faltante)+'">Falta: '+esc(u.faltante.toLowerCase())+'</span>' : '') +
