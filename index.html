@@ -55,7 +55,38 @@ kbd{font:500 11px/16px var(--font);min-width:18px;height:18px;padding:0 5px;bord
 .bar{display:flex;align-items:center;gap:16px;padding:10px 20px;max-width:1360px;margin:0 auto}
 .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;white-space:nowrap}
 .brand span{font-weight:400;color:var(--muted)}
-.find{position:relative;flex:1;max-width:460px;margin-left:24px}
+.find{position:relative;flex:0 1 320px;min-width:220px}
+.tabs{display:flex;gap:4px;margin-left:24px}
+.tab{height:38px;padding:0 14px;border:0;border-radius:10px;background:none;color:var(--muted);font-weight:500;font-size:15px;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.tab:hover{color:var(--text)}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--text);box-shadow:inset 0 0 0 1px var(--border)}
+.tab .n{font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* Cambios */
+.cambios{display:flex;flex-direction:column;gap:24px}
+.dia h2{font-size:15px;line-height:20px;font-weight:700;margin:0 0 10px}
+.dia h2 span{color:var(--muted);font-weight:400}
+.cbs{display:flex;flex-direction:column;gap:8px}
+.cb{display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:14px;padding:14px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--border);text-align:left;width:100%}
+button.cb:hover{border-color:var(--text)}
+.cb .ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center}
+.cb .t{font-weight:700;font-size:15px;line-height:20px}
+.cb .t .r{font-weight:500;color:var(--muted)}
+.cb .d{font-size:14px;line-height:20px;margin-top:2px}
+.cb .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.cb .chips span{font-size:12px;line-height:16px;padding:3px 8px;border-radius:6px;background:var(--raised);color:var(--muted)}
+.cb .chips .mas{background:var(--ok-bg);color:var(--ok)}
+.cb .chips .menos{background:var(--neg-bg);color:var(--neg)}
+.cb .chips .conx{background:var(--xpaso-bg);color:var(--xpaso-ink)}
+.cb .chips .falta{background:var(--warn-bg);color:var(--warn)}
+.cb .lado{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;white-space:nowrap}
+.cb .lado .bar5{width:72px}
+.cb .hora{font-size:12px;color:var(--muted);text-align:right;margin-top:6px}
+.nota{color:var(--muted);font-size:13px;line-height:18px;margin:0 0 18px}
+.ic.entregada{background:var(--raised);color:var(--text)}
+.ic.nueva{background:var(--work-bg);color:var(--work)}
+.ic.salio{background:var(--neg-bg);color:var(--neg)}
+@media (max-width:760px){ .cb{grid-template-columns:36px minmax(0,1fr)} .cb .der{grid-column:2} .cb .lado{justify-content:flex-start} .cb .hora{text-align:left} }
 .find input{width:100%;height:40px;padding:0 44px 0 38px;border:1px solid var(--control);border-radius:10px;background:var(--surface)}
 .find input::placeholder{color:var(--faint)}
 .find svg{position:absolute;left:12px;top:13px}
@@ -231,7 +262,8 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 }
 @media (max-width:900px){
   .bar{flex-wrap:wrap;padding:10px 16px}
-  .find{order:3;margin-left:0;max-width:none;flex-basis:100%}
+  .tabs{order:3;margin-left:0;flex-basis:100%;overflow-x:auto;scrollbar-width:none}
+  .find{flex-basis:100%;max-width:none}
   .find kbd{display:none}
   .app{grid-template-columns:1fr;padding:8px 16px 48px;gap:16px}
   .menu{position:static;flex-direction:row;overflow-x:auto;gap:6px;scrollbar-width:none;margin:0 -16px;padding:0 16px 2px}
@@ -269,8 +301,11 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="5" cy="13" r="3.5" fill="currentColor"/><circle cx="21" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.5 13h9" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
     BMA <span>Logística</span>
   </div>
-  <label class="find"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="6" r="4.8"/><path d="m9.6 9.6 3.4 3.4"/></svg>
-    <input id="q" type="search" placeholder="Buscar cualquier unidad: modelo, destino, remisión…" aria-label="Buscar cualquier unidad"><kbd>/</kbd></label>
+  <nav class="tabs" role="tablist" aria-label="Secciones" id="tabs">
+    <button class="tab" type="button" role="tab" data-t="ventas" aria-selected="true">Ventas <span class="n" id="nV"></span></button>
+    <button class="tab" type="button" role="tab" data-t="cambios" aria-selected="false">Cambios <span class="n" id="nC"></span></button>
+    <button class="tab" type="button" role="tab" data-t="entregados" aria-selected="false">Entregados <span class="n" id="nE"></span></button>
+  </nav>
   <div class="seg" role="group" aria-label="Bodega" id="bodegas">
     <button type="button" data-b="" aria-pressed="true">Todas</button>
     <button type="button" data-b="granja" aria-pressed="false">Granja</button>
@@ -295,6 +330,8 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   <main>
     <div class="view-head"><h1 id="vt"></h1><p class="objective" id="vo"></p></div>
     <div class="toolbar">
+      <label class="find"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="6" r="4.8"/><path d="m9.6 9.6 3.4 3.4"/></svg>
+        <input id="q" type="search" placeholder="Buscar modelo, destino, remisión…" aria-label="Buscar"><kbd>/</kbd></label>
       <div class="cats" id="cats"></div>
       <div class="modo" role="group" aria-label="Ver como" id="modo">
         <button type="button" data-m="tarjetas" aria-pressed="true" title="Ver como tarjetas" aria-label="Ver como tarjetas"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2.5" y="2.5" width="5" height="5" rx="1"/><rect x="10.5" y="2.5" width="5" height="5" rx="1"/><rect x="2.5" y="10.5" width="5" height="5" rx="1"/><rect x="10.5" y="10.5" width="5" height="5" rx="1"/></svg></button>
@@ -334,11 +371,11 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   var GOOGLE_CLIENT_ID = '580029556888-pg3prpg2e3cnlqsv6tok69pej6e8n7cq.apps.googleusercontent.com'; // proyecto de Google "Grupo BMA" (público por diseño)
   var DOMINIO = '@logistica.bma';   // el usuario se escribe sin correo: "juan" -> juan@logistica.bma
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth:{persistSession:true, autoRefreshToken:true}});
-  var TODAS = [];
+  var TODAS = [], ENTREGADOS = [], ALL = [], CAMBIOS = [];
 
   // Renglón de la tabla logistica.entregas -> el mismo formato que trae el Excel
   function deTabla(e){
-    return {vendedor:e.vendedor||'', vehiculo:e.vehiculo||'', pasos:[e.armado||'',e.herreria||'',e.forrado||'',e.pintura||'',e.revision||''],
+    return {hoja:e.hoja||'ventas', vendedor:e.vendedor||'', vehiculo:e.vehiculo||'', pasos:[e.armado||'',e.herreria||'',e.forrado||'',e.pintura||'',e.revision||''],
       fecha:e.fecha||null, fecha_txt:e.fecha_txt||'', remision:e.remision||'', destino:e.destino||'', zona:e.zona||'sin',
       activacion:e.activacion||'', costo:e.costo_envio==null?null:+e.costo_envio, fletero:e.fletero||'', eta:e.eta||'',
       faltante:e.faltante||'', prepara:e.prepara||'', color_vehiculo:e.color_vehiculo||null, color_destino:e.color_destino||null};
@@ -354,7 +391,10 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
         $('lErr').textContent='No se pudieron cargar los datos. Intenta de nuevo.'; sesionVisible(false); return;
       }
       var filas = (r.data && r.data.entregas) || [];
-      TODAS = L.cargar(filas.map(deTabla), hoyISO()).unidades;
+      ALL = L.cargar(filas.map(deTabla), hoyISO()).unidades;
+      TODAS = ALL.filter(function(u){ return u.hoja!=='entregado' });
+      ENTREGADOS = ALL.filter(function(u){ return u.hoja==='entregado' });
+      sb.rpc('logistica_cambios', {p_dias: 60}).then(function(c){ CAMBIOS = (c && c.data) || []; draw(); });
       var sub = r.data && r.data.subido ? new Date(r.data.subido) : null;
       var txt = info && info.modificado
         ? 'Excel del Drive guardado por última vez el <b>'+fecha(new Date(info.modificado))+'</b> a las '+hora(new Date(info.modificado))+'. Leído a las '+hora(new Date())+'.'
@@ -393,6 +433,9 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     empezar:'<svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><path d="M6 4.5v9l7-4.5z"/></svg>',
     piezas:'<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3.5" y="8" width="11" height="7.5" rx="1.5"/><path d="M6 8V6a3 3 0 0 1 6 0v2"/></svg>',
     faltante:'<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 2.5 16 15H2z"/><path d="M9 7.5v3.5M9 13.2v.1"/></svg>',
+    entregada:'<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 4.5h9v8h-9zM10.5 7.5h3.5l2.5 2.5v2.5h-6z"/><circle cx="5" cy="13.5" r="1.6" fill="currentColor"/><circle cx="13" cy="13.5" r="1.6" fill="currentColor"/></svg>',
+    nueva:'<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 4v10M4 9h10"/></svg>',
+    salio:'<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5H3.5v11H7M11 5.5 14.5 9 11 12.5M14.5 9H7"/></svg>',
     todas:'<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="2.5" y="2.5" width="5" height="5" rx="1"/><rect x="10.5" y="2.5" width="5" height="5" rx="1"/><rect x="2.5" y="10.5" width="5" height="5" rx="1"/><rect x="10.5" y="10.5" width="5" height="5" rx="1"/></svg>'
   };
 
@@ -405,11 +448,12 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     {id:'piezas',  nombre:'Esperando piezas', sub:'Bloqueadas',         objetivo:'No se pueden trabajar hasta que llegue el vehículo o sus piezas.', filtro:function(u){return u.estado==='piezas'}, orden:'dias'},
     {id:'todas',   nombre:'Todas',            sub:'Todo el inventario', objetivo:'Todas las unidades vendidas que aún no se entregan.', filtro:function(){return true}, orden:'estado'}
   ];
-  var st = {vista:'flete', bodega:'', tipo:'', destino:'', q:''};
+  var st = {tab:'ventas', vista:'flete', bodega:'', tipo:'', destino:'', q:''};
   var modo = 'tarjetas';
   try { if(localStorage.getItem('logistica.modo')==='lista') modo = 'lista' } catch(e){}
 
   function base(){ return st.bodega ? TODAS.filter(function(u){return u.bodega===st.bodega}) : TODAS }
+  function baseEntregados(){ return st.bodega ? ENTREGADOS.filter(function(u){return u.bodega===st.bodega}) : ENTREGADOS }
   function buscar(l){
     var q = st.q.trim().toLowerCase().split(/\s+/).filter(Boolean); if(!q.length) return l;
     return l.filter(function(u){ var t=(u.vehiculo+' '+u.destino+' '+u.remision+' '+u.vendedor+' '+u.distribuidor+' '+L.nombreDe(L.TIPOS,u.tipo)).toLowerCase(); return q.every(function(w){return t.indexOf(w)>-1}) });
@@ -427,7 +471,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     var b = base();
     $('menu').innerHTML = VISTAS.map(function(v,k){
       var n = b.filter(v.filtro).length;
-      return '<button class="mi" type="button" data-v="'+v.id+'" aria-current="'+(st.vista===v.id && !st.q.trim())+'"><span class="ic '+v.id+'">'+ICON[v.id]+'</span><span><b>'+v.nombre+'</b><small>'+v.sub+'</small></span><span class="c num">'+n+'</span></button>';
+      return '<button class="mi" type="button" data-v="'+v.id+'" aria-current="'+(st.tab==='ventas' && st.vista===v.id && !st.q.trim())+'"><span class="ic '+v.id+'">'+ICON[v.id]+'</span><span><b>'+v.nombre+'</b><small>'+v.sub+'</small></span><span class="c num">'+n+'</span></button>';
     }).join('');
     var listas = b.filter(function(u){return u.estado==='flete'}).length;
     $('gm').style.width = (b.length ? listas/b.length*100 : 0)+'%';
@@ -449,7 +493,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
       '<span class="c-pasos">'+barras+'<span class="num">'+u.ok+'/5</span></span>' +
       '<span class="c-dest">'+destino(u)+'</span>' +
       '<span class="c-fecha num">'+fecha(u.f)+'</span>' +
-      '<span class="c-dias num'+(u.dias>VIEJA?' old':'')+'">'+(u.dias==null?'—':u.dias)+'<small>días</small></span></button>';
+      (u.estado==='entregada' ? '<span class="c-dias"><small>Entregada</small></span></button>' : '<span class="c-dias num'+(u.dias>VIEJA?' old':'')+'">'+(u.dias==null?'—':u.dias)+'<small>días</small></span></button>');
   }
   function slot(u){
     var grande = true; // las 5 rayitas grandes en todas las casillas (pedido del usuario)
@@ -461,14 +505,22 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
       '<span><span class="m">'+esc(u.modelo)+(u.cant>1?' <span class="q">× '+u.cant+'</span>':'')+'</span><span class="dt">'+esc(u.detalle)+'</span></span>' + mid +
       (u.faltante ? '<span class="miss" title="Falta: '+esc(u.faltante)+'">Falta: '+esc(u.faltante.toLowerCase())+'</span>' : '') +
       '<span class="where"><span class="pl">'+destino(u)+(u.distribuidor?' <span style="color:var(--muted);font-size:13px">distribuidor</span>':'')+'</span>' +
-        '<span class="age num'+(u.dias>VIEJA?' old':'')+'"><b>'+(u.dias==null?'—':u.dias)+'</b>días desde la venta</span></span>' +
+        (u.estado==='entregada' ? '<span class="age">Entregada</span>' : '<span class="age num'+(u.dias>VIEJA?' old':'')+'"><b>'+(u.dias==null?'—':u.dias)+'</b>días desde la venta</span>') + '</span>' +
       '</button>';
   }
 
   function drawView(){
-    var v = VISTAS.find(function(x){return x.id===st.vista});
+    $('tabs').querySelectorAll('.tab').forEach(function(b){ b.setAttribute('aria-selected', b.dataset.t===st.tab) });
+    var hace7 = Date.now() - 7*864e5;
+    $('nV').textContent = base().length; $('nE').textContent = baseEntregados().length;
+    var recientes = CAMBIOS.filter(function(c){ return new Date(c.fecha).getTime() > hace7 }).length;
+    $('nC').textContent = recientes || '';
+    if(st.tab==='cambios'){ drawCambios(); return; }
+    var ent = st.tab==='entregados';
+    $('modo').hidden = false;
+    var v = ent ? {id:'entregada', nombre:'Entregados', objetivo:'Unidades que ya salieron (hoja ENTREGADO del Excel), de la venta más reciente a la más antigua.'} : VISTAS.find(function(x){return x.id===st.vista});
     var buscando = !!st.q.trim();
-    var l = buscar(buscando ? base() : base().filter(v.filtro));
+    var l = ent ? buscar(baseEntregados()) : buscar(buscando ? base() : base().filter(v.filtro));
     // Filtros desplegables: tipo de vehículo y destino. Cada uno cuenta con el otro ya aplicado.
     var conDestino = st.destino ? l.filter(function(u){return L.lugar(u)===st.destino}) : l;
     var conTipo = st.tipo ? l.filter(function(u){return u.tipo===st.tipo}) : l;
@@ -491,33 +543,98 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
       ((st.tipo || st.destino) ? '<button class="clear" type="button" id="tipoClear">Quitar filtros</button>' : '') : '';
     if(st.tipo) l = l.filter(function(u){return u.tipo===st.tipo});
     if(st.destino) l = l.filter(function(u){return L.lugar(u)===st.destino});
-    l.sort(ORDENES.dias); // siempre: más días desde la venta primero, en todas las vistas
+    l.sort(ent ? function(a,b){ return (b.f||0)-(a.f||0) || b.i-a.i } : ORDENES.dias); // Ventas: más días desde la venta primero; Entregados: la venta más reciente primero
 
     $('vt').textContent = buscando ? 'Resultados de “'+st.q.trim()+'”' : v.nombre;
-    $('vo').innerHTML = buscando ? '<span></span><span>'+unidades(l.length)+', de todas las vistas.</span>' : '<span class="ic '+v.id+'" style="width:26px;height:26px;border-radius:7px;display:inline-grid;place-items:center;flex:none">'+ICON[v.id]+'</span><span>'+v.objetivo+'</span>';
+    $('vo').innerHTML = buscando ? '<span></span><span>'+unidades(l.length)+(ent ? ' en Entregados.' : ', de todas las vistas de Ventas.')+'</span>' : '<span class="ic '+v.id+'" style="width:26px;height:26px;border-radius:7px;display:inline-grid;place-items:center;flex:none">'+ICON[v.id]+'</span><span>'+v.objetivo+'</span>';
 
     $('modo').querySelectorAll('button').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.m===modo) });
     $('slots').className = modo==='lista' ? 'lista' : 'slots';
     var vacio = '<div class="empty">'+(buscando?'Nada coincide con la búsqueda.':'No hay unidades aquí.')+'</div>';
     $('slots').innerHTML = !l.length ? vacio : modo==='lista'
-      ? '<div class="lhead" aria-hidden="true"><span></span><span>Remisión</span><span>Vehículo</span><span>Taller</span><span>Destino</span><span>Vendida</span><span>Días</span></div>' + l.map(fila).join('')
+      ? '<div class="lhead" aria-hidden="true"><span></span><span>Remisión</span><span>Vehículo</span><span>Taller</span><span>Destino</span><span>Vendida</span><span>'+(ent?'':'Días')+'</span></div>' + l.map(fila).join('')
       : l.map(slot).join('');
+    $('legend').hidden = ent;
     $('legend').innerHTML = ['flete','taller','empezar','piezas'].map(function(e){ return '<span><span class="ic '+e+'">'+ICON[e]+'</span>'+L.nombreDe(L.ESTADOS,e)+'</span>' }).join('') +
       '<span><span class="miss" style="font-size:12px;padding:1px 6px;border-radius:4px;color:var(--warn);background:var(--warn-bg)">Falta: …</span>Con faltante</span>';
+  }
+  // ---------- Cambios: lo que pasó entre una lectura del Drive y la siguiente ----------
+  var DIAS_SEM = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  function nombreDia(d){
+    var hoy = new Date(); hoy.setHours(0,0,0,0);
+    var x = new Date(d); x.setHours(0,0,0,0);
+    var dif = Math.round((hoy - x)/864e5);
+    return dif===0 ? 'Hoy' : dif===1 ? 'Ayer' : L.cap(DIAS_SEM[x.getDay()])+' '+fecha(x);
+  }
+  function nEstado(id){ return L.nombreDe(L.ESTADOS, id) }
+  function unidadDe(c){ return ALL.find(function(u){ return u.remision===c.remision && u.vehiculo===c.vehiculo && (c.tipo!=='salio' || u.hoja==='entregado') }) }
+  function barras(p){ return '<span class="bar5" aria-hidden="true">'+(p||[]).map(function(x){return '<i class="'+x+'"></i>'}).join('')+'</span>' }
+  function describir(c){
+    var a = c.antes || {}, d = c.despues || {}, chips = [];
+    if(c.tipo==='nueva') return {ic:'nueva', t:'Entró a Ventas', d:'Llegó como '+nEstado(d.estado)+'.', chips:[]};
+    if(c.tipo==='salio'){
+      var ent = ENTREGADOS.some(function(u){ return u.remision===c.remision && u.vehiculo===c.vehiculo });
+      return ent ? {ic:'entregada', t:'Pasó de Ventas a Entregados', d:'Estaba en '+nEstado(a.estado)+'.', chips:[]}
+                 : {ic:'salio', t:'Ya no está en Ventas', d:'Estaba en '+nEstado(a.estado)+'. No aparece en Entregados: puede que la hayan borrado o cambiado de remisión.', chips:[]};
+    }
+    (d.pasos||[]).forEach(function(x,k){
+      var y = (a.pasos||[])[k], n = L.PASOS[k][1];
+      if(x==='ok' && y!=='ok') chips.push('<span class="mas">+ '+n+'</span>');
+      else if(x!=='ok' && y==='ok') chips.push('<span class="menos">− '+n+'</span>');
+      if(x==='x' && y!=='x') chips.push('<span class="conx">X en '+n.toLowerCase()+'</span>');
+    });
+    if(a.faltante && !d.faltante) chips.push('<span class="mas">Ya no le falta: '+esc(a.faltante.toLowerCase())+'</span>');
+    else if(d.faltante && !a.faltante) chips.push('<span class="falta">Ahora le falta: '+esc(d.faltante.toLowerCase())+'</span>');
+    else if(a.faltante !== d.faltante) chips.push('<span class="falta">Cambió lo que falta: '+esc((d.faltante||'').toLowerCase())+'</span>');
+    var paso = a.estado!==d.estado;
+    var t = paso ? 'Pasó de '+nEstado(a.estado)+' a '+nEstado(d.estado) : 'Cambió en '+nEstado(d.estado);
+    var desc = paso && d.estado==='flete' ? 'Ya tiene los 5 pasos en OK.' : paso && a.estado==='piezas' ? 'Ya llegaron el vehículo o las piezas.' : '';
+    return {ic: d.estado==='flete' ? 'flete' : d.estado, t:t, d:desc, chips:chips};
+  }
+  function drawCambios(){
+    $('vt').textContent = 'Cambios';
+    $('vo').innerHTML = '<span class="ic todas" style="width:26px;height:26px;border-radius:7px;display:inline-grid;place-items:center;flex:none">'+ICON.taller+'</span><span>Lo que cambió en el Excel entre una lectura y la siguiente: avances del taller, unidades nuevas y las que pasaron a Entregados.</span>';
+    $('cats').innerHTML = ''; $('modo').hidden = true; $('legend').hidden = true;
+    var q = st.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    var lista = CAMBIOS.filter(function(c){
+      if(st.bodega){ var u = unidadDe(c); if(u && u.bodega!==st.bodega) return false; }
+      if(!q.length) return true;
+      var txt = (c.remision+' '+c.vehiculo+' '+c.destino).toLowerCase();
+      return q.every(function(w){ return txt.indexOf(w)>-1 });
+    });
+    $('slots').className = 'cambios';
+    if(!lista.length){ $('slots').innerHTML = '<div class="empty">'+(q.length ? 'Ningún cambio coincide con la búsqueda.' : 'Todavía no hay cambios registrados. Aparecerán cuando el Excel cambie entre una lectura y otra.')+'</div>'; return; }
+    var dias = [], porDia = {};
+    lista.forEach(function(c){ var k = nombreDia(c.fecha); if(!porDia[k]){ porDia[k]=[]; dias.push(k) } porDia[k].push(c) });
+    $('slots').innerHTML = '<p class="nota">El Excel no trae la fecha de entrega: la hora de cada cambio es cuando la app lo detectó al leer el Drive.</p>' +
+      dias.map(function(k){
+        return '<section class="dia"><h2>'+k+' <span>· '+(porDia[k].length===1?'1 cambio':porDia[k].length+' cambios')+'</span></h2><div class="cbs">' +
+          porDia[k].map(function(c){
+            var x = describir(c), u = unidadDe(c), m = L.nombre(c.vehiculo), h = new Date(c.fecha);
+            var lado = c.tipo==='cambio' ? barras(c.antes.pasos)+'<span>→</span>'+barras(c.despues.pasos) : c.tipo==='nueva' ? barras(c.despues.pasos) : barras(c.antes.pasos);
+            var tag = u ? 'button' : 'div';
+            return '<'+tag+(u?' type="button" data-i="'+u.i+'"':'')+' class="cb"><span class="ic '+x.ic+'">'+ICON[x.ic]+'</span>' +
+              '<span style="min-width:0"><span class="t">Remisión '+esc(c.remision||'—')+' <span class="r">· '+esc(m.modelo)+' · '+esc(L.cap((c.destino||'').toLowerCase()))+'</span></span>' +
+              '<span class="d" style="display:block">'+esc(x.t)+(x.d?'. '+esc(x.d):'')+'</span>' +
+              (x.chips.length ? '<span class="chips">'+x.chips.join('')+'</span>' : '') + '</span>' +
+              '<span class="der"><span class="lado">'+lado+'</span><span class="hora" style="display:block">'+String(h.getHours()).padStart(2,'0')+':'+String(h.getMinutes()).padStart(2,'0')+'</span></span></'+tag+'>';
+          }).join('') + '</div></section>';
+      }).join('');
   }
   function draw(){ drawMenu(); drawView(); }
 
   function abrir(i){
-    var u = TODAS[i];
+    var u = ALL[i];
     var info = {
       flete:['Completo','Tiene los 5 pasos en OK. Falta mandar el flete a '+L.lugar(u)+'.'],
       taller:['En proceso · '+u.ok+' de 5','Sigue en '+L.PASOS[Math.max(0,u.pasos.findIndex(function(x){return x!=='ok'}))][1].toLowerCase()+'.'],
       empezar:['Por empezar','Ya se puede arrancar con el armado.'],
-      piezas:['Esperando piezas','No se puede trabajar hasta que llegue el vehículo o sus piezas.']
+      piezas:['Esperando piezas','No se puede trabajar hasta que llegue el vehículo o sus piezas.'],
+      entregada:['Entregada','Está en la hoja ENTREGADO del Excel.']
     }[u.estado] || [L.nombreDe(L.ESTADOS,u.estado),''];
     $('ih').textContent = u.modelo+(u.cant>1?' × '+u.cant:'');
     $('is').textContent = u.detalle;
-    var kv = [['Destino',L.lugar(u)+(u.distribuidor?' (distribuidor)':'')],['Zona',L.nombreDe(L.ZONAS,u.z)],['Bodega',u.bodega==='b2'?'Bodega 2':'Bodega 1 · Granja'],['Tipo',L.nombreDe(L.TIPOS,u.tipo)],['Vendida',fecha(u.f)+' · hace '+(u.dias==null?'—':u.dias)+' días'],['Vendedor',u.vendedor||'—'],['Remisión',u.remision||'—'],['Faltante',u.faltante||'—']];
+    var kv = [['Destino',L.lugar(u)+(u.distribuidor?' (distribuidor)':'')],['Zona',L.nombreDe(L.ZONAS,u.z)],['Bodega',u.bodega==='b2'?'Bodega 2':'Bodega 1 · Granja'],['Tipo',L.nombreDe(L.TIPOS,u.tipo)],['Vendida',fecha(u.f)+(u.estado==='entregada' ? '' : ' · hace '+(u.dias==null?'—':u.dias)+' días')],['Vendedor',u.vendedor||'—'],['Remisión',u.remision||'—'],['Faltante',u.faltante||'—']];
     $('ib').innerHTML = '<div class="state"><span class="ic '+u.estado+'">'+ICON[u.estado]+'</span><span><b>'+esc(info[0])+'</b><small>'+esc(info[1])+'</small></span></div>' +
       '<div class="st5">'+L.PASOS.map(function(p,k){ return '<div class="'+u.pasos[k]+'"><b>'+p[0]+'</b>'+p[1]+'</div>' }).join('')+'</div>' +
       '<dl class="kv">'+kv.map(function(x){return '<dt>'+x[0]+'</dt><dd>'+(x[0]==='Destino' ? destino(u)+(u.distribuidor?' (distribuidor)':'') : esc(x[1]))+'</dd>'}).join('')+'</dl>';
@@ -525,8 +642,9 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   }
   function cerrar(){ $('insp').classList.remove('on'); $('scrim').classList.remove('on'); $('insp').setAttribute('aria-hidden','true'); }
 
-  function ir(v){ st.vista=v; st.tipo=''; st.destino=''; st.q=''; $('q').value=''; draw(); scrollTo({top:0}); }
+  function ir(v){ st.tab='ventas'; st.vista=v; st.tipo=''; st.destino=''; st.q=''; $('q').value=''; draw(); scrollTo({top:0}); }
   $('menu').addEventListener('click', function(e){ var b=e.target.closest('.mi'); if(b) ir(b.dataset.v) });
+  $('tabs').addEventListener('click', function(e){ var b=e.target.closest('.tab'); if(!b) return; st.tab=b.dataset.t; st.tipo=''; st.destino=''; st.q=''; $('q').value=''; draw(); scrollTo({top:0}); });
   $('cats').addEventListener('change', function(e){
     var id = e.target.id; if(id!=='tipoSel' && id!=='destinoSel') return;
     if(id==='tipoSel') st.tipo=e.target.value; else st.destino=e.target.value;
@@ -536,7 +654,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   $('bodegas').addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return; st.bodega=b.dataset.b; $('bodegas').querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed', x===b)}); draw(); });
   $('q').addEventListener('input', function(e){ st.q=e.target.value; st.tipo=''; st.destino=''; draw(); });
   $('modo').addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return; modo=b.dataset.m; try{ localStorage.setItem('logistica.modo', modo) }catch(err){} drawView(); });
-  document.addEventListener('click', function(e){ var s=e.target.closest('.slot,.fila'); if(s) abrir(+s.dataset.i) });
+  document.addEventListener('click', function(e){ var s=e.target.closest('.slot,.fila,button.cb'); if(s) abrir(+s.dataset.i) });
   $('close').addEventListener('click', cerrar); $('scrim').addEventListener('click', cerrar);
   document.addEventListener('keydown', function(e){
     if(e.key==='Escape'){ if($('insp').classList.contains('on')) return cerrar(); if(document.activeElement===$('q')){ $('q').value=''; st.q=''; $('q').blur(); draw(); } return; }

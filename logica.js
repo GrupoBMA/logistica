@@ -68,7 +68,7 @@
       var ok = r.pasos.filter(function(x){return x==='ok'}).length;
       var dist = /MOTOPLAZA/i.test(r.destino||'') ? 'Motoplaza' : '';
       var z = dist ? 'distribuidor' : (r.zona==='motoplaza' ? 'distribuidor' : r.zona==='pacifico' ? 'sucursal' : (r.zona||'sin'));
-      var estado = ok===5 ? 'flete' : esperaPiezas(r) ? 'piezas' : ok>0 || r.pasos.indexOf('x')>-1 ? 'taller' : 'empezar';
+      var estado = r.hoja==='entregado' ? 'entregada' : ok===5 ? 'flete' : esperaPiezas(r) ? 'piezas' : ok>0 || r.pasos.indexOf('x')>-1 ? 'taller' : 'empezar';
       return Object.assign({}, r, nombre(r.vehiculo), {
         i:i, f:f, dias: f ? Math.round((CORTE-f)/864e5) : null, ok:ok, estado:estado,
         tipo:tipo(r.vehiculo), z:z, distribuidor:dist, bodega:bodega(r.activacion)
@@ -83,7 +83,7 @@
 
   window.Logistica = {
     cargar:cargar, ESTADOS:ESTADOS, TIPOS:TIPOS, ZONAS:ZONAS, BODEGAS:BODEGAS, PASOS:PASOS, MESES:MESES,
-    cap:cap,
+    cap:cap, nombre:nombre,
     fecha:function(d){ return d ? d.getDate()+' '+MESES[d.getMonth()] : '—' },
     esc:function(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}) },
     lugar:function(u){ return cap((u.destino||'Sin destino').toLowerCase()) },

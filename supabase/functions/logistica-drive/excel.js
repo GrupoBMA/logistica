@@ -46,14 +46,47 @@ function fecha(v, hoy) {
 function paso(v) { const s = txt(v).toUpperCase(); return s === "OK" ? "ok" : s === "X" ? "x" : ""; }
 function celda(ws, fila, col) { return ws[String.fromCharCode(64 + col) + fila]; }
 
-export function leerVentas(XLSX, wb, hoy = new Date()) {
-  const ws = wb.Sheets["VENTAS"];
-  if (!ws) throw new Error("El Excel no tiene la hoja VENTAS");
+export function leerVentas(XLSX, wb, hoy = new Date()) { return leerHoja(XLSX, wb, "VENTAS", 4, hoy); }
+export function leerEntregado(XLSX, wb, hoy = new Date()) { return wb.Sheets["ENTREGADO"] ? leerHoja(XLSX, wb, "ENTREGADO", 2, hoy) : []; }
+
+// Estado de una unidad (la misma regla que logica.js de la app)
+export function estado(r) {
+  const ok = r.pasos.filter((x) => x === "ok").length;
+  if (ok === 5) return "flete";
+  if (r.color_vehiculo && r.color_vehiculo !== "theme0") return "piezas";
+  if (ok > 0 || r.pasos.includes("x")) return "taller";
+  return "empezar";
+}
+
+// Compara la hoja Ventas anterior con la nueva y regresa los cambios (por remisión + vehículo)
+export function compararVentas(antes, ahora) {
+  const foto = (r) => ({ estado: estado(r), pasos: r.pasos, faltante: r.faltante || "" });
+  const clave = (r) => r.remision + "|" + r.vehiculo;
+  const pendientes = new Map();
+  antes.forEach((r) => { const k = clave(r); if (!pendientes.has(k)) pendientes.set(k, []); pendientes.get(k).push(r); });
+  const cambios = [];
+  ahora.forEach((r) => {
+    const lista = pendientes.get(clave(r));
+    const a = lista && lista.shift();
+    if (!a) { cambios.push({ tipo: "nueva", remision: r.remision, vehiculo: r.vehiculo, destino: r.destino, antes: null, despues: foto(r) }); return; }
+    const fa = foto(a), fn = foto(r);
+    if (fa.estado !== fn.estado || fa.pasos.join("|") !== fn.pasos.join("|") || fa.faltante !== fn.faltante) {
+      cambios.push({ tipo: "cambio", remision: r.remision, vehiculo: r.vehiculo, destino: r.destino, antes: fa, despues: fn });
+    }
+  });
+  pendientes.forEach((lista) => lista.forEach((a) =>
+    cambios.push({ tipo: "salio", remision: a.remision, vehiculo: a.vehiculo, destino: a.destino, antes: foto(a), despues: null })));
+  return cambios;
+}
+
+function leerHoja(XLSX, wb, nombre, desde, hoy) {
+  const ws = wb.Sheets[nombre];
+  if (!ws) throw new Error("El Excel no tiene la hoja " + nombre);
   const ultima = XLSX.utils.decode_range(ws["!ref"]).e.r + 1;
   const rows = [];
-  for (let r = 4; r <= ultima; r++) {
+  for (let r = desde; r <= ultima; r++) {
     const a = []; for (let c = 1; c <= 16; c++) { const x = celda(ws, r, c); a.push(x ? x.v : null); }
-    if (!(txt(a[0]) || txt(a[1]))) continue;
+    if (!txt(a[1])) continue; // sin vehículo: renglón vacío o que todavía están capturando
     const rem = a[8] instanceof Date ? a[8].getUTCDate() + "/" + (a[8].getUTCMonth() + 1) : txt(a[8]);
     const cDest = colorDe(celda(ws, r, 10));
     rows.push({

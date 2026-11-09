@@ -11,7 +11,7 @@
 // - No escribe nada en el Drive.
 import * as XLSX from "npm:xlsx@0.18.5";
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
-import { leerVentas } from "./excel.js";
+import { leerVentas, leerEntregado, compararVentas } from "./excel.js";
 
 const ARCHIVO = Deno.env.get("LOGISTICA_FILE_ID") || "18c-Xbt9d8ml0QaI1Xh9Du68uAcXGUiNU";
 const CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID") || "580029556888-pg3prpg2e3cnlqsv6tok69pej6e8n7cq.apps.googleusercontent.com";
@@ -112,13 +112,28 @@ Deno.serve(async (req) => {
     catch (e) { if (e instanceof FaltaConectar && Deno.env.get("GOOGLE_SA_JSON")) token = await tokenGoogle(); else throw e; }
     const archivo = await bajarExcel(token);
     const wb = XLSX.read(archivo.datos, { type: "array", cellStyles: true, cellDates: true });
-    const filas = leerVentas(XLSX, wb, new Date());
+    const hoy = new Date();
+    const filas = leerVentas(XLSX, wb, hoy);
+    const entregado = leerEntregado(XLSX, wb, hoy);
 
-    // Guarda la copia en Supabase (reemplaza las pendientes de la hoja Ventas) con la misma sesión
-    const g = await sb.rpc("logistica_subir", { datos: filas });
+    // Lo que había guardado de Ventas, para saber qué cambió desde la lectura anterior
+    const previo = await sb.rpc("logistica_datos");
+    const antes = ((previo.data && previo.data.entregas) || []).filter((e: Record<string, unknown>) => (e.hoja || "ventas") === "ventas")
+      .map((e: Record<string, string>) => ({ remision: e.remision || "", vehiculo: e.vehiculo || "", destino: e.destino || "", faltante: e.faltante || "",
+        color_vehiculo: e.color_vehiculo || null, pasos: [e.armado || "", e.herreria || "", e.forrado || "", e.pintura || "", e.revision || ""] }));
+    const cambios = antes.length ? compararVentas(antes, filas) : [];
+
+    // Guarda la copia en Supabase (reemplaza cada hoja) con la misma sesión
+    const g = await sb.rpc("logistica_subir", { datos: filas, hoja_excel: "ventas" });
     if (g.error) throw new Error("No se pudo guardar: " + g.error.message);
+    const ge = await sb.rpc("logistica_subir", { datos: entregado, hoja_excel: "entregado" });
+    if (ge.error) throw new Error("No se pudo guardar Entregado: " + ge.error.message);
+    if (cambios.length) {
+      const gc = await sb.rpc("logistica_cambios_guardar", { cambios });
+      if (gc.error) throw new Error("No se pudieron guardar los cambios: " + gc.error.message);
+    }
 
-    return responder({ filas: g.data, archivo: archivo.nombre, modificado: archivo.modificado, leido: new Date().toISOString() });
+    return responder({ filas: g.data, entregados: ge.data, cambios: cambios.length, archivo: archivo.nombre, modificado: archivo.modificado, leido: hoy.toISOString() });
   } catch (e) {
     // Responde 200 con el error para que la app pueda leer el mensaje (con otro código, la app no ve el cuerpo)
     return responder({ error: e instanceof Error ? e.message : String(e), conectar: e instanceof FaltaConectar });
