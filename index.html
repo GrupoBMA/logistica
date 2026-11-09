@@ -84,6 +84,7 @@ kbd{font:500 11px/16px var(--font);min-width:18px;height:18px;padding:0 5px;bord
 .keys{margin-top:12px;padding:0 12px;color:var(--muted);font-size:12px;line-height:22px}
 .sesion{margin-top:16px;padding:14px 12px 0;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--muted)}
 .sesion b{color:var(--text);font-weight:500}
+.sesion .aviso{color:var(--warn);background:var(--warn-bg);border-radius:8px;padding:8px 10px;line-height:18px}
 .sesion button{height:36px;border-radius:10px;border:1px solid var(--control);background:var(--surface);font-size:14px;font-weight:500;text-align:center}
 .sesion button:hover{border-color:var(--text)}
 .sesion button.confirmar{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
@@ -281,7 +282,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     <div class="keys">Atajos: <kbd>1</kbd>–<kbd>6</kbd> cambiar vista · <kbd>/</kbd> buscar · <kbd>Esc</kbd> cerrar</div>
     <div class="sesion">
       <span id="subido"></span>
-      <button type="button" id="subir" hidden>Subir el Excel de esta computadora</button>
+      <button type="button" id="actualizar">Volver a leer el Drive</button>
       <button type="button" class="salir" id="salir">Salir</button>
     </div>
   </nav>
@@ -307,9 +308,6 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   <div id="ib"></div>
 </aside>
 
-<!-- Solo en esta computadora: datos/datos.js (fuera del repo) sirve para SUBIR el Excel a Supabase.
-     La app siempre lee de Supabase. -->
-<script src="datos/datos.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="logica.js"></script>
 <script>
@@ -334,7 +332,9 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   }
   function hoyISO(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0') }
   function sesionVisible(on){ document.body.classList.toggle('sin-sesion', !on) }
-  function cargarDatos(){
+  function hora(d){ return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0') }
+  // Lee lo guardado en Supabase y lo pinta. "aviso" sale abajo del menú si el Drive no se pudo leer.
+  function cargarDatos(info, aviso){
     return sb.rpc('logistica_datos').then(function(r){
       if(r.error){
         if(r.error.code==='42501'){ sb.auth.signOut(); sesionVisible(false); $('lErr').textContent='Esta cuenta no tiene acceso a Logística.'; return; }
@@ -343,13 +343,29 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
       var filas = (r.data && r.data.entregas) || [];
       TODAS = L.cargar(filas.map(deTabla), hoyISO()).unidades;
       var sub = r.data && r.data.subido ? new Date(r.data.subido) : null;
-      $('subido').innerHTML = sub ? 'Datos subidos el <b>'+fecha(sub)+'</b> a las '+String(sub.getHours()).padStart(2,'0')+':'+String(sub.getMinutes()).padStart(2,'0') : 'Todavía no hay datos subidos.';
-      var local = window.VENTAS && /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
-      $('subir').hidden = !local;
+      var txt = info && info.modificado
+        ? 'Excel del Drive guardado por última vez el <b>'+fecha(new Date(info.modificado))+'</b> a las '+hora(new Date(info.modificado))+'. Leído a las '+hora(new Date())+'.'
+        : (sub ? 'Datos leídos del Drive el <b>'+fecha(sub)+'</b> a las '+hora(sub)+'.' : 'Todavía no hay datos.');
+      $('subido').innerHTML = (aviso ? '<span class="aviso">'+esc(aviso)+'</span><br>' : '') + txt;
       sesionVisible(true);
       draw();
     });
   }
+  // Pide a Supabase que lea el Excel del Drive en este momento y lo guarde; luego carga.
+  var leyendo = false;
+  function leerDrive(){
+    if(leyendo) return; leyendo = true;
+    sesionVisible(true);
+    $('actualizar').disabled = true; $('actualizar').textContent = 'Leyendo el Drive…';
+    if(!TODAS.length){ $('vt').textContent = 'Leyendo el Excel del Drive…'; $('vo').innerHTML = ''; }
+    return sb.functions.invoke('logistica-drive', {body:{}}).then(function(r){
+      var info = r.data && !r.data.error ? r.data : null;
+      var aviso = info ? '' : 'No se pudo leer el Drive en este momento; se muestran los últimos datos guardados.';
+      return cargarDatos(info, aviso);
+    }).catch(function(){ return cargarDatos(null, 'No se pudo leer el Drive en este momento; se muestran los últimos datos guardados.'); })
+      .then(function(){ leyendo = false; $('actualizar').disabled = false; $('actualizar').textContent = 'Volver a leer el Drive'; });
+  }
+
   var VIEJA = 45;
 
   var ICON = {
@@ -491,7 +507,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     if(e.key==='/'){ e.preventDefault(); $('q').focus(); return; }
     var n = +e.key; if(n>=1 && n<=VISTAS.length) ir(VISTAS[n-1].id);
   });
-  // ---------- Entrar, salir y subir ----------
+  // ---------- Entrar, salir y volver a leer ----------
   $('loginForm').addEventListener('submit', function(e){
     e.preventDefault();
     var u = $('lUser').value.trim().toLowerCase(); if(u.indexOf('@')<0) u += DOMINIO;
@@ -499,23 +515,12 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     sb.auth.signInWithPassword({email:u, password:$('lPass').value}).then(function(r){
       $('lBtn').disabled = false;
       if(r.error){ $('lErr').textContent = 'Usuario o contraseña incorrectos.'; return; }
-      $('lPass').value = ''; cargarDatos();
+      $('lPass').value = ''; leerDrive();
     });
   });
   $('salir').addEventListener('click', function(){ sb.auth.signOut().then(function(){ TODAS=[]; cerrar(); sesionVisible(false); $('lUser').focus(); }) });
-  var confirmando = false;
-  $('subir').addEventListener('click', function(){
-    var b = $('subir');
-    if(!confirmando){ confirmando = true; b.classList.add('confirmar'); b.textContent = 'Reemplazar con '+window.VENTAS.length+' renglones · toca otra vez'; setTimeout(function(){ confirmando=false; b.classList.remove('confirmar'); b.textContent='Subir el Excel de esta computadora'; }, 5000); return; }
-    confirmando = false; b.disabled = true; b.textContent = 'Subiendo…';
-    sb.rpc('logistica_subir', {datos: window.VENTAS}).then(function(r){
-      b.disabled = false; b.classList.remove('confirmar');
-      b.textContent = r.error ? 'No se pudo subir. Toca para reintentar.' : 'Listo: '+r.data+' renglones subidos';
-      if(!r.error) cargarDatos();
-      setTimeout(function(){ b.textContent='Subir el Excel de esta computadora'; }, 4000);
-    });
-  });
-  sb.auth.getSession().then(function(r){ if(r.data && r.data.session) cargarDatos(); else sesionVisible(false); });
+  $('actualizar').addEventListener('click', function(){ leerDrive() });
+  sb.auth.getSession().then(function(r){ if(r.data && r.data.session) leerDrive(); else sesionVisible(false); });
 })();
 </script>
 </body>
