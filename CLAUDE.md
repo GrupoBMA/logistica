@@ -35,6 +35,8 @@ Ir de poco en poco, empezando por lo más importante: **el vehículo y su entreg
 `index.html` es la app: un solo archivo, sin librerías, letra Geist. Es la **segunda propuesta de diseño** (la primera, tipo tabla, se descartó porque se veía igual al Excel). El usuario pidió que al entrar se vea limpio, muy sencillo de entender y fácil de leer, y que funcione como un sistema con un flujo.
 
 - **Datos de prueba:** `datos/datos.js` (fuera del repo) lo genera `python datos/extraer_excel.py "<ruta del Excel>" datos/datos.js`. En la página publicada no existe, así que se ve vacía ("Todavía no hay entregas cargadas"). Después los datos vendrán de Supabase con inicio de sesión.
+- **Pestañas:** arriba están **Listas** (la primera, se abre al entrar) y **Flujo**.
+- **Pestaña Listas** (pedido del usuario, 9-nov-2026): solo las unidades con **las 5 casillas en OK** (armado, herrería, forrado, pintura y revisión). Van en tarjetas, la más antigua primero, con buscador. No es lo mismo que la parada "Lista" del flujo, que toma R = OK sin fletero.
 - **El flujo (la ruta):** cada unidad pasa por 6 paradas: Vendida → Taller → Lista → Con flete → En camino → Entregada. La parada inicial sale del Excel así:
   - **Vendida:** ningún paso del taller marcado;
   - **Taller:** algún paso marcado, pero la R no está en OK;

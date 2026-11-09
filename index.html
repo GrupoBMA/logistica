@@ -53,6 +53,16 @@ button{cursor:pointer}
 .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;white-space:nowrap;background:none;border:0;padding:0}
 .brand span{font-weight:400;color:var(--muted)}
 .stamp{margin-left:auto;color:var(--muted);font-size:13px;white-space:nowrap}
+.tabs{display:flex;gap:4px;margin-left:20px}
+.tab{height:36px;padding:0 14px;border-radius:8px;border:0;background:none;color:var(--muted);font-weight:500;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.tab:hover{color:var(--text)}
+.tab[aria-selected="true"]{background:var(--active);color:var(--text)}
+.tab .n{font-weight:400;color:var(--muted)}
+.ready{margin:8px 0 64px}
+.ready-tools{display:flex;justify-content:flex-end;margin:-8px 0 18px}
+.check{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.check svg{flex:none}
+@media (max-width:760px){ .tabs{margin-left:4px} .stamp{display:none} .ready-tools{margin-top:0} }
 
 /* Título */
 .head{padding:36px 0 8px}
@@ -207,11 +217,26 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
       <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="5" cy="13" r="3.5" fill="currentColor"/><circle cx="21" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.5 13h9" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
       BMA <span>Logística</span>
     </button>
+    <div class="tabs" role="tablist" aria-label="Vistas">
+      <button class="tab" type="button" role="tab" id="t-listas" aria-controls="v-listas" data-tab="listas">Listas <span class="n num" id="n-listas"></span></button>
+      <button class="tab" type="button" role="tab" id="t-flujo" aria-controls="v-flujo" data-tab="flujo">Flujo</button>
+    </div>
     <div class="stamp" id="stamp"></div>
   </div>
 </header>
 
 <main class="col">
+  <section id="v-listas" role="tabpanel" aria-labelledby="t-listas">
+    <div class="head">
+      <h1>Listas para entregar</h1>
+      <p class="lead" id="ready-lead"></p>
+    </div>
+    <div class="ready">
+      <div class="ready-tools"><input class="search" id="rq" type="search" placeholder="Buscar modelo, destino o remisión" aria-label="Buscar en listas"></div>
+      <div class="cards" id="ready-cards"></div>
+    </div>
+  </section>
+  <div id="v-flujo" role="tabpanel" aria-labelledby="t-flujo">
   <div class="head" id="head">
     <h1 id="title">Entregas</h1>
     <p class="lead" id="lead"></p>
@@ -229,6 +254,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     <div class="chips" id="chips"></div>
     <div id="groups"></div>
   </section>
+  </div>
 </main>
 
 <div class="scrim" id="scrim"></div>
@@ -395,7 +421,38 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   function cerrar(){ abierta=null; $('sheet').classList.remove('on'); $('scrim').classList.remove('on'); $('sheet').setAttribute('aria-hidden','true'); }
 
   // ---------- Dibujo y eventos ----------
+  // ---------- Pestaña Listas: las 5 casillas en OK ----------
+  function completa(u){ return u.pasos.every(function(x){return x==='ok'}) }
+  var rq = '';
+  function drawReady(){
+    var todas = unidades.filter(completa);
+    $('n-listas').textContent = todas.length;
+    var q = rq.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    var l = todas.filter(function(u){ if(!q.length) return true; var t=(u.vehiculo+' '+u.destino+' '+u.remision+' '+u.vendedor).toLowerCase(); return q.every(function(w){return t.indexOf(w)>-1}) })
+                 .sort(function(a,b){ return (b.dias||0)-(a.dias||0) });
+    $('ready-lead').textContent = todas.length ? todas.length+' unidades con armado, herrería, forrado, pintura y revisión terminados. La que lleva más tiempo va primero.' : 'Todavía no hay unidades con los 5 pasos terminados.';
+    var ok = '<span class="check"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2.5 7.5l3 3 6-7"/></svg>5 de 5</span>';
+    $('ready-cards').innerHTML = l.length ? l.map(function(u){
+      return '<article class="card" data-i="'+u.i+'" tabindex="0" aria-label="'+esc(u.modelo)+' a '+esc(u.destino)+'">' +
+        '<div class="top"><div style="min-width:0"><div class="model">'+esc(u.modelo)+(u.cant>1?' <span class="qty">× '+u.cant+'</span>':'')+'</div><div class="detail">'+esc(u.detalle)+'</div></div>' +
+        '<div class="days num'+(vieja(u)?' old':'')+'"><b>'+(u.dias==null?'—':u.dias)+'</b>días</div></div>' +
+        '<div class="where"><span>'+esc(cap((u.destino||'Sin destino').toLowerCase()))+'</span></div>' +
+        (u.faltante ? '<div class="missing">Falta: '+esc(u.faltante.toLowerCase())+'</div>' : '') +
+        '<div class="foot">'+ok+'<span class="prog-label">Vendida el '+fecha(u.f)+'</span></div></article>';
+    }).join('') : '<div class="empty" style="grid-column:1/-1">'+(todas.length?'Ninguna coincide con la búsqueda.':'Todavía no hay unidades aquí.')+'</div>';
+  }
+  var tab = 'listas';
+  function setTab(t){
+    tab = t;
+    ['listas','flujo'].forEach(function(x){ $('t-'+x).setAttribute('aria-selected', x===t); $('v-'+x).hidden = x!==t; });
+    window.scrollTo({top:0});
+  }
+  document.querySelector('.tabs').addEventListener('click', function(e){ var b=e.target.closest('.tab'); if(b){ setTab(b.dataset.tab); if(b.dataset.tab==='flujo') ir(null); } });
+  $('rq').addEventListener('input', function(e){ rq=e.target.value; drawReady(); });
+  $('ready-cards').addEventListener('keydown', function(e){ var c=e.target.closest('.card'); if(c && e.target===c && (e.key==='Enter'||e.key===' ')){ e.preventDefault(); abrir(+c.dataset.i) } });
+
   function draw(){
+    drawReady();
     drawRoute();
     var home = !st.parada;
     $('alerts').hidden = !home; $('stage').hidden = home; $('head').hidden = !home;
@@ -405,7 +462,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   function ir(p){ st.parada = p; st.zona = null; st.q=''; $('q').value=''; draw(); window.scrollTo({top:0}); }
   $('route').addEventListener('click', function(e){ var b=e.target.closest('.stop'); if(b) ir(st.parada===b.dataset.p ? null : b.dataset.p) });
   $('alertList').addEventListener('click', function(e){ var b=e.target.closest('.alert'); if(b) ir(b.dataset.p) });
-  $('home').addEventListener('click', function(){ ir(null) });
+  $('home').addEventListener('click', function(){ setTab('listas') });
   $('chips').addEventListener('click', function(e){ var b=e.target.closest('.chip'); if(b){ st.zona=b.dataset.z||null; drawStage(); } });
   $('q').addEventListener('input', function(e){ st.q=e.target.value; drawStage(); });
   document.addEventListener('click', function(e){
@@ -416,6 +473,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   document.addEventListener('keydown', function(e){ if(e.key==='Escape') cerrar() });
 
   draw();
+  setTab('listas');
 })();
 </script>
 </body>
