@@ -18,6 +18,10 @@ Vendedor, vehículo (texto libre, p. ej. "1 MC 300 CABINA CERRADA CAJA FOOD TRUC
 
 **Colores del destino (zona):** naranja = local cerca; naranja oscuro = local más lejos; amarillo = foránea, necesita tráiler; rojo = se recoge en granja; azul y verde = sucursales (Wash, Américas, AGS, Tepic).
 
+### Prioridad actual (9-nov-2026)
+
+Ir de poco en poco, empezando por lo más importante: **el vehículo y su entrega, y que el flujo funcione**. La fecha importa, pero solo como dato. Por ahora el usuario pidió **ignorar los colores (zonas) y los fletes**: las dudas de abajo sobre esos temas esperan.
+
 ### Pendientes por confirmar con el usuario
 
 - Qué significa la **X** en los pasos del taller (hoy se pinta en rojo, "Marcado con X").
@@ -46,10 +50,9 @@ Vendedor, vehículo (texto libre, p. ej. "1 MC 300 CABINA CERRADA CAJA FOOD TRUC
   - el modelo corto y el detalle, sacados del texto del vehículo con la función `nombre()`;
   - el destino y los días;
   - el faltante;
-  - el avance del taller (n de 5) o el fletero;
-  - un botón para pasar a la siguiente parada.
-- **Ficha:** el recorrido de la unidad por las 6 paradas (con los 5 pasos del taller, el vendedor, la remisión y el fletero) y un botón para avanzar.
-- **Mover de parada** hoy solo cambia la pantalla, con "Deshacer". No se guarda (*pendiente*: guardar en Supabase).
+  - el avance del taller (n de 5) o la fecha de venta.
+- **Ficha:** el recorrido de la unidad por las 6 paradas (con los 5 pasos del taller, el vendedor, la remisión y el fletero) .
+- **Solo lectura** (pedido del usuario, 9-nov-2026): la app no mueve ni edita nada. No hay botones de avanzar: la parada de cada unidad sale de los datos.
 - **Diseño:** el skill `design-taste-frontend` en modo pantalla de app. El cromo va sin color; el color solo está en los datos (zonas, avisos y pasos con X). Hay modo claro y modo oscuro. En celular la ruta se pone en vertical.
 - **Probar:** `.claude/launch.json` levanta `python -m http.server 8768`.
 

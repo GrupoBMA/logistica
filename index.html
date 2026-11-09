@@ -236,9 +236,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   <header><div><h2 id="sh"></h2><div class="sub" id="ss"></div></div>
     <button class="close" id="close" type="button" aria-label="Cerrar"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button></header>
   <div class="body" id="sb"></div>
-  <div class="actions" id="sa"></div>
 </aside>
-<div class="toast" id="toast" role="status"><span id="tt"></span><button type="button" id="undo">Deshacer</button></div>
 
 <!-- Datos de prueba: solo en esta computadora (datos/ no se sube al repo). Después vendrán de Supabase. -->
 <script src="datos/datos.js"></script>
@@ -349,13 +347,13 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     var esp = ESPECIALES[st.parada]; var p = PARADAS[idx(st.parada)];
     var base = listaActual();
     $('sgt').textContent = esp ? esp.nombre : p.nombre;
-    $('sgp').textContent = esp ? esp.texto : (base.length===1?'1 unidad':base.length+' unidades') + (p.siguiente ? ' · siguiente paso: '+p.siguiente.toLowerCase() : '');
+    $('sgp').textContent = esp ? esp.texto : (base.length===1?'1 unidad':base.length+' unidades') + '';
     // chips por zona
     var porZona = ZONAS.map(function(z){ return {z:z, n:base.filter(function(u){return u.z===z.id}).length} }).filter(function(x){return x.n});
     $('chips').innerHTML = porZona.length>1 ? '<button class="chip" type="button" data-z="" aria-pressed="'+(!st.zona)+'">Todas <span class="n num">'+base.length+'</span></button>' +
       porZona.map(function(x){ return '<button class="chip" type="button" data-z="'+x.z.id+'" aria-pressed="'+(st.zona===x.z.id)+'"><i class="dot" style="background:var(--z-'+x.z.id+')"></i>'+x.z.nombre+' <span class="n num">'+x.n+'</span></button>' }).join('') : '';
     var l = st.zona ? base.filter(function(u){return u.z===st.zona}) : base;
-    if(!l.length){ $('groups').innerHTML = '<div class="empty">'+(p && (p.id==='camino'||p.id==='entregada') ? 'Todavía no hay unidades aquí. Cuando marques una como “Ya salió”, aparecerá en esta parada.' : 'No hay unidades aquí.')+'</div>'; return; }
+    if(!l.length){ $('groups').innerHTML = '<div class="empty">'+(p && (p.id==='camino'||p.id==='entregada') ? 'Todavía no hay unidades en esta parada.' : 'No hay unidades aquí.')+'</div>'; return; }
     $('groups').innerHTML = ZONAS.map(function(z){
       var g = l.filter(function(u){return u.z===z.id}).sort(function(a,b){return (b.dias||0)-(a.dias||0)});
       if(!g.length) return '';
@@ -363,31 +361,17 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     }).join('');
   }
   function card(u){
-    var p = PARADAS[idx(u.parada)];
     var hechos = u.pasos.filter(function(x){return x==='ok'}).length;
     var foot = u.parada==='taller' || u.parada==='vendida'
       ? '<span style="display:flex;align-items:center;gap:8px"><span class="prog" aria-hidden="true">'+u.pasos.map(function(x){return '<i class="'+x+'"></i>'}).join('')+'</span><span class="prog-label">'+hechos+' de 5</span></span>'
-      : '<span class="prog-label">'+(u.fletero ? esc(u.fletero) : 'Sin fletero')+'</span>';
+      : '<span class="prog-label">Vendida el '+fecha(u.f)+'</span>';
     return '<article class="card" data-i="'+u.i+'" tabindex="0" aria-label="'+esc(u.modelo)+' a '+esc(u.destino)+'">' +
       '<div class="top"><div style="min-width:0"><div class="model">'+esc(u.modelo)+(u.cant>1?' <span class="qty">× '+u.cant+'</span>':'')+'</div><div class="detail">'+esc(u.detalle)+'</div></div>' +
       '<div class="days num'+(vieja(u)?' old':'')+'"><b>'+(u.dias==null?'—':u.dias)+'</b>días</div></div>' +
       '<div class="where"><i class="dot" style="background:var(--z-'+u.z+')"></i><span>'+esc(cap((u.destino||'Sin destino').toLowerCase()))+'</span></div>' +
       (u.faltante ? '<div class="missing">Falta: '+esc(u.faltante.toLowerCase())+'</div>' : '') +
-      '<div class="foot">'+foot+(p.siguiente ? '<button class="next" type="button" data-move="'+u.i+'">'+p.siguiente+'</button>' : '')+'</div></article>';
+      '<div class="foot">'+foot+'</div></article>';
   }
-
-  // ---------- Mover a la siguiente parada ----------
-  var ultimo = null, tmr;
-  function mover(i){
-    var u = unidades[i]; var k = idx(u.parada); if(k<0 || k>=PARADAS.length-1) return;
-    ultimo = {i:i, de:u.parada};
-    u.parada = PARADAS[k+1].id;
-    if(u.parada==='taller' && !u.pasos.some(Boolean)) {}  // el avance del taller se marca en la ficha
-    $('tt').textContent = u.modelo+' pasó a “'+PARADAS[k+1].nombre+'”';
-    $('toast').classList.add('on'); clearTimeout(tmr); tmr = setTimeout(function(){ $('toast').classList.remove('on') }, 5000);
-    draw();
-  }
-  $('undo').addEventListener('click', function(){ if(ultimo){ unidades[ultimo.i].parada = ultimo.de; ultimo=null; $('toast').classList.remove('on'); draw(); } });
 
   // ---------- Ficha ----------
   var abierta = null;
@@ -406,8 +390,6 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     }).join('');
     var kv = [['Destino',cap((u.destino||'—').toLowerCase())],['Zona',ZONAS.find(function(z){return z.id===u.z}).nombre],['Activación',u.activacion||'—'],['Faltante',u.faltante||'—'],['Días',u.dias==null?'—':u.dias+' desde la venta']];
     $('sb').innerHTML = '<ol class="trail">'+trail+'</ol><dl class="kv">'+kv.map(function(x){return '<dt>'+x[0]+'</dt><dd>'+esc(x[1])+'</dd>'}).join('')+'</dl>';
-    var p = PARADAS[k];
-    $('sa').innerHTML = p.siguiente ? '<button class="btn primary" type="button" data-move="'+i+'">'+p.siguiente+'</button>' : '<span class="calm">Entrega terminada.</span>';
     $('sheet').classList.add('on'); $('scrim').classList.add('on'); $('sheet').setAttribute('aria-hidden','false'); $('close').focus();
   }
   function cerrar(){ abierta=null; $('sheet').classList.remove('on'); $('scrim').classList.remove('on'); $('sheet').setAttribute('aria-hidden','true'); }
@@ -427,7 +409,6 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   $('chips').addEventListener('click', function(e){ var b=e.target.closest('.chip'); if(b){ st.zona=b.dataset.z||null; drawStage(); } });
   $('q').addEventListener('input', function(e){ st.q=e.target.value; drawStage(); });
   document.addEventListener('click', function(e){
-    var m = e.target.closest('[data-move]'); if(m){ e.stopPropagation(); mover(+m.dataset.move); return; }
     var c = e.target.closest('.card'); if(c) abrir(+c.dataset.i);
   });
   $('groups').addEventListener('keydown', function(e){ var c=e.target.closest('.card'); if(c && e.target===c && (e.key==='Enter'||e.key===' ')){ e.preventDefault(); abrir(+c.dataset.i) } });
