@@ -9,7 +9,7 @@
     {id:'piezas',    nombre:'Esperando piezas', corto:'Sin vehículo o piezas para empezar'},
     {id:'empezar',   nombre:'Por empezar',      corto:'Ya hay piezas, falta arrancar'},
     {id:'taller',    nombre:'En taller',        corto:'Armado a revisión'},
-    {id:'flete',     nombre:'Mandar flete',     corto:'Los 5 pasos en OK'},
+    {id:'flete',     nombre:'Completo',         corto:'Los 5 pasos en OK'},
     {id:'camino',    nombre:'En camino',        corto:'Rumbo a su destino'},
     {id:'entregada', nombre:'Entregada',        corto:'Llegó a su destino'}
   ];

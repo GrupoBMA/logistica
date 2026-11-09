@@ -40,17 +40,17 @@ Ir de poco en poco, empezando por lo más importante: el vehículo, su entrega y
 
 `index.html` es la app, que se usa como un videojuego (era la "propuesta B"; la propuesta A, de lista y flujo, se quitó cuando el usuario eligió esta). Es un solo archivo sin librerías, con letra Geist. Las reglas viven en **`logica.js`**, que convierte cada renglón del Excel en una unidad con: modelo y detalle cortos (`nombre()`), tipo (`tipo()`, como sunldemexico.com), estado, zona, distribuidor, bodega, días y prioridad del flete.
 
-**Estados:** Esperando piezas (color en el vehículo) → Por empezar (sin pasos) → En taller (algún paso, menos de 5) → **Mandar flete** (5 OK) → En camino → Entregada. "En camino" y "Entregada" no existen en la hoja VENTAS (*pendiente*: Entregada vendrá de la hoja ENTREGADO).
+**Estados:** Esperando piezas (color en el vehículo) → Por empezar (sin pasos) → En taller (algún paso, menos de 5) → **Completo** (5 OK; toca mandar el flete) → En camino → Entregada. "En camino" y "Entregada" no existen en la hoja VENTAS (*pendiente*: Entregada vendrá de la hoja ENTREGADO).
 
 **Tipos:** Motocarro 150 cc, 200 cc, 300 cc doble rodado, 300 cc cabina cerrada, Mototaxis, ATV, UTV, Minimotos, Areneros. "Motocarro 300 cc" a secas (la pipa), "Motocarro 350 cc" y "Accesorios y otros" (el toldo) son extras, porque la página no los tiene.
 
 **Cómo se usa:**
-- **Menú fijo** a la izquierda (en celular, una fila que se desliza) con contadores: Mandar flete, En taller, Por empezar, Esperando piezas, Con faltante y Todas. Abajo, el medidor "Listas para salir".
-- Cada vista tiene un **objetivo** en una frase. En Mandar flete, la prioridad 1 sale destacada como "Siguiente en salir" y las demás van por número de prioridad (fecha de venta).
-- Las unidades van en **casillas** con un ícono de estado (palomita = lista, llave = en taller, play = por empezar, candado = esperando piezas) y un punto amarillo si tienen faltante. En taller llevan una barra de 5.
-- **Categorías por tipo** con conteo, **buscador global** (busca en todas las vistas), selector de **bodega** (Todas, Granja, Bodega 2) y **atajos**: 1–6 cambian de vista, / busca y Esc cierra.
+- **Menú fijo** a la izquierda (en celular, una fila que se desliza) con contadores: **Completo** (5 pasos en OK; antes se llamaba "Mandar flete"), En taller, Por empezar, Esperando piezas, Con faltante y Todas. Abajo, el medidor "Listas para salir".
+- Cada vista tiene un **objetivo** en una frase. En Completo, la prioridad 1 sale destacada como "Siguiente en salir" y las demás van por número de prioridad (fecha de venta).
+- Las unidades van en **casillas**. Arriba de cada una va la **remisión** en grande, junto al ícono de estado (palomita = completo, llave = en taller, play = por empezar, candado = esperando piezas). Si tiene faltante, sale una línea amarilla "Falta: …". En taller llevan una barra de 5.
+- **Filtro por tipo** en un desplegable ("Filtrar por tipo de vehículo", con el conteo de cada tipo y "Quitar filtro"); antes eran botones, que distraían, **buscador global** (busca en todas las vistas), selector de **bodega** (Todas, Granja, Bodega 2) y **atajos**: 1–6 cambian de vista, / busca y Esc cierra.
 - **Ficha** lateral: qué sigue con esa unidad, sus 5 pasos y sus datos (destino, zona, bodega, tipo, fecha, vendedor, remisión, faltante).
-- **Datos de prueba:** `datos/datos.js` (fuera del repo) lo genera `python datos/extraer_excel.py "<ruta del Excel>" datos/datos.js`. En la página publicada no existe, así que se ve vacía. Después vendrán de Supabase con inicio de sesión.
+- **Datos de prueba:** el Excel guarda algunas remisiones como fecha ("16/1" queda como 16 de enero); el extractor las regresa a "día/mes". `datos/datos.js` (fuera del repo) lo genera `python datos/extraer_excel.py "<ruta del Excel>" datos/datos.js`. En la página publicada no existe, así que se ve vacía. Después vendrán de Supabase con inicio de sesión.
 - **Diseño:** el skill `design-taste-frontend` en modo pantalla de app. Hay modo claro y modo oscuro, y funciona en celular.
 - **Probar:** `.claude/launch.json` levanta `python -m http.server 8768`.
 

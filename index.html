@@ -95,11 +95,12 @@ kbd{font:500 11px/16px var(--font);min-width:18px;height:18px;padding:0 5px;bord
 h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin:0}
 .objective{display:flex;align-items:center;gap:10px;margin:8px 0 0;font-size:16px;line-height:24px}
 .objective span:last-child{color:var(--muted)}
-.cats{display:flex;flex-wrap:wrap;gap:6px;margin:20px 0 18px}
-.cat{height:34px;padding:0 12px;border-radius:17px;border:1px solid var(--border);background:var(--surface);font-size:14px;display:inline-flex;align-items:center;gap:8px}
-.cat:hover{border-color:var(--control)}
-.cat[aria-pressed="true"]{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
-.cat .n{opacity:.7}
+.cats{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:20px 0 18px}
+.filter{display:inline-flex;align-items:center;gap:10px;font-size:14px;color:var(--muted)}
+.filter select{height:40px;min-width:240px;padding:0 36px 0 12px;border:1px solid var(--control);border-radius:10px;background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236b6d66' stroke-width='1.6'%3E%3Cpath d='m2.5 4.5 3.5 3.5 3.5-3.5'/%3E%3C/svg%3E") right 12px center no-repeat;color:var(--text);font:inherit;font-size:15px;font-weight:500;appearance:none;-webkit-appearance:none;cursor:pointer}
+.filter select:hover{border-color:var(--text)}
+.filter.on select{border-color:var(--text);box-shadow:inset 0 0 0 1px var(--text)}
+.clear{height:40px;padding:0 12px;border:0;background:none;color:var(--muted);font-size:14px;text-decoration:underline}
 
 /* Siguiente en salir */
 .next{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:20px;padding:20px 22px;border-radius:14px;background:var(--surface);border:2px solid var(--ok);margin-bottom:22px;cursor:pointer;width:100%;text-align:left}
@@ -115,7 +116,9 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .slot{position:relative;display:flex;flex-direction:column;gap:10px;min-height:150px;padding:14px;border-radius:14px;background:var(--surface);border:1px solid var(--border);text-align:left;cursor:pointer;transition:transform .12s ease,border-color .12s ease}
 .slot:hover{border-color:var(--text);transform:translateY(-2px)}
 .slot:active{transform:translateY(0)}
-.slot .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.slot .top{display:flex;align-items:center;gap:10px}
+.slot .top .rem{flex:1;min-width:0;font-size:15px;font-weight:700;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slot .top .rem small{display:block;font-size:11px;font-weight:500;line-height:14px;color:var(--muted)}
 .slot .ic{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;flex:none}
 .slot .p{min-width:32px;height:32px;padding:0 8px;border-radius:16px;background:var(--ok);color:var(--surface);display:grid;place-items:center;font-weight:700}
 .slot .days{font-size:13px;color:var(--muted);text-align:right;line-height:16px}
@@ -131,7 +134,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .bar5 i{height:6px;border-radius:3px;background:var(--raised)}
 .bar5 i.ok{background:var(--work)}
 .bar5 i.x{background:var(--neg)}
-.flag{position:absolute;left:52px;top:14px;width:10px;height:10px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 2px var(--surface)}
+.slot .miss{font-size:13px;line-height:18px;color:var(--warn);background:var(--warn-bg);border-radius:6px;padding:4px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .empty{grid-column:1/-1;padding:32px;border:1px dashed var(--control);border-radius:14px;color:var(--muted);text-align:center}
 .legend{display:flex;flex-wrap:wrap;gap:16px;margin:28px 0 0;color:var(--muted);font-size:13px}
 .legend span{display:inline-flex;align-items:center;gap:8px}
@@ -204,7 +207,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 
   <main>
     <div class="view-head"><h1 id="vt"></h1><p class="objective" id="vo"></p></div>
-    <div class="cats" id="cats" role="group" aria-label="Tipo de vehículo"></div>
+    <div class="cats" id="cats"></div>
     <div id="nextBox"></div>
     <div class="slots" id="slots"></div>
     <div class="legend" id="legend"></div>
@@ -238,7 +241,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 
   // El menú: cada vista tiene su objetivo
   var VISTAS = [
-    {id:'flete',   nombre:'Mandar flete',     sub:'5 pasos en OK',      objetivo:'Mandar el flete a su destino, empezando por la prioridad 1 (la venta más antigua).', filtro:function(u){return u.estado==='flete'}, orden:'prio'},
+    {id:'flete',   nombre:'Completo',         sub:'5 pasos en OK',      objetivo:'Mandar el flete a su destino, empezando por la prioridad 1 (la venta más antigua).', filtro:function(u){return u.estado==='flete'}, orden:'prio'},
     {id:'taller',  nombre:'En taller',        sub:'Armado a revisión',  objetivo:'Terminar los 5 pasos para que puedan salir. Las más avanzadas van primero.', filtro:function(u){return u.estado==='taller'}, orden:'ok'},
     {id:'empezar', nombre:'Por empezar',      sub:'Ya hay piezas',      objetivo:'Arrancar el armado.', filtro:function(u){return u.estado==='empezar'}, orden:'dias'},
     {id:'piezas',  nombre:'Esperando piezas', sub:'Bloqueadas',         objetivo:'No se pueden trabajar hasta que llegue el vehículo o sus piezas.', filtro:function(u){return u.estado==='piezas'}, orden:'dias'},
@@ -278,10 +281,11 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     var mid = u.estado==='taller' ? '<span class="bar5" aria-hidden="true">'+u.pasos.map(function(x){return '<i class="'+x+'"></i>'}).join('')+'</span>' : '';
     var tag = u.estado==='flete' ? 'Vendida '+fecha(u.f) : u.estado==='taller' ? u.ok+' de 5' : u.estado==='piezas' ? 'Bloqueada' : 'Por empezar';
     return '<button class="slot" type="button" data-i="'+u.i+'" aria-label="'+esc(u.modelo)+', '+L.nombreDe(L.ESTADOS,u.estado)+', '+esc(L.lugar(u))+(u.faltante?', con faltante':'')+'">' +
-      '<span class="top"><span class="ic '+u.estado+'" title="'+L.nombreDe(L.ESTADOS,u.estado)+'">'+ICON[u.estado]+'</span>'+right+'</span>' +
+      '<span class="top"><span class="ic '+u.estado+'" title="'+L.nombreDe(L.ESTADOS,u.estado)+'">'+ICON[u.estado]+'</span><span class="rem num"><small>Remisión</small>'+esc(u.remision||'—')+'</span>'+right+'</span>' +
       '<span><span class="m">'+esc(u.modelo)+(u.cant>1?' <span class="q">× '+u.cant+'</span>':'')+'</span><span class="dt">'+esc(u.detalle)+'</span></span>' + mid +
+      (u.faltante ? '<span class="miss" title="Falta: '+esc(u.faltante)+'">Falta: '+esc(u.faltante.toLowerCase())+'</span>' : '') +
       '<span class="where"><span>'+esc(L.lugar(u))+(u.distribuidor?' · distribuidor':'')+'</span><span>'+tag+'</span></span>' +
-      (u.faltante ? '<span class="flag" title="Falta: '+esc(u.faltante)+'"></span>' : '') + '</button>';
+      '</button>';
   }
 
   function drawView(){
@@ -291,8 +295,10 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     // categorías por tipo con su conteo, como el inventario de un juego
     var porTipo = L.TIPOS.map(function(t){ return {t:t, n:l.filter(function(u){return u.tipo===t.id}).length} }).filter(function(x){return x.n});
     if(st.tipo && !porTipo.some(function(x){return x.t.id===st.tipo})) st.tipo='';
-    $('cats').innerHTML = porTipo.length>1 ? '<button class="cat" type="button" data-t="" aria-pressed="'+(!st.tipo)+'">Todos <span class="n num">'+l.length+'</span></button>' +
-      porTipo.map(function(x){ return '<button class="cat" type="button" data-t="'+x.t.id+'" aria-pressed="'+(st.tipo===x.t.id)+'">'+x.t.nombre+' <span class="n num">'+x.n+'</span></button>' }).join('') : '';
+    $('cats').innerHTML = porTipo.length ? '<label class="filter'+(st.tipo?' on':'')+'"><span>Filtrar por tipo de vehículo</span><select id="tipoSel">' +
+      '<option value="">Todos los tipos ('+l.length+')</option>' +
+      porTipo.map(function(x){ return '<option value="'+x.t.id+'"'+(st.tipo===x.t.id?' selected':'')+'>'+x.t.nombre+' ('+x.n+')</option>' }).join('') +
+      '</select></label>' + (st.tipo ? '<button class="clear" type="button" id="tipoClear">Quitar filtro</button>' : '') : '';
     if(st.tipo) l = l.filter(function(u){return u.tipo===st.tipo});
     l.sort(buscando ? ORDENES.estado : ORDENES[v.orden]);
 
@@ -301,18 +307,18 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 
     // "Siguiente en salir": la prioridad 1, destacada
     var sig = !buscando && st.vista==='flete' && l[0];
-    $('nextBox').innerHTML = sig ? '<button class="next" type="button" data-i="'+sig.i+'"><span class="big num">'+sig.prioridad+'</span><span><small>Siguiente en salir</small><b>'+esc(sig.modelo)+(sig.cant>1?' × '+sig.cant:'')+' → '+esc(L.lugar(sig))+'</b><span class="s">'+esc(sig.detalle)+' · '+L.nombreDe(L.ZONAS,sig.z)+' · '+(sig.bodega==='b2'?'Bodega 2':'Granja')+'</span></span><span class="d">Vendida el '+fecha(sig.f)+'<b class="num" style="display:block">'+sig.dias+' días</b></span></button>' : '';
+    $('nextBox').innerHTML = sig ? '<button class="next" type="button" data-i="'+sig.i+'"><span class="big num">'+sig.prioridad+'</span><span><small>Siguiente en salir · remisión '+esc(sig.remision||'—')+'</small><b>'+esc(sig.modelo)+(sig.cant>1?' × '+sig.cant:'')+' → '+esc(L.lugar(sig))+'</b><span class="s">'+esc(sig.detalle)+' · '+L.nombreDe(L.ZONAS,sig.z)+' · '+(sig.bodega==='b2'?'Bodega 2':'Granja')+'</span></span><span class="d">Vendida el '+fecha(sig.f)+'<b class="num" style="display:block">'+sig.dias+' días</b></span></button>' : '';
     var resto = sig ? l.slice(1) : l;
     $('slots').innerHTML = resto.length ? resto.map(slot).join('') : (sig ? '' : '<div class="empty">'+(buscando?'Nada coincide con la búsqueda.':'No hay unidades aquí.')+'</div>');
     $('legend').innerHTML = ['flete','taller','empezar','piezas'].map(function(e){ return '<span><span class="ic '+e+'">'+ICON[e]+'</span>'+L.nombreDe(L.ESTADOS,e)+'</span>' }).join('') +
-      '<span><span class="flag" style="position:static;box-shadow:none"></span>Con faltante</span>';
+      '<span><span class="miss" style="font-size:12px;padding:1px 6px;border-radius:4px;color:var(--warn);background:var(--warn-bg)">Falta: …</span>Con faltante</span>';
   }
   function draw(){ drawMenu(); drawView(); }
 
   function abrir(i){
     var u = TODAS[i];
     var info = {
-      flete:['Mandar flete · prioridad '+u.prioridad,'Tiene los 5 pasos en OK. Mandar el flete a '+L.lugar(u)+'.'],
+      flete:['Completo · prioridad '+u.prioridad,'Tiene los 5 pasos en OK. Mandar el flete a '+L.lugar(u)+'.'],
       taller:['En taller · '+u.ok+' de 5','Sigue en '+L.PASOS[Math.max(0,u.pasos.findIndex(function(x){return x!=='ok'}))][1].toLowerCase()+'.'],
       empezar:['Por empezar','Ya se puede arrancar con el armado.'],
       piezas:['Esperando piezas','No se puede trabajar hasta que llegue el vehículo o sus piezas.']
@@ -329,7 +335,8 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 
   function ir(v){ st.vista=v; st.tipo=''; st.q=''; $('q').value=''; draw(); scrollTo({top:0}); }
   $('menu').addEventListener('click', function(e){ var b=e.target.closest('.mi'); if(b) ir(b.dataset.v) });
-  $('cats').addEventListener('click', function(e){ var b=e.target.closest('.cat'); if(b){ st.tipo=b.dataset.t; drawView(); } });
+  $('cats').addEventListener('change', function(e){ if(e.target.id==='tipoSel'){ st.tipo=e.target.value; drawView(); var s=$('tipoSel'); if(s) s.focus(); } });
+  $('cats').addEventListener('click', function(e){ if(e.target.id==='tipoClear'){ st.tipo=''; drawView(); } });
   $('bodegas').addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return; st.bodega=b.dataset.b; $('bodegas').querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed', x===b)}); draw(); });
   $('q').addEventListener('input', function(e){ st.q=e.target.value; st.tipo=''; draw(); });
   document.addEventListener('click', function(e){ var s=e.target.closest('.slot,.next'); if(s) abrir(+s.dataset.i) });
