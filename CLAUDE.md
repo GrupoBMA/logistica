@@ -28,15 +28,29 @@ Vendedor, vehículo (texto libre, p. ej. "1 MC 300 CABINA CERRADA CAJA FOOD TRUC
 
 ## Estado actual (9-nov-2026)
 
-`index.html` es la app: un solo archivo, sin librerías, letra Geist. Por ahora es la **propuesta de diseño** con los datos del Excel cargados en local.
+`index.html` es la app: un solo archivo, sin librerías, letra Geist. Es la **segunda propuesta de diseño** (la primera, tipo tabla, se descartó porque se veía igual al Excel). El usuario pidió que al entrar se vea limpio, muy sencillo de entender y fácil de leer, y que funcione como un sistema con un flujo.
 
 - **Datos de prueba:** `datos/datos.js` (fuera del repo) lo genera `python datos/extraer_excel.py "<ruta del Excel>" datos/datos.js`. En la página publicada no existe, así que se ve vacía ("Todavía no hay entregas cargadas"). Después los datos vendrán de Supabase con inicio de sesión.
-- **Pantalla Ventas:**
-  - arriba, el avance en 4 etapas (sin entrar a taller, en taller, lista sin flete, con flete asignado), que también sirven de filtro;
-  - la frase con lo urgente, calculada de los datos;
-  - "Hacia dónde van": barra y botones por zona;
-  - la lista agrupada por zona y ordenada por días de espera (de más a menos), con buscador, filtro de vendedor y "Con faltante". Al dar clic en un renglón se abre la ficha.
-- **Diseño:** estilo "achromatic ledger" del skill `design-taste-frontend` (pantalla de app). El cromo va sin color; el color solo está en los datos (zonas y pasos). Hay modo claro y modo oscuro.
+- **El flujo (la ruta):** cada unidad pasa por 6 paradas: Vendida → Taller → Lista → Con flete → En camino → Entregada. La parada inicial sale del Excel así:
+  - **Vendida:** ningún paso del taller marcado;
+  - **Taller:** algún paso marcado, pero la R no está en OK;
+  - **Lista:** R en OK y sin fletero;
+  - **Con flete:** R en OK y con fletero.
+
+  "En camino" y "Entregada" no existen en la hoja VENTAS (*pendiente*: Entregada vendrá de la hoja ENTREGADO).
+- **Inicio:** solo la ruta con el conteo de cada parada y, abajo, hasta 3 avisos de "Necesita atención":
+  - listas sin flete;
+  - con faltante;
+  - más de 45 días desde la venta (el umbral está en `VIEJA` y está *por confirmar*).
+- **Al tocar una parada:** la ruta se hace compacta arriba y abajo salen las tarjetas de esa parada, agrupadas por zona y con la más antigua primero. Hay filtro por zona y buscador. Cada tarjeta muestra:
+  - el modelo corto y el detalle, sacados del texto del vehículo con la función `nombre()`;
+  - el destino y los días;
+  - el faltante;
+  - el avance del taller (n de 5) o el fletero;
+  - un botón para pasar a la siguiente parada.
+- **Ficha:** el recorrido de la unidad por las 6 paradas (con los 5 pasos del taller, el vendedor, la remisión y el fletero) y un botón para avanzar.
+- **Mover de parada** hoy solo cambia la pantalla, con "Deshacer". No se guarda (*pendiente*: guardar en Supabase).
+- **Diseño:** el skill `design-taste-frontend` en modo pantalla de app. El cromo va sin color; el color solo está en los datos (zonas, avisos y pasos con X). Hay modo claro y modo oscuro. En celular la ruta se pone en vertical.
 - **Probar:** `.claude/launch.json` levanta `python -m http.server 8768`.
 
 ## Regla estricta: nada con datos reales en el repo
