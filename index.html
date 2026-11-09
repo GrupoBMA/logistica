@@ -122,6 +122,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .slot .sold small{display:block;font-size:11px;line-height:14px;color:var(--muted);font-weight:500}
 .slot .where{margin-top:auto;font-size:13px;line-height:18px;display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
 .slot .where .pl{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+.dpill{display:inline-block;max-width:100%;padding:3px 9px;border-radius:6px;font-weight:500;font-size:14px;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom;background:var(--raised);color:var(--text)}
 .slot .age{text-align:right;color:var(--muted);font-size:11px;line-height:14px;flex:none}
 .slot .age b{display:block;font-size:22px;line-height:26px;color:var(--text);font-weight:700}
 .slot .age.old b{color:var(--neg)}
@@ -270,6 +271,12 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     $('gt').textContent = listas+' de '+unidades(b.length);
   }
 
+  // Destino con el color que trae el Excel; el texto va oscuro o claro según el fondo
+  function tinta(hex){ var n=parseInt(hex.slice(1),16), r=n>>16&255, g=n>>8&255, b=n&255; return (0.299*r+0.587*g+0.114*b) > 150 ? '#111' : '#fff' }
+  function destino(u){
+    var c = u.color_destino;
+    return '<span class="dpill"'+(c?' style="background:'+c+';color:'+tinta(c)+'"':'')+' title="'+esc(L.nombreDe(L.ZONAS,u.z))+'">'+esc(L.lugar(u))+'</span>';
+  }
   function slot(u){
     var mid = u.estado==='taller' ? '<span class="prog5"><span class="bar5" aria-hidden="true">'+u.pasos.map(function(x){return '<i class="'+x+'"></i>'}).join('')+'</span><span>'+u.ok+' de 5</span></span>' : '';
     return '<button class="slot" type="button" data-i="'+u.i+'" aria-label="Remisión '+esc(u.remision||'sin número')+', '+esc(u.modelo)+', '+L.nombreDe(L.ESTADOS,u.estado)+', '+esc(L.lugar(u))+(u.faltante?', con faltante':'')+'">' +
@@ -277,7 +284,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
         '<span class="sold num"><small>Vendida</small>'+fecha(u.f)+'</span></span>' +
       '<span><span class="m">'+esc(u.modelo)+(u.cant>1?' <span class="q">× '+u.cant+'</span>':'')+'</span><span class="dt">'+esc(u.detalle)+'</span></span>' + mid +
       (u.faltante ? '<span class="miss" title="Falta: '+esc(u.faltante)+'">Falta: '+esc(u.faltante.toLowerCase())+'</span>' : '') +
-      '<span class="where"><span class="pl">'+esc(L.lugar(u))+(u.distribuidor?' · distribuidor':'')+'</span>' +
+      '<span class="where"><span class="pl">'+destino(u)+(u.distribuidor?' <span style="color:var(--muted);font-size:13px">distribuidor</span>':'')+'</span>' +
         '<span class="age num'+(u.dias>VIEJA?' old':'')+'"><b>'+(u.dias==null?'—':u.dias)+'</b>días desde la venta</span></span>' +
       '</button>';
   }
@@ -318,7 +325,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     var kv = [['Destino',L.lugar(u)+(u.distribuidor?' (distribuidor)':'')],['Zona',L.nombreDe(L.ZONAS,u.z)],['Bodega',u.bodega==='b2'?'Bodega 2':'Bodega 1 · Granja'],['Tipo',L.nombreDe(L.TIPOS,u.tipo)],['Vendida',fecha(u.f)+' · hace '+(u.dias==null?'—':u.dias)+' días'],['Vendedor',u.vendedor||'—'],['Remisión',u.remision||'—'],['Faltante',u.faltante||'—']];
     $('ib').innerHTML = '<div class="state"><span class="ic '+u.estado+'">'+ICON[u.estado]+'</span><span><b>'+esc(info[0])+'</b><small>'+esc(info[1])+'</small></span></div>' +
       '<div class="st5">'+L.PASOS.map(function(p,k){ return '<div class="'+u.pasos[k]+'"><b>'+p[0]+'</b>'+p[1]+'</div>' }).join('')+'</div>' +
-      '<dl class="kv">'+kv.map(function(x){return '<dt>'+x[0]+'</dt><dd>'+esc(x[1])+'</dd>'}).join('')+'</dl>';
+      '<dl class="kv">'+kv.map(function(x){return '<dt>'+x[0]+'</dt><dd>'+(x[0]==='Destino' ? destino(u)+(u.distribuidor?' (distribuidor)':'') : esc(x[1]))+'</dd>'}).join('')+'</dl>';
     $('insp').classList.add('on'); $('scrim').classList.add('on'); $('insp').setAttribute('aria-hidden','false'); $('close').focus();
   }
   function cerrar(){ $('insp').classList.remove('on'); $('scrim').classList.remove('on'); $('insp').setAttribute('aria-hidden','true'); }
