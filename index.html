@@ -221,6 +221,14 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .kv dd{margin:0;padding:9px 0;border-bottom:1px solid var(--border)}
 
 @media (max-width:1100px) and (min-width:901px){ .slots{grid-template-columns:repeat(2,minmax(0,1fr))} }
+/* Lista compacta en pantallas medianas y en celular */
+@media (max-width:1100px){
+  .lhead{display:none}
+  .fila{grid-template-columns:36px minmax(0,1fr) auto;grid-template-areas:'ic veh dias' 'ic dest dias';gap:4px 12px;padding:12px}
+  .fila .c-rem,.fila .c-pasos,.fila .c-fecha{display:none}
+  .fila .c-ic{grid-area:ic} .fila .c-veh{grid-area:veh} .fila .c-dest{grid-area:dest} .fila .c-dias{grid-area:dias}
+  .fila .c-veh .rem-m{display:inline}
+}
 @media (max-width:900px){
   .bar{flex-wrap:wrap;padding:10px 16px}
   .find{order:3;margin-left:0;max-width:none;flex-basis:100%}
@@ -235,11 +243,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   .mi .c{font-size:15px}
   h1{font-size:24px;line-height:30px}
   .slots{grid-template-columns:1fr}
-  .lhead{display:none}
-  .fila{grid-template-columns:36px minmax(0,1fr) auto;grid-template-areas:'ic veh dias' 'ic dest dias';gap:4px 12px;padding:12px}
-  .fila .c-rem,.fila .c-pasos,.fila .c-fecha{display:none}
-  .fila .c-ic{grid-area:ic} .fila .c-veh{grid-area:veh} .fila .c-dest{grid-area:dest} .fila .c-dias{grid-area:dias}
-  .fila .c-veh .rem-m{display:inline}
+
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -365,17 +369,17 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   var leyendo = false;
   function leerDrive(){
     if(leyendo) return; leyendo = true;
+    estadoGoogle();
     sesionVisible(true);
     $('actualizar').disabled = true; $('actualizar').textContent = 'Leyendo el Drive…';
     if(!TODAS.length){ $('vt').textContent = 'Leyendo el Excel del Drive…'; $('vo').innerHTML = ''; }
     return sb.functions.invoke('logistica-drive', {body:{}}).then(function(r){
       var info = r.data && !r.data.error ? r.data : null;
-      var falta = r.data && r.data.conectar;
-      $('conectar').hidden = !falta;
-      $('conectar').classList.toggle('confirmar', !!falta);
-      var aviso = info ? '' : falta
+      faltaConectar = !!(r.data && r.data.conectar);
+      // A quien no puede conectar Google (por ejemplo, el jefe) no se le pide nada: solo se le avisa
+      var aviso = info ? '' : (faltaConectar && puedeConectar)
         ? 'Falta conectar con Google para leer el Excel del Drive (Google lo pide cada 7 días). Se muestran los últimos datos guardados.'
-        : 'No se pudo leer el Drive'+(r.data && r.data.error ? ' ('+r.data.error+')' : '')+'; se muestran los últimos datos guardados.';
+        : 'No se pudo leer el Drive en este momento'+(r.data && r.data.error && puedeConectar ? ' ('+r.data.error+')' : '')+'; se muestran los últimos datos guardados.';
       estadoGoogle();
       return cargarDatos(info, aviso);
     }).catch(function(){ return cargarDatos(null, 'No se pudo leer el Drive en este momento; se muestran los últimos datos guardados.'); })
@@ -538,11 +542,16 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   $('actualizar').addEventListener('click', function(){ leerDrive() });
 
   // ---------- Conectar con Google (solo lectura del Drive, con la cuenta que tiene acceso al Excel) ----------
+  // El botón "Conectar con Google" solo le sale a la cuenta marcada en logistica.usuarios.conecta_google
+  var puedeConectar = false, faltaConectar = false;
   function estadoGoogle(){
     sb.rpc('logistica_google_estado').then(function(r){
-      var e = r.data;
-      $('cuentaG').innerHTML = e && e.cuenta ? 'Drive conectado con <b>'+esc(e.cuenta)+'</b>.' : '';
-      if(!e){ $('conectar').hidden = false; }
+      var e = r.data || {};
+      puedeConectar = !!e.puede_conectar;
+      var mostrar = puedeConectar && (faltaConectar || !e.cuenta);
+      $('conectar').hidden = !mostrar;
+      $('conectar').classList.toggle('confirmar', mostrar);
+      $('cuentaG').innerHTML = puedeConectar && e.cuenta ? 'Drive conectado con <b>'+esc(e.cuenta)+'</b>.' : '';
     });
   }
   $('conectar').addEventListener('click', function(){
