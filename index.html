@@ -287,11 +287,11 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     return '<span class="dpill" title="'+esc(L.nombreDe(L.ZONAS,u.z))+'"><span class="d"'+(c?' style="background:'+c+'"':'')+'></span><span class="t">'+esc(L.lugar(u))+'</span></span>';
   }
   function slot(u){
-    var grande = st.vista==='taller' && !st.q.trim();
+    var grande = true; // las 5 rayitas grandes en todas las casillas (pedido del usuario)
     var mid = grande ? '<span class="prog5"><span class="bar5" aria-hidden="true">'+u.pasos.map(function(x){return '<i class="'+x+'"></i>'}).join('')+'</span><span>'+u.ok+' de 5</span></span>' : '';
     return '<button class="slot" type="button" data-i="'+u.i+'" aria-label="Remisión '+esc(u.remision||'sin número')+', '+esc(u.modelo)+', '+L.nombreDe(L.ESTADOS,u.estado)+', '+esc(L.lugar(u))+(u.faltante?', con faltante':'')+'">' +
       '<span class="top"><span class="izq"><span class="ic '+u.estado+'" title="'+L.nombreDe(L.ESTADOS,u.estado)+'">'+ICON[u.estado]+'</span><span class="rem num"><small>Remisión</small>'+esc(u.remision||'—')+'</span></span>' +
-        (!grande ? '<span class="mini5" title="Pasos del taller: '+u.ok+' de 5 en OK" aria-hidden="true">'+u.pasos.map(function(x){return '<i class="'+x+'"></i>'}).join('')+'</span>' : '<span></span>') +
+        '<span></span>' +
         '<span class="sold num"><small>Vendida</small>'+fecha(u.f)+'</span></span>' +
       '<span><span class="m">'+esc(u.modelo)+(u.cant>1?' <span class="q">× '+u.cant+'</span>':'')+'</span><span class="dt">'+esc(u.detalle)+'</span></span>' + mid +
       (u.faltante ? '<span class="miss" title="Falta: '+esc(u.faltante)+'">Falta: '+esc(u.faltante.toLowerCase())+'</span>' : '') +
