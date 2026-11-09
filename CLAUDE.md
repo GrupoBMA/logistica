@@ -36,7 +36,8 @@ Ir de poco en poco, empezando por lo más importante: **el vehículo y su entreg
 
 - **Datos de prueba:** `datos/datos.js` (fuera del repo) lo genera `python datos/extraer_excel.py "<ruta del Excel>" datos/datos.js`. En la página publicada no existe, así que se ve vacía ("Todavía no hay entregas cargadas"). Después los datos vendrán de Supabase con inicio de sesión.
 - **Pestañas:** arriba están **Listas** (la primera, se abre al entrar) y **Flujo**.
-- **Pestaña Listas** (pedido del usuario, 9-nov-2026): solo las unidades con **las 5 casillas en OK** (armado, herrería, forrado, pintura y revisión). Van en tarjetas, la más antigua primero, con buscador. No es lo mismo que la parada "Lista" del flujo, que toma R = OK sin fletero.
+- **Pestaña Listas** (pedido del usuario, 9-nov-2026): solo las unidades con **las 5 casillas en OK** (armado, herrería, forrado, pintura y revisión). Van **en una sola columna, separadas por tipo** y, dentro de cada tipo, con la más antigua primero. Tiene buscador.
+- **Tipos:** como los cataloga sunldemexico.com: Motocarro 150 cc, 200 cc, 300 cc doble rodado, 300 cc cabina cerrada, Mototaxis, ATV, UTV, Minimotos, Areneros. La función `tipo()` los saca del texto del vehículo. "Motocarro 300 cc" a secas (por ejemplo la pipa), "Motocarro 350 cc" y "Accesorios y otros" (como el toldo) son extras, porque la página no los tiene. En el Flujo, las unidades de cada parada también van por tipo y en una columna. No es lo mismo que la parada "Lista" del flujo, que toma R = OK sin fletero.
 - **El flujo (la ruta):** cada unidad pasa por 6 paradas: Vendida → Taller → Lista → Con flete → En camino → Entregada. La parada inicial sale del Excel así:
   - **Vendida:** ningún paso del taller marcado;
   - **Taller:** algún paso marcado, pero la R no está en OK;

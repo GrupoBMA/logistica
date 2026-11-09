@@ -144,6 +144,30 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .next{height:34px;padding:0 12px;border-radius:8px;border:1px solid var(--control);background:var(--surface);font-size:14px;font-weight:500;white-space:nowrap}
 .next:hover{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
 .next:active{transform:translateY(1px)}
+.tipo{margin-top:28px}
+.tipo:first-child{margin-top:0}
+.tipo h2{display:flex;align-items:baseline;gap:10px;font-size:17px;line-height:24px;font-weight:700;margin:0 0 10px}
+.tipo h2 .n{color:var(--muted);font-weight:400;font-size:15px}
+.rows{display:flex;flex-direction:column;gap:8px}
+.row{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1.1fr) 64px;align-items:center;gap:20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;cursor:pointer;text-align:left}
+.row:hover{border-color:var(--text)}
+.row .model{font-weight:700;font-size:16px;line-height:22px}
+.row .qty{color:var(--muted);font-weight:400}
+.row .detail{color:var(--muted);font-size:13px;line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .dest{font-size:14px;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .dest small{display:block;color:var(--muted);font-size:13px;line-height:18px}
+.row .extra{min-width:0}
+.row .missing{font-size:13px;line-height:18px;color:var(--warn);background:var(--warn-bg);border-radius:6px;padding:5px 8px;display:inline-block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .days{text-align:right;font-size:13px;color:var(--muted);line-height:16px}
+.row .days b{display:block;font-size:20px;line-height:24px;color:var(--text);font-weight:500}
+.row .days.old b{color:var(--neg)}
+@media (max-width:760px){
+  .row{grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding:14px 16px}
+  .row .dest{grid-column:1;grid-row:2}
+  .row .extra{grid-column:1/-1}
+  .row .extra:empty{display:none}
+  .row .days{grid-column:2;grid-row:1/3}
+}
 .empty{padding:28px;border:1px dashed var(--control);border-radius:12px;color:var(--muted);text-align:center}
 
 /* Ficha */
@@ -233,7 +257,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     </div>
     <div class="ready">
       <div class="ready-tools"><input class="search" id="rq" type="search" placeholder="Buscar modelo, destino o remisión" aria-label="Buscar en listas"></div>
-      <div class="cards" id="ready-cards"></div>
+      <div id="ready-cards"></div>
     </div>
   </section>
   <div id="v-flujo" role="tabpanel" aria-labelledby="t-flujo">
@@ -314,6 +338,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     var z = r.zona==='motoplaza' ? 'cerca' : r.zona==='pacifico' ? 'sucursal' : r.zona;
     return Object.assign({}, r, nombre(r.vehiculo), {i:i, z:z, f:f, dias: f ? Math.round((CORTE-f)/864e5) : null, parada: paradaInicial(r)});
   });
+  unidades.forEach(function(u){ u.tipo = tipo(u) });
 
   var st = {parada:null, zona:null, q:''};
   function en(p){ return unidades.filter(function(u){ return u.parada===p }) }
@@ -374,29 +399,62 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     var base = listaActual();
     $('sgt').textContent = esp ? esp.nombre : p.nombre;
     $('sgp').textContent = esp ? esp.texto : (base.length===1?'1 unidad':base.length+' unidades') + '';
-    // chips por zona
-    var porZona = ZONAS.map(function(z){ return {z:z, n:base.filter(function(u){return u.z===z.id}).length} }).filter(function(x){return x.n});
-    $('chips').innerHTML = porZona.length>1 ? '<button class="chip" type="button" data-z="" aria-pressed="'+(!st.zona)+'">Todas <span class="n num">'+base.length+'</span></button>' +
-      porZona.map(function(x){ return '<button class="chip" type="button" data-z="'+x.z.id+'" aria-pressed="'+(st.zona===x.z.id)+'"><i class="dot" style="background:var(--z-'+x.z.id+')"></i>'+x.z.nombre+' <span class="n num">'+x.n+'</span></button>' }).join('') : '';
-    var l = st.zona ? base.filter(function(u){return u.z===st.zona}) : base;
+    $('chips').innerHTML = '';
+    var l = base;
     if(!l.length){ $('groups').innerHTML = '<div class="empty">'+(p && (p.id==='camino'||p.id==='entregada') ? 'Todavía no hay unidades en esta parada.' : 'No hay unidades aquí.')+'</div>'; return; }
-    $('groups').innerHTML = ZONAS.map(function(z){
-      var g = l.filter(function(u){return u.z===z.id}).sort(function(a,b){return (b.dias||0)-(a.dias||0)});
-      if(!g.length) return '';
-      return '<div class="group"><h3><i class="dot" style="background:var(--z-'+z.id+')"></i>'+z.nombre+' <span class="n num">'+g.length+'</span></h3><div class="cards">'+g.map(card).join('')+'</div></div>';
-    }).join('');
+    $('groups').innerHTML = porTipo(l, st.parada==='taller'||st.parada==='vendida' ? 'taller' : '');
   }
-  function card(u){
+  // Tipos como los cataloga sunldemexico.com
+  var TIPOS = [
+    {id:'mc150', nombre:'Motocarro 150 cc'},
+    {id:'mc200', nombre:'Motocarro 200 cc'},
+    {id:'mc300dr', nombre:'Motocarro 300 cc doble rodado'},
+    {id:'mc300cc', nombre:'Motocarro 300 cc cabina cerrada'},
+    {id:'mc300', nombre:'Motocarro 300 cc'},
+    {id:'mc350', nombre:'Motocarro 350 cc'},
+    {id:'mototaxi', nombre:'Mototaxis'},
+    {id:'atv', nombre:'ATV o cuatrimotos'},
+    {id:'utv', nombre:'UTV o tipo razer'},
+    {id:'minimoto', nombre:'Minimotos'},
+    {id:'arenero', nombre:'Areneros o go karts'},
+    {id:'otro', nombre:'Accesorios y otros'}
+  ];
+  function tipo(u){
+    var v = (u.vehiculo||'').toUpperCase();
+    if(/^\d+\s+TOLDO/.test(v)) return 'otro';
+    if(/MOTOTAXI/.test(v)) return 'mototaxi';
+    if(/MINI ?ATV|\bATV\b|CUATRI/.test(v)) return 'atv';
+    if(/\bUTV\b|RAZER|RAIZER/.test(v)) return 'utv';
+    if(/MINICROSS|MINIMOTO/.test(v)) return 'minimoto';
+    if(/ARENERO|GO ?KART/.test(v)) return 'arenero';
+    if(/MC\s*350/.test(v)) return 'mc350';
+    if(/MC\s*300/.test(v)){
+      if(/CABINA CERRADA|CAB\/CERRADA|CAB\. CERRADA/.test(v)) return 'mc300cc';
+      if(/\bDR\b|HIDR/.test(v)) return 'mc300dr';
+      return 'mc300';
+    }
+    if(/MC\s*200/.test(v)) return 'mc200';
+    if(/MC\s*150/.test(v)) return 'mc150';
+    return 'otro';
+  }
+  function fila(u, modo){
     var hechos = u.pasos.filter(function(x){return x==='ok'}).length;
-    var foot = u.parada==='taller' || u.parada==='vendida'
-      ? '<span style="display:flex;align-items:center;gap:8px"><span class="prog" aria-hidden="true">'+u.pasos.map(function(x){return '<i class="'+x+'"></i>'}).join('')+'</span><span class="prog-label">'+hechos+' de 5</span></span>'
-      : '<span class="prog-label">Vendida el '+fecha(u.f)+'</span>';
-    return '<article class="card" data-i="'+u.i+'" tabindex="0" aria-label="'+esc(u.modelo)+' a '+esc(u.destino)+'">' +
-      '<div class="top"><div style="min-width:0"><div class="model">'+esc(u.modelo)+(u.cant>1?' <span class="qty">× '+u.cant+'</span>':'')+'</div><div class="detail">'+esc(u.detalle)+'</div></div>' +
-      '<div class="days num'+(vieja(u)?' old':'')+'"><b>'+(u.dias==null?'—':u.dias)+'</b>días</div></div>' +
-      '<div class="where"><i class="dot" style="background:var(--z-'+u.z+')"></i><span>'+esc(cap((u.destino||'Sin destino').toLowerCase()))+'</span></div>' +
-      (u.faltante ? '<div class="missing">Falta: '+esc(u.faltante.toLowerCase())+'</div>' : '') +
-      '<div class="foot">'+foot+'</div></article>';
+    var extra = '';
+    if(u.faltante) extra = '<span class="missing" title="'+esc(u.faltante)+'">Falta: '+esc(u.faltante.toLowerCase())+'</span>';
+    else if(modo==='taller') extra = '<span style="display:flex;align-items:center;gap:8px"><span class="prog" aria-hidden="true">'+u.pasos.map(function(x){return '<i class="'+x+'"></i>'}).join('')+'</span><span class="prog-label">'+hechos+' de 5</span></span>';
+    return '<article class="row" data-i="'+u.i+'" tabindex="0" aria-label="'+esc(u.modelo)+' a '+esc(u.destino)+'">' +
+      '<div style="min-width:0"><div class="model">'+esc(u.modelo)+(u.cant>1?' <span class="qty">× '+u.cant+'</span>':'')+'</div><div class="detail">'+esc(u.detalle)+'</div></div>' +
+      '<div class="dest">'+esc(cap((u.destino||'Sin destino').toLowerCase()))+'<small>Vendida el '+fecha(u.f)+'</small></div>' +
+      '<div class="extra">'+extra+'</div>' +
+      '<div class="days num'+(vieja(u)?' old':'')+'"><b>'+(u.dias==null?'—':u.dias)+'</b>días</div></article>';
+  }
+  function porTipo(l, modo){
+    return TIPOS.map(function(t){
+      var g = l.filter(function(u){return u.tipo===t.id}).sort(function(a,b){return (b.dias||0)-(a.dias||0)});
+      if(!g.length) return '';
+      var n = g.reduce(function(s,u){return s+u.cant},0);
+      return '<section class="tipo"><h2>'+t.nombre+' <span class="n num">'+(n===1?'1 unidad':n+' unidades')+'</span></h2><div class="rows">'+g.map(function(u){return fila(u,modo)}).join('')+'</div></section>';
+    }).join('');
   }
 
   // ---------- Ficha ----------
@@ -430,16 +488,8 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     var q = rq.trim().toLowerCase().split(/\s+/).filter(Boolean);
     var l = todas.filter(function(u){ if(!q.length) return true; var t=(u.vehiculo+' '+u.destino+' '+u.remision+' '+u.vendedor).toLowerCase(); return q.every(function(w){return t.indexOf(w)>-1}) })
                  .sort(function(a,b){ return (b.dias||0)-(a.dias||0) });
-    $('ready-lead').textContent = todas.length ? todas.length+' unidades con armado, herrería, forrado, pintura y revisión terminados. La que lleva más tiempo va primero.' : 'Todavía no hay unidades con los 5 pasos terminados.';
-    var ok = '<span class="check"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2.5 7.5l3 3 6-7"/></svg>5 de 5</span>';
-    $('ready-cards').innerHTML = l.length ? l.map(function(u){
-      return '<article class="card" data-i="'+u.i+'" tabindex="0" aria-label="'+esc(u.modelo)+' a '+esc(u.destino)+'">' +
-        '<div class="top"><div style="min-width:0"><div class="model">'+esc(u.modelo)+(u.cant>1?' <span class="qty">× '+u.cant+'</span>':'')+'</div><div class="detail">'+esc(u.detalle)+'</div></div>' +
-        '<div class="days num'+(vieja(u)?' old':'')+'"><b>'+(u.dias==null?'—':u.dias)+'</b>días</div></div>' +
-        '<div class="where"><span>'+esc(cap((u.destino||'Sin destino').toLowerCase()))+'</span></div>' +
-        (u.faltante ? '<div class="missing">Falta: '+esc(u.faltante.toLowerCase())+'</div>' : '') +
-        '<div class="foot">'+ok+'<span class="prog-label">Vendida el '+fecha(u.f)+'</span></div></article>';
-    }).join('') : '<div class="empty" style="grid-column:1/-1">'+(todas.length?'Ninguna coincide con la búsqueda.':'Todavía no hay unidades aquí.')+'</div>';
+    $('ready-lead').textContent = todas.length ? todas.length+' unidades con armado, herrería, forrado, pintura y revisión terminados, separadas por tipo. En cada tipo, la que lleva más tiempo va primero.' : 'Todavía no hay unidades con los 5 pasos terminados.';
+    $('ready-cards').innerHTML = l.length ? porTipo(l, '') : '<div class="empty">'+(todas.length?'Ninguna coincide con la búsqueda.':'Todavía no hay unidades aquí.')+'</div>';
   }
   var tab = 'listas';
   function setTab(t){
@@ -449,7 +499,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   }
   document.querySelector('.tabs').addEventListener('click', function(e){ var b=e.target.closest('.tab'); if(b){ setTab(b.dataset.tab); if(b.dataset.tab==='flujo') ir(null); } });
   $('rq').addEventListener('input', function(e){ rq=e.target.value; drawReady(); });
-  $('ready-cards').addEventListener('keydown', function(e){ var c=e.target.closest('.card'); if(c && e.target===c && (e.key==='Enter'||e.key===' ')){ e.preventDefault(); abrir(+c.dataset.i) } });
+  $('ready-cards').addEventListener('keydown', function(e){ var c=e.target.closest('.row'); if(c && e.target===c && (e.key==='Enter'||e.key===' ')){ e.preventDefault(); abrir(+c.dataset.i) } });
 
   function draw(){
     drawReady();
@@ -466,9 +516,9 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   $('chips').addEventListener('click', function(e){ var b=e.target.closest('.chip'); if(b){ st.zona=b.dataset.z||null; drawStage(); } });
   $('q').addEventListener('input', function(e){ st.q=e.target.value; drawStage(); });
   document.addEventListener('click', function(e){
-    var c = e.target.closest('.card'); if(c) abrir(+c.dataset.i);
+    var c = e.target.closest('.row'); if(c) abrir(+c.dataset.i);
   });
-  $('groups').addEventListener('keydown', function(e){ var c=e.target.closest('.card'); if(c && e.target===c && (e.key==='Enter'||e.key===' ')){ e.preventDefault(); abrir(+c.dataset.i) } });
+  $('groups').addEventListener('keydown', function(e){ var c=e.target.closest('.row'); if(c && e.target===c && (e.key==='Enter'||e.key===' ')){ e.preventDefault(); abrir(+c.dataset.i) } });
   $('close').addEventListener('click', cerrar); $('scrim').addEventListener('click', cerrar);
   document.addEventListener('keydown', function(e){ if(e.key==='Escape') cerrar() });
 
