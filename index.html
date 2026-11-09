@@ -282,7 +282,9 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     <div class="keys">Atajos: <kbd>1</kbd>–<kbd>6</kbd> cambiar vista · <kbd>/</kbd> buscar · <kbd>Esc</kbd> cerrar</div>
     <div class="sesion">
       <span id="subido"></span>
+      <button type="button" id="conectar" hidden>Conectar con Google</button>
       <button type="button" id="actualizar">Volver a leer el Drive</button>
+      <span id="cuentaG"></span>
       <button type="button" class="salir" id="salir">Salir</button>
     </div>
   </nav>
@@ -319,6 +321,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   // La llave es la pública (publishable): sin sesión no da acceso a nada.
   var SUPABASE_URL = 'https://jlfendrdwptwmttrahre.supabase.co';
   var SUPABASE_KEY = 'sb_publishable_RNnR7jV42dGEGLFWdRVfvQ_cP1xSwuO';
+  var GOOGLE_CLIENT_ID = '580029556888-pg3prpg2e3cnlqsv6tok69pej6e8n7cq.apps.googleusercontent.com'; // proyecto de Google "Grupo BMA" (público por diseño)
   var DOMINIO = '@logistica.bma';   // el usuario se escribe sin correo: "juan" -> juan@logistica.bma
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth:{persistSession:true, autoRefreshToken:true}});
   var TODAS = [];
@@ -360,7 +363,13 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     if(!TODAS.length){ $('vt').textContent = 'Leyendo el Excel del Drive…'; $('vo').innerHTML = ''; }
     return sb.functions.invoke('logistica-drive', {body:{}}).then(function(r){
       var info = r.data && !r.data.error ? r.data : null;
-      var aviso = info ? '' : 'No se pudo leer el Drive en este momento; se muestran los últimos datos guardados.';
+      var falta = r.data && r.data.conectar;
+      $('conectar').hidden = !falta;
+      $('conectar').classList.toggle('confirmar', !!falta);
+      var aviso = info ? '' : falta
+        ? 'Falta conectar con Google para leer el Excel del Drive (Google lo pide cada 7 días). Se muestran los últimos datos guardados.'
+        : 'No se pudo leer el Drive'+(r.data && r.data.error ? ' ('+r.data.error+')' : '')+'; se muestran los últimos datos guardados.';
+      estadoGoogle();
       return cargarDatos(info, aviso);
     }).catch(function(){ return cargarDatos(null, 'No se pudo leer el Drive en este momento; se muestran los últimos datos guardados.'); })
       .then(function(){ leyendo = false; $('actualizar').disabled = false; $('actualizar').textContent = 'Volver a leer el Drive'; });
@@ -520,6 +529,29 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   });
   $('salir').addEventListener('click', function(){ sb.auth.signOut().then(function(){ TODAS=[]; cerrar(); sesionVisible(false); $('lUser').focus(); }) });
   $('actualizar').addEventListener('click', function(){ leerDrive() });
+
+  // ---------- Conectar con Google (solo lectura del Drive, con la cuenta que tiene acceso al Excel) ----------
+  function estadoGoogle(){
+    sb.rpc('logistica_google_estado').then(function(r){
+      var e = r.data;
+      $('cuentaG').innerHTML = e && e.cuenta ? 'Drive conectado con <b>'+esc(e.cuenta)+'</b>.' : '';
+      if(!e){ $('conectar').hidden = false; }
+    });
+  }
+  $('conectar').addEventListener('click', function(){
+    // La ventana se abre en el clic (si no, el navegador la bloquea); la dirección se pone al tener el código
+    var w = window.open('', 'conectarGoogle', 'width=520,height=700');
+    sb.rpc('logistica_google_inicio').then(function(r){
+      if(r.error || !r.data){ if(w) w.close(); $('subido').innerHTML = '<span class="aviso">No se pudo iniciar la conexión con Google.</span>'; return; }
+      var url = 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
+        client_id: GOOGLE_CLIENT_ID, redirect_uri: SUPABASE_URL + '/functions/v1/logistica-google', response_type: 'code',
+        scope: 'openid email https://www.googleapis.com/auth/drive.readonly', access_type: 'offline', prompt: 'consent', state: r.data
+      }).toString();
+      if(w){ w.location = url } else { location.href = url }
+      var t = setInterval(function(){ if(!w || w.closed){ clearInterval(t); leerDrive(); } }, 800);
+    });
+  });
+  window.addEventListener('message', function(e){ if(e.data && e.data.logisticaGoogle) leerDrive() });
   sb.auth.getSession().then(function(r){ if(r.data && r.data.session) leerDrive(); else sesionVisible(false); });
 })();
 </script>
