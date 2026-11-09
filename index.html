@@ -427,7 +427,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     var b = base();
     $('menu').innerHTML = VISTAS.map(function(v,k){
       var n = b.filter(v.filtro).length;
-      return '<button class="mi" type="button" data-v="'+v.id+'" aria-current="'+(st.vista===v.id && !st.q.trim())+'"><span class="ic '+v.id+'">'+ICON[v.id]+'</span><span><b>'+v.nombre+'</b><small>'+v.sub+'</small></span><span class="c num">'+n+' <kbd>'+(k+1)+'</kbd></span></button>';
+      return '<button class="mi" type="button" data-v="'+v.id+'" aria-current="'+(st.vista===v.id && !st.q.trim())+'"><span class="ic '+v.id+'">'+ICON[v.id]+'</span><span><b>'+v.nombre+'</b><small>'+v.sub+'</small></span><span class="c num">'+n+'</span></button>';
     }).join('');
     var listas = b.filter(function(u){return u.estado==='flete'}).length;
     $('gm').style.width = (b.length ? listas/b.length*100 : 0)+'%';
