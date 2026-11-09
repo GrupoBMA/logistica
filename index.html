@@ -242,10 +242,10 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   // El menú: cada vista tiene su objetivo
   var VISTAS = [
     {id:'flete',   nombre:'Completo',         sub:'5 pasos en OK',      objetivo:'Mandar el flete a su destino, empezando por la prioridad 1 (la venta más antigua).', filtro:function(u){return u.estado==='flete'}, orden:'prio'},
-    {id:'taller',  nombre:'En taller',        sub:'Armado a revisión',  objetivo:'Terminar los 5 pasos para que puedan salir. Las más avanzadas van primero.', filtro:function(u){return u.estado==='taller'}, orden:'ok'},
-    {id:'empezar', nombre:'Por empezar',      sub:'Ya hay piezas',      objetivo:'Arrancar el armado.', filtro:function(u){return u.estado==='empezar'}, orden:'dias'},
-    {id:'piezas',  nombre:'Esperando piezas', sub:'Bloqueadas',         objetivo:'No se pueden trabajar hasta que llegue el vehículo o sus piezas.', filtro:function(u){return u.estado==='piezas'}, orden:'dias'},
     {id:'faltante',nombre:'Con faltante',     sub:'Les falta algo',     objetivo:'Conseguir lo que les falta antes de que salgan.', filtro:function(u){return !!u.faltante}, orden:'estado'},
+    {id:'taller',  nombre:'En proceso',       sub:'Armado a revisión',  objetivo:'Terminar los 5 pasos para que puedan salir. Las más avanzadas van primero.', filtro:function(u){return u.estado==='taller'}, orden:'ok'},
+    {id:'piezas',  nombre:'Esperando piezas', sub:'Bloqueadas',         objetivo:'No se pueden trabajar hasta que llegue el vehículo o sus piezas.', filtro:function(u){return u.estado==='piezas'}, orden:'dias'},
+    {id:'empezar', nombre:'Por empezar',      sub:'Ya hay piezas',      objetivo:'Arrancar el armado.', filtro:function(u){return u.estado==='empezar'}, orden:'dias'},
     {id:'todas',   nombre:'Todas',            sub:'Todo el inventario', objetivo:'Todas las unidades vendidas que aún no se entregan.', filtro:function(){return true}, orden:'estado'}
   ];
   var st = {vista:'flete', bodega:'', tipo:'', q:''};
@@ -319,7 +319,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     var u = TODAS[i];
     var info = {
       flete:['Completo · prioridad '+u.prioridad,'Tiene los 5 pasos en OK. Mandar el flete a '+L.lugar(u)+'.'],
-      taller:['En taller · '+u.ok+' de 5','Sigue en '+L.PASOS[Math.max(0,u.pasos.findIndex(function(x){return x!=='ok'}))][1].toLowerCase()+'.'],
+      taller:['En proceso · '+u.ok+' de 5','Sigue en '+L.PASOS[Math.max(0,u.pasos.findIndex(function(x){return x!=='ok'}))][1].toLowerCase()+'.'],
       empezar:['Por empezar','Ya se puede arrancar con el armado.'],
       piezas:['Esperando piezas','No se puede trabajar hasta que llegue el vehículo o sus piezas.']
     }[u.estado] || [L.nombreDe(L.ESTADOS,u.estado),''];
