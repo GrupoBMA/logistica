@@ -102,17 +102,8 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .filter.on select{border-color:var(--text);box-shadow:inset 0 0 0 1px var(--text)}
 .clear{height:40px;padding:0 12px;border:0;background:none;color:var(--muted);font-size:14px;text-decoration:underline}
 
-/* Siguiente en salir */
-.next{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:20px;padding:20px 22px;border-radius:14px;background:var(--surface);border:2px solid var(--ok);margin-bottom:22px;cursor:pointer;width:100%;text-align:left}
-.next .big{width:56px;height:56px;border-radius:50%;background:var(--ok);color:var(--surface);display:grid;place-items:center;font-size:24px;font-weight:700}
-.next small{display:block;color:var(--ok);font-weight:500;font-size:13px}
-.next b{display:block;font-size:20px;line-height:26px}
-.next .s{color:var(--muted)}
-.next .d{text-align:right;color:var(--muted);font-size:13px}
-.next .d b{font-size:24px;color:var(--text)}
-
 /* Inventario en casillas */
-.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .slot{position:relative;display:flex;flex-direction:column;gap:10px;min-height:150px;padding:14px;border-radius:14px;background:var(--surface);border:1px solid var(--border);text-align:left;cursor:pointer;transition:transform .12s ease,border-color .12s ease}
 .slot:hover{border-color:var(--text);transform:translateY(-2px)}
 .slot:active{transform:translateY(0)}
@@ -127,9 +118,15 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .slot .m{font-weight:700;font-size:16px;line-height:21px}
 .slot .q{color:var(--muted);font-weight:400}
 .slot .dt{display:block;color:var(--muted);font-size:13px;line-height:18px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.slot .where{margin-top:auto;font-size:13px;line-height:18px;display:flex;justify-content:space-between;gap:8px}
-.slot .where span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.slot .where span:last-child{color:var(--muted);white-space:nowrap}
+.slot .sold{text-align:right;font-size:15px;font-weight:500;line-height:20px;white-space:nowrap}
+.slot .sold small{display:block;font-size:11px;line-height:14px;color:var(--muted);font-weight:500}
+.slot .where{margin-top:auto;font-size:13px;line-height:18px;display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.slot .where .pl{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+.slot .age{text-align:right;color:var(--muted);font-size:11px;line-height:14px;flex:none}
+.slot .age b{display:block;font-size:22px;line-height:26px;color:var(--text);font-weight:700}
+.slot .age.old b{color:var(--neg)}
+.prog5{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.prog5 .bar5{flex:1}
 .bar5{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
 .bar5 i{height:6px;border-radius:3px;background:var(--raised)}
 .bar5 i.ok{background:var(--work)}
@@ -162,6 +159,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .kv dt{color:var(--muted);padding:9px 0;border-bottom:1px solid var(--border)}
 .kv dd{margin:0;padding:9px 0;border-bottom:1px solid var(--border)}
 
+@media (max-width:1100px) and (min-width:901px){ .slots{grid-template-columns:repeat(2,minmax(0,1fr))} }
 @media (max-width:900px){
   .bar{flex-wrap:wrap;padding:10px 16px}
   .find{order:3;margin-left:0;max-width:none;flex-basis:100%}
@@ -175,9 +173,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   .mi small,.mi .c kbd{display:none}
   .mi .c{font-size:15px}
   h1{font-size:24px;line-height:30px}
-  .next{grid-template-columns:auto 1fr;gap:14px;padding:16px}
-  .next .d{grid-column:2;text-align:left}
-  .slots{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+  .slots{grid-template-columns:1fr}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -208,7 +204,6 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   <main>
     <div class="view-head"><h1 id="vt"></h1><p class="objective" id="vo"></p></div>
     <div class="cats" id="cats"></div>
-    <div id="nextBox"></div>
     <div class="slots" id="slots"></div>
     <div class="legend" id="legend"></div>
   </main>
@@ -241,7 +236,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 
   // El menú: cada vista tiene su objetivo
   var VISTAS = [
-    {id:'flete',   nombre:'Completo',         sub:'5 pasos en OK',      objetivo:'Mandar el flete a su destino, empezando por la prioridad 1 (la venta más antigua).', filtro:function(u){return u.estado==='flete'}, orden:'prio'},
+    {id:'flete',   nombre:'Completo',         sub:'5 pasos en OK',      objetivo:'Ya tienen los 5 pasos en OK: falta mandar el flete a su destino. Van de la venta más antigua a la más reciente.', filtro:function(u){return u.estado==='flete'}, orden:'prio'},
     {id:'faltante',nombre:'Con faltante',     sub:'Les falta algo',     objetivo:'Conseguir lo que les falta antes de que salgan.', filtro:function(u){return !!u.faltante}, orden:'estado'},
     {id:'taller',  nombre:'En proceso',       sub:'Armado a revisión',  objetivo:'Terminar los 5 pasos para que puedan salir. Las más avanzadas van primero.', filtro:function(u){return u.estado==='taller'}, orden:'ok'},
     {id:'piezas',  nombre:'Esperando piezas', sub:'Bloqueadas',         objetivo:'No se pueden trabajar hasta que llegue el vehículo o sus piezas.', filtro:function(u){return u.estado==='piezas'}, orden:'dias'},
@@ -257,7 +252,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   }
   var ORDEN_ESTADO = {flete:0,taller:1,empezar:2,piezas:3,camino:4,entregada:5};
   var ORDENES = {
-    prio:function(a,b){return (a.prioridad||999)-(b.prioridad||999)},
+    prio:function(a,b){return (a.prioridad||999)-(b.prioridad||999)}, // = por fecha de venta, la más antigua primero
     ok:function(a,b){return b.ok-a.ok || (b.dias||0)-(a.dias||0)},
     dias:function(a,b){return (b.dias||0)-(a.dias||0)},
     estado:function(a,b){return ORDEN_ESTADO[a.estado]-ORDEN_ESTADO[b.estado] || (a.prioridad||0)-(b.prioridad||0) || (b.dias||0)-(a.dias||0)}
@@ -276,15 +271,14 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   }
 
   function slot(u){
-    var right = u.estado==='flete' ? '<span class="p num" title="Prioridad por fecha de venta">'+u.prioridad+'</span>' :
-      '<span class="days num'+(u.dias>VIEJA?' old':'')+'"><b>'+(u.dias==null?'—':u.dias)+'</b>días</span>';
-    var mid = u.estado==='taller' ? '<span class="bar5" aria-hidden="true">'+u.pasos.map(function(x){return '<i class="'+x+'"></i>'}).join('')+'</span>' : '';
-    var tag = u.estado==='flete' ? 'Vendida '+fecha(u.f) : u.estado==='taller' ? u.ok+' de 5' : u.estado==='piezas' ? 'Bloqueada' : 'Por empezar';
-    return '<button class="slot" type="button" data-i="'+u.i+'" aria-label="'+esc(u.modelo)+', '+L.nombreDe(L.ESTADOS,u.estado)+', '+esc(L.lugar(u))+(u.faltante?', con faltante':'')+'">' +
-      '<span class="top"><span class="ic '+u.estado+'" title="'+L.nombreDe(L.ESTADOS,u.estado)+'">'+ICON[u.estado]+'</span><span class="rem num"><small>Remisión</small>'+esc(u.remision||'—')+'</span>'+right+'</span>' +
+    var mid = u.estado==='taller' ? '<span class="prog5"><span class="bar5" aria-hidden="true">'+u.pasos.map(function(x){return '<i class="'+x+'"></i>'}).join('')+'</span><span>'+u.ok+' de 5</span></span>' : '';
+    return '<button class="slot" type="button" data-i="'+u.i+'" aria-label="Remisión '+esc(u.remision||'sin número')+', '+esc(u.modelo)+', '+L.nombreDe(L.ESTADOS,u.estado)+', '+esc(L.lugar(u))+(u.faltante?', con faltante':'')+'">' +
+      '<span class="top"><span class="ic '+u.estado+'" title="'+L.nombreDe(L.ESTADOS,u.estado)+'">'+ICON[u.estado]+'</span><span class="rem num"><small>Remisión</small>'+esc(u.remision||'—')+'</span>' +
+        '<span class="sold num"><small>Vendida</small>'+fecha(u.f)+'</span></span>' +
       '<span><span class="m">'+esc(u.modelo)+(u.cant>1?' <span class="q">× '+u.cant+'</span>':'')+'</span><span class="dt">'+esc(u.detalle)+'</span></span>' + mid +
       (u.faltante ? '<span class="miss" title="Falta: '+esc(u.faltante)+'">Falta: '+esc(u.faltante.toLowerCase())+'</span>' : '') +
-      '<span class="where"><span>'+esc(L.lugar(u))+(u.distribuidor?' · distribuidor':'')+'</span><span>'+tag+'</span></span>' +
+      '<span class="where"><span class="pl">'+esc(L.lugar(u))+(u.distribuidor?' · distribuidor':'')+'</span>' +
+        '<span class="age num'+(u.dias>VIEJA?' old':'')+'"><b>'+(u.dias==null?'—':u.dias)+'</b>días desde la venta</span></span>' +
       '</button>';
   }
 
@@ -305,11 +299,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     $('vt').textContent = buscando ? 'Resultados de “'+st.q.trim()+'”' : v.nombre;
     $('vo').innerHTML = buscando ? '<span></span><span>'+unidades(l.length)+', de todas las vistas.</span>' : '<span class="ic '+v.id+'" style="width:26px;height:26px;border-radius:7px;display:inline-grid;place-items:center;flex:none">'+ICON[v.id]+'</span><span>'+v.objetivo+'</span>';
 
-    // "Siguiente en salir": la prioridad 1, destacada
-    var sig = !buscando && st.vista==='flete' && l[0];
-    $('nextBox').innerHTML = sig ? '<button class="next" type="button" data-i="'+sig.i+'"><span class="big num">'+sig.prioridad+'</span><span><small>Siguiente en salir · remisión '+esc(sig.remision||'—')+'</small><b>'+esc(sig.modelo)+(sig.cant>1?' × '+sig.cant:'')+' → '+esc(L.lugar(sig))+'</b><span class="s">'+esc(sig.detalle)+' · '+L.nombreDe(L.ZONAS,sig.z)+' · '+(sig.bodega==='b2'?'Bodega 2':'Granja')+'</span></span><span class="d">Vendida el '+fecha(sig.f)+'<b class="num" style="display:block">'+sig.dias+' días</b></span></button>' : '';
-    var resto = sig ? l.slice(1) : l;
-    $('slots').innerHTML = resto.length ? resto.map(slot).join('') : (sig ? '' : '<div class="empty">'+(buscando?'Nada coincide con la búsqueda.':'No hay unidades aquí.')+'</div>');
+    $('slots').innerHTML = l.length ? l.map(slot).join('') : '<div class="empty">'+(buscando?'Nada coincide con la búsqueda.':'No hay unidades aquí.')+'</div>';
     $('legend').innerHTML = ['flete','taller','empezar','piezas'].map(function(e){ return '<span><span class="ic '+e+'">'+ICON[e]+'</span>'+L.nombreDe(L.ESTADOS,e)+'</span>' }).join('') +
       '<span><span class="miss" style="font-size:12px;padding:1px 6px;border-radius:4px;color:var(--warn);background:var(--warn-bg)">Falta: …</span>Con faltante</span>';
   }
@@ -318,7 +308,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   function abrir(i){
     var u = TODAS[i];
     var info = {
-      flete:['Completo · prioridad '+u.prioridad,'Tiene los 5 pasos en OK. Mandar el flete a '+L.lugar(u)+'.'],
+      flete:['Completo','Tiene los 5 pasos en OK. Falta mandar el flete a '+L.lugar(u)+'.'],
       taller:['En proceso · '+u.ok+' de 5','Sigue en '+L.PASOS[Math.max(0,u.pasos.findIndex(function(x){return x!=='ok'}))][1].toLowerCase()+'.'],
       empezar:['Por empezar','Ya se puede arrancar con el armado.'],
       piezas:['Esperando piezas','No se puede trabajar hasta que llegue el vehículo o sus piezas.']
@@ -339,7 +329,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   $('cats').addEventListener('click', function(e){ if(e.target.id==='tipoClear'){ st.tipo=''; drawView(); } });
   $('bodegas').addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return; st.bodega=b.dataset.b; $('bodegas').querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed', x===b)}); draw(); });
   $('q').addEventListener('input', function(e){ st.q=e.target.value; st.tipo=''; draw(); });
-  document.addEventListener('click', function(e){ var s=e.target.closest('.slot,.next'); if(s) abrir(+s.dataset.i) });
+  document.addEventListener('click', function(e){ var s=e.target.closest('.slot'); if(s) abrir(+s.dataset.i) });
   $('close').addEventListener('click', cerrar); $('scrim').addEventListener('click', cerrar);
   document.addEventListener('keydown', function(e){
     if(e.key==='Escape'){ if($('insp').classList.contains('on')) return cerrar(); if(document.activeElement===$('q')){ $('q').value=''; st.q=''; $('q').blur(); draw(); } return; }
