@@ -448,11 +448,11 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   // El menú: cada vista tiene su objetivo
   var VISTAS = [
     {id:'flete',   nombre:'Completo',         sub:'5 pasos en OK',      objetivo:'Ya tienen los 5 pasos en OK: falta mandar el flete a su destino. Van de la venta más antigua a la más reciente.', filtro:function(u){return u.estado==='flete'}, orden:'prio'},
-    {id:'faltante',nombre:'Con faltante',     sub:'Les falta algo',     objetivo:'Conseguir lo que les falta antes de que salgan.', filtro:function(u){return !!u.faltante}, orden:'estado'},
-    {id:'taller',  nombre:'En proceso',       sub:'Armado a revisión',  objetivo:'Terminar los 5 pasos para que puedan salir.', filtro:function(u){return u.estado==='taller'}, orden:'dias'},
-    {id:'empezar', nombre:'Por empezar',      sub:'Ya hay piezas',      objetivo:'Arrancar el armado.', filtro:function(u){return u.estado==='empezar'}, orden:'dias'},
-    {id:'piezas',  nombre:'Esperando piezas', sub:'Bloqueadas',         objetivo:'No se pueden trabajar hasta que llegue el vehículo o sus piezas.', filtro:function(u){return u.estado==='piezas'}, orden:'dias'},
-    {id:'todas',   nombre:'Todas',            sub:'Todo el inventario', objetivo:'Todas las unidades vendidas que aún no se entregan.', filtro:function(){return true}, orden:'estado'}
+    {id:'faltante',nombre:'Con faltante',     sub:'',     objetivo:'Conseguir lo que les falta antes de que salgan.', filtro:function(u){return !!u.faltante}, orden:'estado'},
+    {id:'taller',  nombre:'En proceso',       sub:'',  objetivo:'Terminar los 5 pasos para que puedan salir.', filtro:function(u){return u.estado==='taller'}, orden:'dias'},
+    {id:'empezar', nombre:'No iniciado',      sub:'',      objetivo:'Arrancar el armado.', filtro:function(u){return u.estado==='empezar'}, orden:'dias'},
+    {id:'piezas',  nombre:'Esperando piezas', sub:'',         objetivo:'No se pueden trabajar hasta que llegue el vehículo o sus piezas.', filtro:function(u){return u.estado==='piezas'}, orden:'dias'},
+    {id:'todas',   nombre:'Todas',            sub:'', objetivo:'Todas las unidades vendidas que aún no se entregan.', filtro:function(){return true}, orden:'estado'}
   ];
   var st = {tab:'ventas', vista:'flete', bodega:'', tipo:'', destino:'', q:''};
   var modo = 'tarjetas';
@@ -477,7 +477,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     var b = base();
     $('menu').innerHTML = VISTAS.map(function(v,k){
       var n = b.filter(v.filtro).length;
-      return '<button class="mi" type="button" data-v="'+v.id+'" aria-current="'+(st.tab==='ventas' && st.vista===v.id && !st.q.trim())+'"><span class="ic '+v.id+'">'+ICON[v.id]+'</span><span><b>'+v.nombre+'</b><small>'+v.sub+'</small></span><span class="c num">'+n+'</span></button>';
+      return '<button class="mi" type="button" data-v="'+v.id+'" aria-current="'+(st.tab==='ventas' && st.vista===v.id && !st.q.trim())+'"><span class="ic '+v.id+'">'+ICON[v.id]+'</span><span><b>'+v.nombre+'</b>'+(v.sub?'<small>'+v.sub+'</small>':'')+'</span><span class="c num">'+n+'</span></button>';
     }).join('');
     var listas = b.filter(function(u){return u.estado==='flete'}).length;
     $('gm').style.width = (b.length ? listas/b.length*100 : 0)+'%';
@@ -634,7 +634,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     var info = {
       flete:['Completo','Tiene los 5 pasos en OK. Falta mandar el flete a '+L.lugar(u)+'.'],
       taller:['En proceso · '+u.ok+' de 5','Sigue en '+L.PASOS[Math.max(0,u.pasos.findIndex(function(x){return x!=='ok'}))][1].toLowerCase()+'.'],
-      empezar:['Por empezar','Ya se puede arrancar con el armado.'],
+      empezar:['No iniciado','Ya se puede arrancar con el armado.'],
       piezas:['Esperando piezas','No se puede trabajar hasta que llegue el vehículo o sus piezas.'],
       entregada:['Entregada','Está en la hoja ENTREGADO del Excel.']
     }[u.estado] || [L.nombreDe(L.ESTADOS,u.estado),''];
