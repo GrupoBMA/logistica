@@ -82,6 +82,27 @@ kbd{font:500 11px/16px var(--font);min-width:18px;height:18px;padding:0 5px;bord
 .goal .meter i{display:block;height:100%;background:var(--ok);border-radius:5px}
 .goal small{color:var(--muted);font-size:13px}
 .keys{margin-top:12px;padding:0 12px;color:var(--muted);font-size:12px;line-height:22px}
+.sesion{margin-top:16px;padding:14px 12px 0;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--muted)}
+.sesion b{color:var(--text);font-weight:500}
+.sesion button{height:36px;border-radius:10px;border:1px solid var(--control);background:var(--surface);font-size:14px;font-weight:500;text-align:center}
+.sesion button:hover{border-color:var(--text)}
+.sesion button.confirmar{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+.sesion .salir{border:0;background:none;color:var(--muted);text-decoration:underline;height:auto;padding:4px 0;text-align:left}
+
+/* Inicio de sesión */
+body.sin-sesion .bar, body.sin-sesion .app{display:none}
+.login{display:none;min-height:100vh;place-items:center;padding:24px 16px}
+body.sin-sesion .login{display:grid}
+.login form{width:min(380px,100%);display:flex;flex-direction:column;gap:16px}
+.login .brand{margin-bottom:8px}
+.login h1{font-size:28px;line-height:34px}
+.login p{margin:-8px 0 4px;color:var(--muted)}
+.login label{display:flex;flex-direction:column;gap:8px;font-size:14px;font-weight:500}
+.login input{height:44px;padding:0 14px;border:1px solid var(--control);border-radius:10px;background:var(--surface);font-size:16px}
+.login input:focus-visible{outline:2px solid var(--text);outline-offset:1px}
+.login button{height:46px;border:0;border-radius:10px;background:var(--primary);color:var(--on-primary);font-size:16px;font-weight:700;margin-top:4px}
+.login button:disabled{opacity:.6}
+.login .err{min-height:20px;margin:0;color:var(--neg);font-size:14px}
 
 /* Íconos de estado */
 .ic.flete{background:var(--ok-bg);color:var(--ok)}
@@ -222,7 +243,22 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
-<body>
+<body class="sin-sesion">
+<section class="login" aria-labelledby="lt">
+  <form id="loginForm" autocomplete="on">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="5" cy="13" r="3.5" fill="currentColor"/><circle cx="21" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.5 13h9" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      BMA <span>Logística</span>
+    </div>
+    <h1 id="lt">Entrar</h1>
+    <p>Escribe tu usuario y tu contraseña.</p>
+    <label>Usuario<input id="lUser" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+    <label>Contraseña<input id="lPass" name="password" type="password" autocomplete="current-password" required></label>
+    <button type="submit" id="lBtn">Entrar</button>
+    <p class="err" id="lErr" role="alert"></p>
+  </form>
+</section>
+
 <header class="bar">
   <div class="brand">
     <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="5" cy="13" r="3.5" fill="currentColor"/><circle cx="21" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.5 13h9" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
@@ -243,6 +279,11 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     <div id="menu"></div>
     <div class="goal"><b>Listas para salir</b><div class="meter"><i id="gm"></i></div><small id="gt"></small></div>
     <div class="keys">Atajos: <kbd>1</kbd>–<kbd>6</kbd> cambiar vista · <kbd>/</kbd> buscar · <kbd>Esc</kbd> cerrar</div>
+    <div class="sesion">
+      <span id="subido"></span>
+      <button type="button" id="subir" hidden>Subir el Excel de esta computadora</button>
+      <button type="button" class="salir" id="salir">Salir</button>
+    </div>
   </nav>
 
   <main>
@@ -266,13 +307,49 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   <div id="ib"></div>
 </aside>
 
-<!-- Datos de prueba: solo en esta computadora (datos/ no se sube al repo). Después vendrán de Supabase. -->
+<!-- Solo en esta computadora: datos/datos.js (fuera del repo) sirve para SUBIR el Excel a Supabase.
+     La app siempre lee de Supabase. -->
 <script src="datos/datos.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="logica.js"></script>
 <script>
 (function(){
   var L = window.Logistica, $ = function(id){ return document.getElementById(id) }, esc = L.esc, fecha = L.fecha;
-  var TODAS = L.cargar(window.VENTAS, window.CORTE).unidades;
+  // ---------- Supabase ----------
+  // Los datos viven en el esquema logistica (sin acceso directo desde la API). Solo se leen con
+  // public.logistica_datos(), que exige una sesión de una cuenta dada de alta en logistica.usuarios.
+  // La llave es la pública (publishable): sin sesión no da acceso a nada.
+  var SUPABASE_URL = 'https://jlfendrdwptwmttrahre.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_RNnR7jV42dGEGLFWdRVfvQ_cP1xSwuO';
+  var DOMINIO = '@logistica.bma';   // el usuario se escribe sin correo: "juan" -> juan@logistica.bma
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth:{persistSession:true, autoRefreshToken:true}});
+  var TODAS = [];
+
+  // Renglón de la tabla logistica.entregas -> el mismo formato que trae el Excel
+  function deTabla(e){
+    return {vendedor:e.vendedor||'', vehiculo:e.vehiculo||'', pasos:[e.armado||'',e.herreria||'',e.forrado||'',e.pintura||'',e.revision||''],
+      fecha:e.fecha||null, fecha_txt:e.fecha_txt||'', remision:e.remision||'', destino:e.destino||'', zona:e.zona||'sin',
+      activacion:e.activacion||'', costo:e.costo_envio==null?null:+e.costo_envio, fletero:e.fletero||'', eta:e.eta||'',
+      faltante:e.faltante||'', prepara:e.prepara||'', color_vehiculo:e.color_vehiculo||null, color_destino:e.color_destino||null};
+  }
+  function hoyISO(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0') }
+  function sesionVisible(on){ document.body.classList.toggle('sin-sesion', !on) }
+  function cargarDatos(){
+    return sb.rpc('logistica_datos').then(function(r){
+      if(r.error){
+        if(r.error.code==='42501'){ sb.auth.signOut(); sesionVisible(false); $('lErr').textContent='Esta cuenta no tiene acceso a Logística.'; return; }
+        $('lErr').textContent='No se pudieron cargar los datos. Intenta de nuevo.'; sesionVisible(false); return;
+      }
+      var filas = (r.data && r.data.entregas) || [];
+      TODAS = L.cargar(filas.map(deTabla), hoyISO()).unidades;
+      var sub = r.data && r.data.subido ? new Date(r.data.subido) : null;
+      $('subido').innerHTML = sub ? 'Datos subidos el <b>'+fecha(sub)+'</b> a las '+String(sub.getHours()).padStart(2,'0')+':'+String(sub.getMinutes()).padStart(2,'0') : 'Todavía no hay datos subidos.';
+      var local = window.VENTAS && /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+      $('subir').hidden = !local;
+      sesionVisible(true);
+      draw();
+    });
+  }
   var VIEJA = 45;
 
   var ICON = {
@@ -410,11 +487,35 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   $('close').addEventListener('click', cerrar); $('scrim').addEventListener('click', cerrar);
   document.addEventListener('keydown', function(e){
     if(e.key==='Escape'){ if($('insp').classList.contains('on')) return cerrar(); if(document.activeElement===$('q')){ $('q').value=''; st.q=''; $('q').blur(); draw(); } return; }
-    if(e.target.tagName==='INPUT') return;
+    if(e.target.tagName==='INPUT' || document.body.classList.contains('sin-sesion')) return;
     if(e.key==='/'){ e.preventDefault(); $('q').focus(); return; }
     var n = +e.key; if(n>=1 && n<=VISTAS.length) ir(VISTAS[n-1].id);
   });
-  draw();
+  // ---------- Entrar, salir y subir ----------
+  $('loginForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var u = $('lUser').value.trim().toLowerCase(); if(u.indexOf('@')<0) u += DOMINIO;
+    $('lBtn').disabled = true; $('lErr').textContent = '';
+    sb.auth.signInWithPassword({email:u, password:$('lPass').value}).then(function(r){
+      $('lBtn').disabled = false;
+      if(r.error){ $('lErr').textContent = 'Usuario o contraseña incorrectos.'; return; }
+      $('lPass').value = ''; cargarDatos();
+    });
+  });
+  $('salir').addEventListener('click', function(){ sb.auth.signOut().then(function(){ TODAS=[]; cerrar(); sesionVisible(false); $('lUser').focus(); }) });
+  var confirmando = false;
+  $('subir').addEventListener('click', function(){
+    var b = $('subir');
+    if(!confirmando){ confirmando = true; b.classList.add('confirmar'); b.textContent = 'Reemplazar con '+window.VENTAS.length+' renglones · toca otra vez'; setTimeout(function(){ confirmando=false; b.classList.remove('confirmar'); b.textContent='Subir el Excel de esta computadora'; }, 5000); return; }
+    confirmando = false; b.disabled = true; b.textContent = 'Subiendo…';
+    sb.rpc('logistica_subir', {datos: window.VENTAS}).then(function(r){
+      b.disabled = false; b.classList.remove('confirmar');
+      b.textContent = r.error ? 'No se pudo subir. Toca para reintentar.' : 'Listo: '+r.data+' renglones subidos';
+      if(!r.error) cargarDatos();
+      setTimeout(function(){ b.textContent='Subir el Excel de esta computadora'; }, 4000);
+    });
+  });
+  sb.auth.getSession().then(function(r){ if(r.data && r.data.session) cargarDatos(); else sesionVisible(false); });
 })();
 </script>
 </body>

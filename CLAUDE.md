@@ -52,7 +52,7 @@ Ir de poco en poco, empezando por lo más importante: el vehículo, su entrega y
 - **Orden:** en **todas** las vistas (y en la búsqueda), las casillas van de **más días desde la venta a menos** (pedido del usuario). No se marca cuál sale primero.
 - **Filtro por tipo** en un desplegable ("Filtrar por tipo de vehículo", con el conteo de cada tipo y "Quitar filtro"); antes eran botones, que distraían, **buscador global** (busca en todas las vistas), selector de **bodega** (Todas, Granja, Bodega 2) y **atajos**: 1–6 cambian de vista, / busca y Esc cierra.
 - **Ficha** lateral: qué sigue con esa unidad, sus 5 pasos y sus datos (destino, zona, bodega, tipo, fecha, vendedor, remisión, faltante).
-- **Datos de prueba:** el Excel guarda algunas remisiones como fecha ("16/1" queda como 16 de enero); el extractor las regresa a "día/mes". `datos/datos.js` (fuera del repo) lo genera `python datos/extraer_excel.py "<ruta del Excel>" datos/datos.js`. En la página publicada no existe, así que se ve vacía. Después vendrán de Supabase con inicio de sesión.
+- **Datos del Excel:** el Excel guarda algunas remisiones como fecha ("16/1" queda como 16 de enero); el extractor las regresa a "día/mes". `datos/datos.js` (fuera del repo) lo genera `python datos/extraer_excel.py "<ruta del Excel>" datos/datos.js`. En la página publicada no existe, así que se ve vacía. Después vendrán de Supabase con inicio de sesión.
 - **Diseño:** el skill `design-taste-frontend` en modo pantalla de app. Hay modo claro y modo oscuro, y funciona en celular.
 - **Probar:** `.claude/launch.json` levanta `python -m http.server 8768`.
 
@@ -71,5 +71,7 @@ El repo es **público** (GitHub Pages en el plan gratis). Ventas, clientes, remi
 - **Supabase:** el mismo proyecto que GVF, administración y catálogo (`jlfendrdwptwmttrahre`), con el **esquema propio `logistica`**. Ese esquema no está expuesto en la API y sus tablas tienen RLS sin reglas, así que nadie las lee directo.
 - Tablas: `logistica.usuarios` (cuentas con acceso) y `logistica.entregas` (una fila por unidad).
 - **Única puerta:** las funciones `public.logistica_datos()` (leer) y `public.logistica_subir(datos)` (reemplazar las pendientes con lo del Excel). Las dos son `security definer` y primero revisan que la sesión esté en `logistica.usuarios`. `anon` no puede llamarlas.
-- **Cuentas:** *pendiente*. Se crean en el panel de Supabase (Authentication → Users → Add user, con "Auto Confirm") y luego se agrega su id a `logistica.usuarios`.
-- La app todavía **no** está conectada a Supabase (*pendiente*: login y lectura).
+- **Cuentas:** se crean en el panel de Supabase (Authentication → Users → Add user, con "Auto Confirm"), con correo `usuario@logistica.bma`; en la app se escribe solo `usuario` (si se escribe un correo completo, se usa tal cual). Luego se agrega su id a `logistica.usuarios`. Si olvida la contraseña, se cambia desde el panel.
+- **Inicio de sesión (desde el 9-nov-2026):** la app abre con la pantalla "Entrar" y, con sesión, lee todo con `logistica_datos()` (que también regresa `subido`, la fecha de la última subida). Los días desde la venta se cuentan contra el día de hoy. Abajo del menú están la fecha de la última subida y "Salir".
+- **Subir el Excel:** solo en la computadora (localhost) y si existe `datos/datos.js`, aparece "Subir el Excel de esta computadora". Pide confirmar con un segundo toque y llama a `logistica_subir`, que **reemplaza las pendientes** de la hoja Ventas. Flujo: `python datos/extraer_excel.py "<Excel>" datos/datos.js`, abrir la app local, entrar y subir.
+- `logistica.entregas` tiene también `color_destino` (el color exacto de la celda del destino).
