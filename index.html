@@ -147,7 +147,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .fila .c-dias.old{color:var(--neg)}
 .fila .c-dias small{display:block;font-size:11px;font-weight:400;line-height:14px;color:var(--muted)}
 .filter{display:inline-flex;align-items:center;gap:10px;font-size:14px;color:var(--muted)}
-.filter select{height:40px;min-width:240px;padding:0 36px 0 12px;border:1px solid var(--control);border-radius:10px;background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236b6d66' stroke-width='1.6'%3E%3Cpath d='m2.5 4.5 3.5 3.5 3.5-3.5'/%3E%3C/svg%3E") right 12px center no-repeat;color:var(--text);font:inherit;font-size:15px;font-weight:500;appearance:none;-webkit-appearance:none;cursor:pointer}
+.filter select{height:40px;min-width:220px;max-width:min(320px,100%);padding:0 36px 0 12px;border:1px solid var(--control);border-radius:10px;background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236b6d66' stroke-width='1.6'%3E%3Cpath d='m2.5 4.5 3.5 3.5 3.5-3.5'/%3E%3C/svg%3E") right 12px center no-repeat;color:var(--text);font:inherit;font-size:15px;font-weight:500;appearance:none;-webkit-appearance:none;cursor:pointer}
 .filter select:hover{border-color:var(--text)}
 .filter.on select{border-color:var(--text);box-shadow:inset 0 0 0 1px var(--text)}
 .clear{height:40px;padding:0 12px;border:0;background:none;color:var(--muted);font-size:14px;text-decoration:underline}
@@ -406,7 +406,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     {id:'piezas',  nombre:'Esperando piezas', sub:'Bloqueadas',         objetivo:'No se pueden trabajar hasta que llegue el vehículo o sus piezas.', filtro:function(u){return u.estado==='piezas'}, orden:'dias'},
     {id:'todas',   nombre:'Todas',            sub:'Todo el inventario', objetivo:'Todas las unidades vendidas que aún no se entregan.', filtro:function(){return true}, orden:'estado'}
   ];
-  var st = {vista:'flete', bodega:'', tipo:'', q:''};
+  var st = {vista:'flete', bodega:'', tipo:'', destino:'', q:''};
   var modo = 'tarjetas';
   try { if(localStorage.getItem('logistica.modo')==='lista') modo = 'lista' } catch(e){}
 
@@ -470,14 +470,31 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     var v = VISTAS.find(function(x){return x.id===st.vista});
     var buscando = !!st.q.trim();
     var l = buscar(buscando ? base() : base().filter(v.filtro));
-    // categorías por tipo con su conteo, como el inventario de un juego
-    var porTipo = L.TIPOS.map(function(t){ return {t:t, n:l.filter(function(u){return u.tipo===t.id}).length} }).filter(function(x){return x.n});
+    // Filtros desplegables: tipo de vehículo y destino. Cada uno cuenta con el otro ya aplicado.
+    var conDestino = st.destino ? l.filter(function(u){return L.lugar(u)===st.destino}) : l;
+    var conTipo = st.tipo ? l.filter(function(u){return u.tipo===st.tipo}) : l;
+    var porTipo = L.TIPOS.map(function(t){ return {t:t, n:conDestino.filter(function(u){return u.tipo===t.id}).length} }).filter(function(x){return x.n});
     if(st.tipo && !porTipo.some(function(x){return x.t.id===st.tipo})) st.tipo='';
-    $('cats').innerHTML = porTipo.length ? '<label class="filter'+(st.tipo?' on':'')+'"><span>Filtrar por tipo de vehículo</span><select id="tipoSel">' +
-      '<option value="">Todos los tipos ('+l.length+')</option>' +
-      porTipo.map(function(x){ return '<option value="'+x.t.id+'"'+(st.tipo===x.t.id?' selected':'')+'>'+x.t.nombre+' ('+x.n+')</option>' }).join('') +
-      '</select></label>' + (st.tipo ? '<button class="clear" type="button" id="tipoClear">Quitar filtro</button>' : '') : '';
+    // Destinos agrupados por zona (el color del Excel), de más a menos unidades
+    var gruposDestino = L.ZONAS.map(function(z){
+      var cuenta = {};
+      conTipo.forEach(function(u){ if(u.z===z.id){ var d=L.lugar(u); cuenta[d]=(cuenta[d]||0)+1 } });
+      var ds = Object.keys(cuenta).sort(function(a,b){ return cuenta[b]-cuenta[a] || a.localeCompare(b) });
+      return {z:z, ds:ds, cuenta:cuenta};
+    }).filter(function(g){return g.ds.length});
+    if(st.destino && !gruposDestino.some(function(g){return g.cuenta[st.destino]})) st.destino='';
+    $('cats').innerHTML = l.length ?
+      '<label class="filter'+(st.tipo?' on':'')+'"><select id="tipoSel" aria-label="Tipo de vehículo">' +
+        '<option value="">Tipo de vehículo</option>' +
+        porTipo.map(function(x){ return '<option value="'+x.t.id+'"'+(st.tipo===x.t.id?' selected':'')+'>'+x.t.nombre+' ('+x.n+')</option>' }).join('') +
+      '</select></label>' +
+      '<label class="filter'+(st.destino?' on':'')+'"><select id="destinoSel" aria-label="Destino">' +
+        '<option value="">Destino</option>' +
+        gruposDestino.map(function(g){ return '<optgroup label="'+esc(g.z.nombre)+'">' + g.ds.map(function(d){ return '<option value="'+esc(d)+'"'+(st.destino===d?' selected':'')+'>'+esc(d)+' ('+g.cuenta[d]+')</option>' }).join('') + '</optgroup>' }).join('') +
+      '</select></label>' +
+      ((st.tipo || st.destino) ? '<button class="clear" type="button" id="tipoClear">Quitar filtros</button>' : '') : '';
     if(st.tipo) l = l.filter(function(u){return u.tipo===st.tipo});
+    if(st.destino) l = l.filter(function(u){return L.lugar(u)===st.destino});
     l.sort(ORDENES.dias); // siempre: más días desde la venta primero, en todas las vistas
 
     $('vt').textContent = buscando ? 'Resultados de “'+st.q.trim()+'”' : v.nombre;
@@ -512,12 +529,16 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   }
   function cerrar(){ $('insp').classList.remove('on'); $('scrim').classList.remove('on'); $('insp').setAttribute('aria-hidden','true'); }
 
-  function ir(v){ st.vista=v; st.tipo=''; st.q=''; $('q').value=''; draw(); scrollTo({top:0}); }
+  function ir(v){ st.vista=v; st.tipo=''; st.destino=''; st.q=''; $('q').value=''; draw(); scrollTo({top:0}); }
   $('menu').addEventListener('click', function(e){ var b=e.target.closest('.mi'); if(b) ir(b.dataset.v) });
-  $('cats').addEventListener('change', function(e){ if(e.target.id==='tipoSel'){ st.tipo=e.target.value; drawView(); var s=$('tipoSel'); if(s) s.focus(); } });
-  $('cats').addEventListener('click', function(e){ if(e.target.id==='tipoClear'){ st.tipo=''; drawView(); } });
+  $('cats').addEventListener('change', function(e){
+    var id = e.target.id; if(id!=='tipoSel' && id!=='destinoSel') return;
+    if(id==='tipoSel') st.tipo=e.target.value; else st.destino=e.target.value;
+    drawView(); var s=$(id); if(s) s.focus();
+  });
+  $('cats').addEventListener('click', function(e){ if(e.target.id==='tipoClear'){ st.tipo=''; st.destino=''; drawView(); } });
   $('bodegas').addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return; st.bodega=b.dataset.b; $('bodegas').querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed', x===b)}); draw(); });
-  $('q').addEventListener('input', function(e){ st.q=e.target.value; st.tipo=''; draw(); });
+  $('q').addEventListener('input', function(e){ st.q=e.target.value; st.tipo=''; st.destino=''; draw(); });
   $('modo').addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return; modo=b.dataset.m; try{ localStorage.setItem('logistica.modo', modo) }catch(err){} drawView(); });
   document.addEventListener('click', function(e){ var s=e.target.closest('.slot,.fila'); if(s) abrir(+s.dataset.i) });
   $('close').addEventListener('click', cerrar); $('scrim').addEventListener('click', cerrar);
