@@ -266,7 +266,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   var ORDENES = {
     prio:function(a,b){return (a.prioridad||999)-(b.prioridad||999)}, // = por fecha de venta, la más antigua primero
     ok:function(a,b){return b.ok-a.ok || (b.dias||0)-(a.dias||0)},
-    dias:function(a,b){return (b.dias||0)-(a.dias||0)},
+    dias:function(a,b){return (b.dias==null?-1:b.dias)-(a.dias==null?-1:a.dias) || a.i-b.i},
     estado:function(a,b){return ORDEN_ESTADO[a.estado]-ORDEN_ESTADO[b.estado] || (a.prioridad||0)-(b.prioridad||0) || (b.dias||0)-(a.dias||0)}
   };
   function unidades(n){ return n===1?'1 unidad':n+' unidades' }
@@ -313,7 +313,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
       porTipo.map(function(x){ return '<option value="'+x.t.id+'"'+(st.tipo===x.t.id?' selected':'')+'>'+x.t.nombre+' ('+x.n+')</option>' }).join('') +
       '</select></label>' + (st.tipo ? '<button class="clear" type="button" id="tipoClear">Quitar filtro</button>' : '') : '';
     if(st.tipo) l = l.filter(function(u){return u.tipo===st.tipo});
-    l.sort(buscando ? ORDENES.estado : ORDENES[v.orden]);
+    l.sort(ORDENES.dias); // siempre: más días desde la venta primero, en todas las vistas
 
     $('vt').textContent = buscando ? 'Resultados de “'+st.q.trim()+'”' : v.nombre;
     $('vo').innerHTML = buscando ? '<span></span><span>'+unidades(l.length)+', de todas las vistas.</span>' : '<span class="ic '+v.id+'" style="width:26px;height:26px;border-radius:7px;display:inline-grid;place-items:center;flex:none">'+ICON[v.id]+'</span><span>'+v.objetivo+'</span>';
