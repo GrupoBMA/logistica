@@ -122,7 +122,9 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .slot .sold small{display:block;font-size:11px;line-height:14px;color:var(--muted);font-weight:500}
 .slot .where{margin-top:auto;font-size:13px;line-height:18px;display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
 .slot .where .pl{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
-.dpill{display:inline-block;max-width:100%;padding:3px 9px;border-radius:6px;font-weight:500;font-size:14px;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom;background:var(--raised);color:var(--text)}
+.dpill{display:inline-flex;align-items:center;gap:8px;max-width:100%;font-weight:500;font-size:14px;line-height:20px;vertical-align:bottom;min-width:0}
+.dpill .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dpill .d{width:12px;height:12px;border-radius:50%;flex:none;background:var(--control);box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
 .slot .age{text-align:right;color:var(--muted);font-size:11px;line-height:14px;flex:none}
 .slot .age b{display:block;font-size:22px;line-height:26px;color:var(--text);font-weight:700}
 .slot .age.old b{color:var(--neg)}
@@ -271,11 +273,10 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     $('gt').textContent = listas+' de '+unidades(b.length);
   }
 
-  // Destino con el color que trae el Excel; el texto va oscuro o claro según el fondo
-  function tinta(hex){ var n=parseInt(hex.slice(1),16), r=n>>16&255, g=n>>8&255, b=n&255; return (0.299*r+0.587*g+0.114*b) > 150 ? '#111' : '#fff' }
+  // Destino con un punto del color que trae el Excel
   function destino(u){
     var c = u.color_destino;
-    return '<span class="dpill"'+(c?' style="background:'+c+';color:'+tinta(c)+'"':'')+' title="'+esc(L.nombreDe(L.ZONAS,u.z))+'">'+esc(L.lugar(u))+'</span>';
+    return '<span class="dpill" title="'+esc(L.nombreDe(L.ZONAS,u.z))+'"><span class="d"'+(c?' style="background:'+c+'"':'')+'></span><span class="t">'+esc(L.lugar(u))+'</span></span>';
   }
   function slot(u){
     var mid = u.estado==='taller' ? '<span class="prog5"><span class="bar5" aria-hidden="true">'+u.pasos.map(function(x){return '<i class="'+x+'"></i>'}).join('')+'</span><span>'+u.ok+' de 5</span></span>' : '';
