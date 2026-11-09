@@ -18,46 +18,44 @@ Vendedor, vehículo (texto libre, p. ej. "1 MC 300 CABINA CERRADA CAJA FOOD TRUC
 
 **Colores del destino (zona):** naranja = local cerca; naranja oscuro = local más lejos; amarillo = foránea, necesita tráiler; rojo = se recoge en granja; azul y verde = sucursales (Wash, Américas, AGS, Tepic).
 
-### Prioridad actual (9-nov-2026)
+### Reglas confirmadas por el usuario (9-nov-2026)
 
-Ir de poco en poco, empezando por lo más importante: **el vehículo y su entrega, y que el flujo funcione**. La fecha importa, pero solo como dato. Por ahora el usuario pidió **ignorar los colores (zonas) y los fletes**: las dudas de abajo sobre esos temas esperan.
+- **Color en la columna vehículo** = no hay vehículo o piezas para empezar a trabajarlo; hay que esperar a que lleguen. En los datos cuadra: las 73 con color casi no tienen pasos y ninguna tiene los 5 OK. Estado **"Esperando piezas"**.
+- **Motoplaza** es un **distribuidor** al que se le vende. Va en la zona "Distribuidores" y lleva la etiqueta "Distribuidor".
+- **Activación** = la **bodega** donde se arma. S. Cruz = **Bodega 1, "Granja"**; la otra es Bodega 2. Las dos propuestas tienen un filtro de bodega.
+- **Con los 5 pasos en OK** hay que **mandar el flete** a su zona de destino, **con prioridad por fecha de venta** (la más antigua primero). Cada una lleva su número de prioridad.
+
+### Prioridad actual
+
+Ir de poco en poco, empezando por lo más importante: el vehículo, su entrega y que el flujo funcione. La fecha es un dato. La app es **de solo lectura** (no mueve ni edita nada).
 
 ### Pendientes por confirmar con el usuario
 
-- Qué significa la **X** en los pasos del taller (hoy se pinta en rojo, "Marcado con X").
-- **Motoplaza** viene en un naranja distinto (ED7D31) al de las colonias de Guadalajara (FFC000). Hoy se trata como local cerca.
+- Qué significa la **X** en los pasos del taller (hoy se pinta en rojo).
 - Mochis, Culiacán, Mazatlán, Vallarta y Lo de Marcos vienen en azul claro (6FA8DC). Hoy van con sucursales.
-- Qué significan los **colores de la columna vehículo** (parecen ir por modelo: MC 150, MC 200, MC 300 DR con o sin hidráulico).
-- "Lista para salir" se tomó como **R = OK**.
+- El umbral de **45 días** para marcar una unidad como atrasada (`VIEJA`).
+- Elegir entre la propuesta A y la B.
 
-## Estado actual (9-nov-2026)
+## Estado actual (9-nov-2026): dos propuestas
 
-`index.html` es la app: un solo archivo, sin librerías, letra Geist. Es la **segunda propuesta de diseño** (la primera, tipo tabla, se descartó porque se veía igual al Excel). El usuario pidió que al entrar se vea limpio, muy sencillo de entender y fácil de leer, y que funcione como un sistema con un flujo.
+Las dos leen los mismos datos y usan las mismas reglas de **`logica.js`** (compartido). Ese archivo convierte cada renglón del Excel en una unidad con: modelo y detalle cortos (`nombre()`), tipo (`tipo()`, como sunldemexico.com), estado, zona, distribuidor, bodega, días y prioridad del flete.
 
-- **Datos de prueba:** `datos/datos.js` (fuera del repo) lo genera `python datos/extraer_excel.py "<ruta del Excel>" datos/datos.js`. En la página publicada no existe, así que se ve vacía ("Todavía no hay entregas cargadas"). Después los datos vendrán de Supabase con inicio de sesión.
-- **Pestañas:** arriba están **Listas** (la primera, se abre al entrar) y **Flujo**.
-- **Pestaña Listas** (pedido del usuario, 9-nov-2026): solo las unidades con **las 5 casillas en OK** (armado, herrería, forrado, pintura y revisión). Van **en una sola columna, separadas por tipo** y, dentro de cada tipo, con la más antigua primero. Tiene buscador.
-- **Tipos:** como los cataloga sunldemexico.com: Motocarro 150 cc, 200 cc, 300 cc doble rodado, 300 cc cabina cerrada, Mototaxis, ATV, UTV, Minimotos, Areneros. La función `tipo()` los saca del texto del vehículo. "Motocarro 300 cc" a secas (por ejemplo la pipa), "Motocarro 350 cc" y "Accesorios y otros" (como el toldo) son extras, porque la página no los tiene. En el Flujo, las unidades de cada parada también van por tipo y en una columna. No es lo mismo que la parada "Lista" del flujo, que toma R = OK sin fletero.
-- **El flujo (la ruta):** cada unidad pasa por 6 paradas: Vendida → Taller → Lista → Con flete → En camino → Entregada. La parada inicial sale del Excel así:
-  - **Vendida:** ningún paso del taller marcado;
-  - **Taller:** algún paso marcado, pero la R no está en OK;
-  - **Lista:** R en OK y sin fletero;
-  - **Con flete:** R en OK y con fletero.
+**Estados del flujo:** Esperando piezas (color en el vehículo) → Por empezar (sin pasos) → En taller (algún paso, menos de 5) → **Mandar flete** (5 OK) → En camino → Entregada. "En camino" y "Entregada" no existen en la hoja VENTAS (*pendiente*: Entregada vendrá de la hoja ENTREGADO).
 
-  "En camino" y "Entregada" no existen en la hoja VENTAS (*pendiente*: Entregada vendrá de la hoja ENTREGADO).
-- **Inicio:** solo la ruta con el conteo de cada parada y, abajo, hasta 3 avisos de "Necesita atención":
-  - listas sin flete;
-  - con faltante;
-  - más de 45 días desde la venta (el umbral está en `VIEJA` y está *por confirmar*).
-- **Al tocar una parada:** la ruta se hace compacta arriba y abajo salen las tarjetas de esa parada, agrupadas por zona y con la más antigua primero. Hay filtro por zona y buscador. Cada tarjeta muestra:
-  - el modelo corto y el detalle, sacados del texto del vehículo con la función `nombre()`;
-  - el destino y los días;
-  - el faltante;
-  - el avance del taller (n de 5) o la fecha de venta.
-- **Ficha:** el recorrido de la unidad por las 6 paradas (con los 5 pasos del taller, el vendedor, la remisión y el fletero) .
-- **Solo lectura** (pedido del usuario, 9-nov-2026): la app no mueve ni edita nada. No hay botones de avanzar: la parada de cada unidad sale de los datos.
-- **Diseño:** el skill `design-taste-frontend` en modo pantalla de app. El cromo va sin color; el color solo está en los datos (zonas, avisos y pasos con X). Hay modo claro y modo oscuro. En celular la ruta se pone en vertical.
-- **Probar:** `.claude/launch.json` levanta `python -m http.server 8768`.
+**Tipos:** Motocarro 150 cc, 200 cc, 300 cc doble rodado, 300 cc cabina cerrada, Mototaxis, ATV, UTV, Minimotos, Areneros. "Motocarro 300 cc" a secas (la pipa), "Motocarro 350 cc" y "Accesorios y otros" (el toldo) son extras, porque la página no los tiene.
+
+- **Propuesta A (`index.html`, puerto 8768): lista + flujo.**
+  - Pestaña **Mandar flete** (se abre al entrar): las de 5 OK en una sola columna, por destino o por tipo, ordenadas por fecha y con su número de prioridad.
+  - Pestaña **Flujo**: la ruta de 6 etapas con conteos y 3 avisos (listas para flete, esperando piezas, con faltante). Al tocar una etapa salen sus unidades.
+  - Ficha lateral con "qué sigue", el recorrido y los datos.
+- **Propuesta B (`juego/index.html`, puerto 8769): se usa como un videojuego** (en la forma de usarse, no en el dibujo).
+  - Menú fijo con contadores: Mandar flete, En taller, Por empezar, Esperando piezas, Con faltante y Todas.
+  - Cada vista tiene un **objetivo** en una frase. En Mandar flete, la prioridad 1 sale destacada como "Siguiente en salir".
+  - Las unidades van en **casillas** con un ícono de estado (palomita, llave, play, candado) y un punto si tienen faltante.
+  - Categorías por tipo con conteo, **buscador global**, medidor de "listas para salir" y **atajos**: 1–6 cambian de vista, / busca y Esc cierra.
+- **Datos de prueba:** `datos/datos.js` (fuera del repo) lo genera `python datos/extraer_excel.py "<ruta del Excel>" datos/datos.js`. En la página publicada no existe, así que se ve vacía. Después vendrán de Supabase con inicio de sesión.
+- **Diseño:** el skill `design-taste-frontend` en modo pantalla de app, letra Geist. Hay modo claro y modo oscuro, y las dos funcionan en celular.
+- **Probar:** `.claude/launch.json` tiene `logistica` (8768) y `logistica-juego` (8769).
 
 ## Regla estricta: nada con datos reales en el repo
 
