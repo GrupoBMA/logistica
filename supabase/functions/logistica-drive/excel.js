@@ -48,10 +48,12 @@ let XL; // SheetJS, para encode_cell
 function celda(ws, fila, col) { return ws[XL.utils.encode_cell({ r: fila - 1, c: col - 1 })]; }
 
 // Las columnas se buscan por su título (así no se rompe si agregan o mueven columnas en el Excel).
-// "prepara" no tiene título: es la columna que sigue de FALTANTE.
+// "prepara" no tiene título: es la columna que sigue de FALTANTE. Se comparan sin acentos, espacios ni signos.
+// Cada columna acepta varios nombres; COSTO acepta cualquier título que empiece así (COSTO/ENVIO).
 const TITULOS = {
-  vendedor: "VENDEDOR", vehiculo: "VEHICULO", ar: "AR", h: "H", f: "F", p: "P", r: "R", fecha: "FECHA",
-  remision: "REMISION", destino: "DESTINO", activacion: "ACTIVACION", costo: "COSTO", fletero: "FLETERO", eta: "ETA", faltante: "FALTANTE",
+  vendedor: ["VENDEDOR"], vehiculo: ["VEHICULO"], ar: ["AR"], h: ["H"], f: ["F"], p: ["P"], r: ["R"],
+  fecha: ["FECHA", "FECHACOMPRA", "FECHADECOMPRA", "FECHAVENTA", "FECHADEVENTA"],
+  remision: ["REMISION"], destino: ["DESTINO"], activacion: ["ACTIVACION"], costo: ["COSTO"], fletero: ["FLETERO"], eta: ["ETA"], faltante: ["FALTANTE"],
 };
 // ENTREGADO no tiene renglón de títulos: ahí se usan las posiciones de siempre (A, B, C…)
 const FIJAS = { vendedor: 1, vehiculo: 2, ar: 3, h: 4, f: 5, p: 6, r: 7, fecha: 8, remision: 9, destino: 10, activacion: 11, costo: 12, fletero: 13, eta: 14, faltante: 15, prepara: 16 };
@@ -64,8 +66,8 @@ function columnas(ws, nombre, ultimaCol) {
     if (!vals.includes("VEHICULO") || !vals.includes("DESTINO")) continue;
     const col = {}, faltan = [];
     for (const [clave, tit] of Object.entries(TITULOS)) {
-      const c = Object.keys(t).find((k) => clave === "costo" ? t[k].startsWith(tit) : t[k] === tit);
-      if (c) col[clave] = +c; else faltan.push(tit);
+      const c = Object.keys(t).find((k) => clave === "costo" ? t[k].startsWith(tit[0]) : tit.includes(t[k]));
+      if (c) col[clave] = +c; else faltan.push(tit[0]);
     }
     if (faltan.length) throw new Error("En la hoja " + nombre + " no encuentro la columna " + faltan.join(", ") + " (revisa los títulos del Excel)");
     col.prepara = col.faltante + 1;
