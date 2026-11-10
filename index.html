@@ -255,6 +255,9 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .kv{display:grid;grid-template-columns:120px 1fr;margin:0}
 .kv dt{color:var(--muted);padding:9px 0;border-bottom:1px solid var(--border)}
 .kv dd{margin:0;padding:9px 0;border-bottom:1px solid var(--border)}
+.pago{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:600;vertical-align:1px}
+.pago.liquidado{color:var(--ok);background:var(--ok-bg)}
+.pago.anticipo{color:var(--neg);background:var(--neg-bg)}
 
 @media (max-width:1100px) and (min-width:901px){ .slots{grid-template-columns:repeat(2,minmax(0,1fr))} }
 /* Lista compacta en pantallas medianas y en celular */
@@ -384,7 +387,8 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     return {hoja:e.hoja||'ventas', vendedor:e.vendedor||'', vehiculo:e.vehiculo||'', pasos:[e.armado||'',e.herreria||'',e.forrado||'',e.pintura||'',e.revision||''],
       fecha:e.fecha||null, fecha_txt:e.fecha_txt||'', remision:e.remision||'', destino:e.destino||'', zona:e.zona||'sin',
       activacion:e.activacion||'', costo:e.costo_envio==null?null:+e.costo_envio, fletero:e.fletero||'', eta:e.eta||'',
-      faltante:e.faltante||'', prepara:e.prepara||'', color_vehiculo:e.color_vehiculo||null, color_destino:e.color_destino||null};
+      faltante:e.faltante||'', prepara:e.prepara||'', color_vehiculo:e.color_vehiculo||null, color_destino:e.color_destino||null,
+      tipo_destino:e.tipo_destino||'', color_costo:e.color_costo||null};
   }
   function hoyISO(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0') }
   function sesionVisible(on){ document.body.classList.toggle('sin-sesion', !on) }
@@ -482,6 +486,21 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     var listas = b.filter(function(u){return u.estado==='flete'}).length;
     $('gm').style.width = (b.length ? listas/b.length*100 : 0)+'%';
     $('gt').textContent = listas+' de '+unidades(b.length);
+  }
+
+  // Flete: el costo de envío y si ya se pagó, según el color de la celda en el Excel (verde = liquidado, rojo = anticipo)
+  function pagoFlete(c){
+    var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(c||''); if(!m) return '';
+    var r=parseInt(m[1],16), g=parseInt(m[2],16), b=parseInt(m[3],16);
+    if(g>r+40 && g>b+40) return 'liquidado';
+    if(r>g+80 && r>b+80) return 'anticipo';
+    return '';
+  }
+  function flete(u){
+    var p = pagoFlete(u.color_costo);
+    var monto = u.costo==null ? '' : '$'+u.costo.toLocaleString('es-MX',{maximumFractionDigits:2});
+    if(!monto && !p) return '—';
+    return esc(monto || 'Sin monto') + (p ? ' <span class="pago '+p+'">'+(p==='liquidado'?'Liquidado':'Anticipo')+'</span>' : '');
   }
 
   // Destino con un punto del color que trae el Excel
@@ -640,10 +659,15 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     }[u.estado] || [L.nombreDe(L.ESTADOS,u.estado),''];
     $('ih').textContent = u.modelo+(u.cant>1?' × '+u.cant:'');
     $('is').textContent = u.detalle;
-    var kv = [['Destino',L.lugar(u)+(u.distribuidor?' (distribuidor)':'')],['Zona',L.nombreDe(L.ZONAS,u.z)],['Bodega',u.bodega==='b2'?'Bodega 2':'Bodega 1 · Granja'],['Tipo',L.nombreDe(L.TIPOS,u.tipo)],['Vendida',fecha(u.f)+(u.estado==='entregada' ? '' : ' · hace '+(u.dias==null?'—':u.dias)+' días')],['Vendedor',u.vendedor||'—'],['Remisión',u.remision||'—'],['Faltante',u.faltante||'—']];
+    // Orden pedido por el usuario (10-nov-2026). Los valores con HTML propio van como {html:…}
+    var kv = [['Remisión',u.remision||'—'],['Tipo',L.nombreDe(L.TIPOS,u.tipo)],
+      ['Destino',{html:destino(u)+(u.distribuidor?' (distribuidor)':'')}],
+      ['Zona',u.tipo_destino||L.nombreDe(L.ZONAS,u.z)],['Bodega',u.bodega==='b2'?'Bodega 2':'Bodega 1 · Granja'],
+      ['Fecha de venta',fecha(u.f)+(u.estado==='entregada' ? '' : ' · hace '+(u.dias==null?'—':u.dias)+' días')],
+      ['Vendedor',u.vendedor||'—'],['Flete',{html:flete(u)}],['Fletero',u.fletero||'—'],['Faltante',u.faltante||'—']];
     $('ib').innerHTML = '<div class="state"><span class="ic '+u.estado+'">'+ICON[u.estado]+'</span><span><b>'+esc(info[0])+'</b><small>'+esc(info[1])+'</small></span></div>' +
       '<div class="st5">'+L.PASOS.map(function(p,k){ return '<div class="'+u.pasos[k]+'"><b>'+p[0]+'</b>'+p[1]+'</div>' }).join('')+'</div>' +
-      '<dl class="kv">'+kv.map(function(x){return '<dt>'+x[0]+'</dt><dd>'+(x[0]==='Destino' ? destino(u)+(u.distribuidor?' (distribuidor)':'') : esc(x[1]))+'</dd>'}).join('')+'</dl>';
+      '<dl class="kv">'+kv.map(function(x){return '<dt>'+x[0]+'</dt><dd>'+(x[1] && x[1].html!=null ? x[1].html : esc(x[1]))+'</dd>'}).join('')+'</dl>';
     $('insp').classList.add('on'); $('scrim').classList.add('on'); $('insp').setAttribute('aria-hidden','false'); $('close').focus();
   }
   function cerrar(){ $('insp').classList.remove('on'); $('scrim').classList.remove('on'); $('insp').setAttribute('aria-hidden','true'); }

@@ -55,6 +55,8 @@ const TITULOS = {
   fecha: ["FECHA", "FECHACOMPRA", "FECHADECOMPRA", "FECHAVENTA", "FECHADEVENTA"],
   remision: ["REMISION"], destino: ["DESTINO"], activacion: ["ACTIVACION"], costo: ["COSTO"], fletero: ["FLETERO"], eta: ["ETA"], faltante: ["FALTANTE"],
 };
+// Columnas que pueden no estar (si no están, se quedan vacías)
+const OPCIONALES = { tipo_destino: ["TIPODEDESTINO", "TIPODESTINO", "TIPODEENVIO", "TIPOENVIO"] };
 // ENTREGADO no tiene renglón de títulos: ahí se usan las posiciones de siempre (A, B, C…)
 const FIJAS = { vendedor: 1, vehiculo: 2, ar: 3, h: 4, f: 5, p: 6, r: 7, fecha: 8, remision: 9, destino: 10, activacion: 11, costo: 12, fletero: 13, eta: 14, faltante: 15, prepara: 16 };
 function norma(v) { return txt(v).toUpperCase().normalize("NFD").replace(/\p{M}/gu, "").replace(/[^A-Z]/g, ""); }
@@ -71,6 +73,7 @@ function columnas(ws, nombre, ultimaCol) {
     }
     if (faltan.length) throw new Error("En la hoja " + nombre + " no encuentro la columna " + faltan.join(", ") + " (revisa los títulos del Excel)");
     col.prepara = col.faltante + 1;
+    for (const [clave, tit] of Object.entries(OPCIONALES)) { const c = Object.keys(t).find((k) => tit.includes(t[k])); if (c) col[clave] = +c; }
     return { col, desde: fila + 1 };
   }
   if (nombre === "ENTREGADO") return { col: FIJAS, desde: 2 };
@@ -119,7 +122,7 @@ function leerHoja(XLSX, wb, nombre, hoy) {
   const { col, desde } = columnas(ws, nombre, rango.e.c + 1);
   const rows = [];
   for (let r = desde; r <= ultima; r++) {
-    const v = (k) => { const x = celda(ws, r, col[k]); return x ? x.v : null; };
+    const v = (k) => { if (!col[k]) return null; const x = celda(ws, r, col[k]); return x ? x.v : null; };
     if (!txt(v("vehiculo"))) continue; // sin vehículo: renglón vacío o que todavía están capturando
     const rem = v("remision") instanceof Date ? v("remision").getUTCDate() + "/" + (v("remision").getUTCMonth() + 1) : txt(v("remision"));
     const cDest = colorDe(celda(ws, r, col.destino));
@@ -131,6 +134,8 @@ function leerHoja(XLSX, wb, nombre, hoy) {
       activacion: titulo(txt(v("activacion"))), costo: typeof costo === "number" ? costo : null,
       fletero: titulo(txt(v("fletero"))), eta: txt(v("eta")), faltante: capital(txt(v("faltante"))), prepara: titulo(txt(v("prepara"))),
       color_vehiculo: colorDe(celda(ws, r, col.vehiculo)), color_destino: hexColor(cDest),
+      // Tipo de destino (Foraneo, Local, Semi Local, Sucursal) y color de la celda del costo (verde = liquidado, rojo = anticipo)
+      tipo_destino: titulo(txt(v("tipo_destino"))), color_costo: hexColor(colorDe(celda(ws, r, col.costo))),
     });
   }
   return rows;
