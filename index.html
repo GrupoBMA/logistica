@@ -59,11 +59,11 @@ kbd{font:500 11px/16px var(--font);min-width:18px;height:18px;padding:0 5px;bord
 /* Pestañas grandes: Ventas, Cambios, Entregados */
 .tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:5px;margin:8px 0 0;border-radius:14px;background:var(--raised)}
 .tab{height:52px;padding:0 16px;border:0;border-radius:10px;background:none;color:var(--muted);font-weight:700;font-size:17px;display:inline-flex;align-items:center;justify-content:center;gap:10px;white-space:nowrap;transition:background-color .15s ease,color .15s ease}
-.tab:hover{color:var(--text);background:var(--surface)}
-.tab[aria-selected="true"]{background:var(--primary);color:var(--on-primary)}
+.tab:hover{color:var(--text);background:var(--active)}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--text);box-shadow:inset 0 0 0 1px var(--border),0 1px 2px rgba(0,0,0,.06)}
 .tab .n{min-width:28px;height:24px;padding:0 8px;border-radius:12px;font-size:13px;font-weight:600;line-height:24px;font-variant-numeric:tabular-nums;background:var(--surface);color:var(--text)}
 .tab .n:empty{display:none}
-.tab[aria-selected="true"] .n{background:var(--on-primary);color:var(--primary)}
+.tab[aria-selected="true"] .n{background:var(--raised);color:var(--text)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* Cambios */
