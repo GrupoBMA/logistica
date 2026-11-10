@@ -79,7 +79,7 @@ kbd{font:500 11px/16px var(--font);min-width:18px;height:18px;padding:0 5px;bord
 .mini{padding:10px 12px;border-radius:10px;background:var(--ground);border:1px solid var(--border);min-width:0}
 .mini.vacia{visibility:hidden}
 .mini .mh{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;line-height:18px}
-.mini .mh .ic{width:26px;height:26px;border-radius:7px;flex:none}
+.mini .mh .ic{width:26px;height:26px;border-radius:7px;flex:none;display:grid;place-items:center}
 .mini .mh .ic svg{width:15px;height:15px}
 .mini .mh .n{margin-left:auto;font-weight:500;font-size:12px;color:var(--muted);white-space:nowrap}
 .mini .bar5{margin-top:10px}
@@ -89,6 +89,7 @@ button.cb:hover{border-color:var(--text)}
 .cb .t .r{font-weight:500;color:var(--muted)}
 .cb .d{font-size:14px;line-height:20px;margin-top:2px}
 .cb .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.cb .par .chips{grid-column:3;margin-top:8px}
 .cb .chips span{font-size:12px;line-height:16px;padding:3px 8px;border-radius:6px;background:var(--raised);color:var(--muted)}
 .cb .chips .mas{background:var(--ok-bg);color:var(--ok)}
 .cb .chips .menos{background:var(--neg-bg);color:var(--neg)}
@@ -169,6 +170,19 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .modo button{width:38px;height:34px;border:0;border-radius:8px;background:none;color:var(--muted);display:grid;place-items:center}
 .modo button:hover{color:var(--text)}
 .modo button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+/* Campana: cambios de las últimas 2 horas, en una lista sencilla */
+.avisos{position:relative;margin-left:auto}
+#campana{position:relative;width:40px;height:40px;border-radius:10px;border:0;background:var(--raised);color:var(--muted);display:grid;place-items:center}
+#campana:hover,#campana[aria-expanded="true"]{color:var(--text)}
+#campana .badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--neg);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center}
+#campana .badge:empty{display:none}
+.pop{position:absolute;right:0;top:46px;z-index:30;width:300px;max-width:calc(100vw - 32px);max-height:360px;overflow:auto;padding:6px;border-radius:12px;background:var(--surface);border:1px solid var(--border);box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.pop h3{margin:6px 8px 8px;font-size:13px;font-weight:600;color:var(--muted)}
+.pop button{display:flex;justify-content:space-between;gap:10px;width:100%;padding:8px;border:0;border-radius:8px;background:none;text-align:left;font-size:14px;line-height:20px}
+.pop button:hover{background:var(--raised)}
+.pop button b{font-weight:600}
+.pop button small{color:var(--muted);font-size:12px;white-space:nowrap}
+.pop p{margin:8px;color:var(--muted);font-size:14px}
 
 /* Vista de lista (como el modo Detalles de una carpeta de Windows) */
 .lista{display:flex;flex-direction:column;gap:6px}
@@ -359,6 +373,10 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
       <div class="modo" role="group" aria-label="Ver como" id="modo">
         <button type="button" data-m="tarjetas" aria-pressed="true" title="Ver como tarjetas" aria-label="Ver como tarjetas"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2.5" y="2.5" width="5" height="5" rx="1"/><rect x="10.5" y="2.5" width="5" height="5" rx="1"/><rect x="2.5" y="10.5" width="5" height="5" rx="1"/><rect x="10.5" y="10.5" width="5" height="5" rx="1"/></svg></button>
         <button type="button" data-m="lista" aria-pressed="false" title="Ver como lista" aria-label="Ver como lista"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6.5 4.5h9M6.5 9h9M6.5 13.5h9"/><circle cx="3" cy="4.5" r=".9" fill="currentColor"/><circle cx="3" cy="9" r=".9" fill="currentColor"/><circle cx="3" cy="13.5" r=".9" fill="currentColor"/></svg></button>
+      </div>
+      <div class="avisos" id="avisos" hidden>
+        <button type="button" id="campana" aria-expanded="false" aria-controls="avPop" title="Cambios de las últimas 2 horas" aria-label="Cambios de las últimas 2 horas"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5V8a4.5 4.5 0 0 1 9 0v4.5l1.2 1.5H3.3z"/><path d="M7.3 15.5a1.8 1.8 0 0 0 3.4 0"/></svg><span class="badge" id="nAv"></span></button>
+        <div class="pop" id="avPop" hidden></div>
       </div>
     </div>
     <div class="slots" id="slots"></div>
@@ -554,6 +572,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     $('nV').textContent = base().length; $('nE').textContent = baseEntregados().length;
     var recientes = CAMBIOS.filter(function(c){ return new Date(c.fecha).getTime() > hace7 }).length;
     $('nC').textContent = recientes || '';
+    drawAvisos();
     if(st.tab==='cambios'){ drawCambios(); return; }
     var ent = st.tab==='entregados';
     $('modo').hidden = false;
@@ -637,6 +656,32 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     var desc = paso && d.estado==='flete' ? 'Ya tiene los 5 pasos en OK.' : paso && a.estado==='piezas' ? 'Ya llegaron el vehículo o las piezas.' : '';
     return {ic: d.estado==='flete' ? 'flete' : d.estado, t:t, d:desc, chips:chips};
   }
+  // Texto corto de un cambio para la campana: "+ Herrería", "Entró a Ventas"…
+  function resumen(c){
+    if(c.tipo==='nueva') return 'Entró a Ventas';
+    if(c.tipo==='salio') return ENTREGADOS.some(function(u){ return u.remision===c.remision && u.vehiculo===c.vehiculo }) ? 'Pasó a Entregados' : 'Salió de Ventas';
+    var a = c.antes || {}, d = c.despues || {}, t = [];
+    (d.pasos||[]).forEach(function(x,k){
+      var y = (a.pasos||[])[k], n = L.PASOS[k][1];
+      if(x==='ok' && y!=='ok') t.push('+ '+n); else if(x!=='ok' && y==='ok') t.push('− '+n);
+      if(x==='x' && y!=='x') t.push('X en '+n.toLowerCase());
+    });
+    if(a.faltante && !d.faltante) t.push('ya no le falta'); else if(d.faltante && !a.faltante) t.push('ahora le falta');
+    else if(a.faltante !== d.faltante) t.push('cambió lo que falta');
+    return t.join(', ') || ('Pasó a '+nEstado(d.estado));
+  }
+  var AVISO_HORAS = 2;
+  function drawAvisos(){
+    var en = st.tab==='ventas'; $('avisos').hidden = !en; if(!en){ cerrarAvisos(); return; }
+    var desde = Date.now() - AVISO_HORAS*36e5;
+    var l = CAMBIOS.filter(function(c){ return new Date(c.fecha).getTime() > desde });
+    $('nAv').textContent = l.length ? (l.length>99?'99+':l.length) : '';
+    $('avPop').innerHTML = '<h3>Últimas '+AVISO_HORAS+' horas</h3>' + (l.length ? l.map(function(c){
+      var u = unidadDe(c), h = new Date(c.fecha);
+      return '<button type="button"'+(u?' data-i="'+u.i+'"':'')+'><span><b>Remisión '+esc(c.remision||'—')+'</b> '+esc(resumen(c))+'</span><small>'+hora(h)+'</small></button>';
+    }).join('') : '<p>Sin cambios en las últimas '+AVISO_HORAS+' horas.</p>');
+  }
+  function cerrarAvisos(){ $('avPop').hidden = true; $('campana').setAttribute('aria-expanded','false'); }
   function drawCambios(){
     $('vt').textContent = 'Cambios';
     $('vo').innerHTML = '<span class="ic todas" style="width:26px;height:26px;border-radius:7px;display:inline-grid;place-items:center;flex:none">'+ICON.taller+'</span><span>Lo que cambió en el Excel entre una lectura y la siguiente: avances del taller, unidades nuevas y las que pasaron a Entregados.</span>';
@@ -666,8 +711,9 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
               '<span class="arriba"><span class="t">Remisión '+esc(c.remision||'—')+' <span class="r">· '+esc(m.modelo)+' · '+esc(L.cap((c.destino||'').toLowerCase()))+'</span></span>' +
               '<span class="hora"><span class="fch">'+fecha(h)+'</span>'+String(h.getHours()).padStart(2,'0')+':'+String(h.getMinutes()).padStart(2,'0')+'</span></span>' +
               '<span class="d" style="display:block">'+esc(x.t)+(x.d?'. '+esc(x.d):'')+'</span>' +
-              '<span class="par">'+izq+'<span class="flecha" aria-hidden="true">'+(c.tipo==='nueva'?'':FLECHA)+'</span>'+der+'</span>' +
-              (x.chips.length ? '<span class="chips">'+x.chips.join('')+'</span>' : '') + '</'+tag+'>';
+              // Lo que avanzó (+ Herrería…) va debajo de la tarjeta de la derecha: es lo nuevo
+              '<span class="par">'+izq+'<span class="flecha" aria-hidden="true">'+(c.tipo==='nueva'?'':FLECHA)+'</span>'+der +
+              (x.chips.length ? '<span class="chips">'+x.chips.join('')+'</span>' : '') + '</span></'+tag+'>';
           }).join('') + '</div></section>';
       }).join('');
   }
@@ -708,11 +754,14 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   $('cats').addEventListener('click', function(e){ if(e.target.id==='tipoClear'){ st.tipo=''; st.destino=''; drawView(); } });
   $('bodegas').addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return; st.bodega=b.dataset.b; $('bodegas').querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed', x===b)}); draw(); });
   $('q').addEventListener('input', function(e){ st.q=e.target.value; st.tipo=''; st.destino=''; draw(); });
+  $('campana').addEventListener('click', function(e){ e.stopPropagation(); var abierto = $('avPop').hidden; $('avPop').hidden = !abierto; $('campana').setAttribute('aria-expanded', abierto); });
+  $('avPop').addEventListener('click', function(e){ e.stopPropagation(); var b=e.target.closest('button[data-i]'); if(b){ cerrarAvisos(); abrir(+b.dataset.i); } });
+  document.addEventListener('click', function(){ if(!$('avPop').hidden) cerrarAvisos(); });
   $('modo').addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return; modo=b.dataset.m; try{ localStorage.setItem('logistica.modo', modo) }catch(err){} drawView(); });
   document.addEventListener('click', function(e){ var s=e.target.closest('.slot,.fila,button.cb'); if(s) abrir(+s.dataset.i) });
   $('close').addEventListener('click', cerrar); $('scrim').addEventListener('click', cerrar);
   document.addEventListener('keydown', function(e){
-    if(e.key==='Escape'){ if($('insp').classList.contains('on')) return cerrar(); if(document.activeElement===$('q')){ $('q').value=''; st.q=''; $('q').blur(); draw(); } return; }
+    if(e.key==='Escape'){ if(!$('avPop').hidden){ cerrarAvisos(); $('campana').focus(); return; } if($('insp').classList.contains('on')) return cerrar(); if(document.activeElement===$('q')){ $('q').value=''; st.q=''; $('q').blur(); draw(); } return; }
     if(e.target.tagName==='INPUT' || document.body.classList.contains('sin-sesion')) return;
     if(e.key==='/'){ e.preventDefault(); $('q').focus(); return; }
     var n = +e.key; if(n>=1 && n<=VISTAS.length) ir(VISTAS[n-1].id);
