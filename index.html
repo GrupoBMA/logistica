@@ -71,9 +71,20 @@ kbd{font:500 11px/16px var(--font);min-width:18px;height:18px;padding:0 5px;bord
 .dia h2{font-size:15px;line-height:20px;font-weight:700;margin:0 0 10px}
 .dia h2 span{color:var(--muted);font-weight:400}
 .cbs{display:flex;flex-direction:column;gap:8px}
-.cb{display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:14px;padding:14px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--border);text-align:left;width:100%}
+.cb{display:block;padding:14px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--border);text-align:left;width:100%}
+.cb .arriba{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+/* Antes → después: dos tarjetitas con una flecha en medio (en las nuevas solo va la de la derecha) */
+.cb .par{display:grid;grid-template-columns:minmax(0,1fr) 36px minmax(0,1fr);align-items:stretch;margin-top:12px}
+.cb .flecha{display:grid;place-items:center;color:var(--muted)}
+.mini{padding:10px 12px;border-radius:10px;background:var(--ground);border:1px solid var(--border);min-width:0}
+.mini.vacia{visibility:hidden}
+.mini .mh{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;line-height:18px}
+.mini .mh .ic{width:26px;height:26px;border-radius:7px;flex:none}
+.mini .mh .ic svg{width:15px;height:15px}
+.mini .mh .n{margin-left:auto;font-weight:500;font-size:12px;color:var(--muted);white-space:nowrap}
+.mini .bar5{margin-top:10px}
+.mini .falta{display:block;margin-top:8px;font-size:12px;line-height:16px;color:var(--warn);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 button.cb:hover{border-color:var(--text)}
-.cb .ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center}
 .cb .t{font-weight:700;font-size:15px;line-height:20px}
 .cb .t .r{font-weight:500;color:var(--muted)}
 .cb .d{font-size:14px;line-height:20px;margin-top:2px}
@@ -83,15 +94,13 @@ button.cb:hover{border-color:var(--text)}
 .cb .chips .menos{background:var(--neg-bg);color:var(--neg)}
 .cb .chips .conx{background:var(--xpaso-bg);color:var(--xpaso-ink)}
 .cb .chips .falta{background:var(--warn-bg);color:var(--warn)}
-.cb .lado{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;white-space:nowrap}
-.cb .lado .bar5{width:72px}
-.cb .hora{font-size:12px;color:var(--muted);text-align:right;margin-top:6px;white-space:nowrap}
+.cb .hora{font-size:12px;color:var(--muted);text-align:right;white-space:nowrap}
 .cb .hora .fch{margin-right:8px;color:var(--text);font-weight:500}
 .nota{color:var(--muted);font-size:13px;line-height:18px;margin:0 0 18px}
 .ic.entregada{background:var(--raised);color:var(--text)}
 .ic.nueva{background:var(--work-bg);color:var(--work)}
 .ic.salio{background:var(--neg-bg);color:var(--neg)}
-@media (max-width:760px){ .cb{grid-template-columns:36px minmax(0,1fr)} .cb .der{grid-column:2} .cb .lado{justify-content:flex-start} .cb .hora{text-align:left} }
+@media (max-width:760px){ .cb .arriba{flex-direction:column;gap:2px} .cb .hora{text-align:left} .cb .par{grid-template-columns:minmax(0,1fr) 26px minmax(0,1fr)} .mini{padding:8px 10px} .mini .mh{flex-wrap:wrap;gap:4px 6px;font-size:13px} .mini .mh .ic{width:22px;height:22px} .mini .mh .n{flex-basis:100%;margin-left:0} }
 .find input{width:100%;height:40px;padding:0 44px 0 38px;border:1px solid var(--control);border-radius:10px;background:var(--surface)}
 .find input::placeholder{color:var(--faint)}
 .find svg{position:absolute;left:12px;top:13px}
@@ -598,6 +607,13 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
   }
   function nEstado(id){ return L.nombreDe(L.ESTADOS, id) }
   function unidadDe(c){ return ALL.find(function(u){ return u.remision===c.remision && u.vehiculo===c.vehiculo && (c.tipo!=='salio' || u.hoja==='entregado') }) }
+  var FLECHA = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h12M11 5l5 5-5 5"/></svg>';
+  // Tarjetita de un lado del cambio: estado, sus 5 rayitas y lo que le falta
+  function mini(f){
+    f = f || {}; var p = f.pasos || [], ok = p.filter(function(x){return x==='ok'}).length, e = f.estado || 'empezar';
+    return '<span class="mini"><span class="mh"><span class="ic '+e+'">'+(ICON[e]||'')+'</span>'+esc(nEstado(e))+'<span class="n">'+ok+' de 5</span></span>' +
+      barras(p) + (f.faltante ? '<span class="falta" title="Falta: '+esc(f.faltante)+'">Falta: '+esc(f.faltante.toLowerCase())+'</span>' : '') + '</span>';
+  }
   function barras(p){ return '<span class="bar5" aria-hidden="true">'+(p||[]).map(function(x){return '<i class="'+x+'"></i>'}).join('')+'</span>' }
   function describir(c){
     var a = c.antes || {}, d = c.despues || {}, chips = [];
@@ -641,13 +657,17 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
         return '<section class="dia"><h2>'+k+' <span>· '+(porDia[k].length===1?'1 cambio':porDia[k].length+' cambios')+'</span></h2><div class="cbs">' +
           porDia[k].map(function(c){
             var x = describir(c), u = unidadDe(c), m = L.nombre(c.vehiculo), h = new Date(c.fecha);
-            var lado = c.tipo==='cambio' ? barras(c.antes.pasos)+'<span>→</span>'+barras(c.despues.pasos) : c.tipo==='nueva' ? barras(c.despues.pasos) : barras(c.antes.pasos);
+            // Izquierda: cómo estaba; derecha: cómo quedó. Las nuevas solo tienen la derecha; las que salieron, a dónde fueron.
+            var ent = c.tipo==='salio' && x.ic==='entregada';
+            var izq = c.tipo==='nueva' ? '<span class="mini vacia"></span>' : mini(c.antes);
+            var der = c.tipo==='salio' ? '<span class="mini"><span class="mh"><span class="ic '+x.ic+'">'+ICON[x.ic]+'</span>'+(ent?'Entregada':'Fuera de Ventas')+'</span></span>' : mini(c.despues);
             var tag = u ? 'button' : 'div';
-            return '<'+tag+(u?' type="button" data-i="'+u.i+'"':'')+' class="cb"><span class="ic '+x.ic+'">'+ICON[x.ic]+'</span>' +
-              '<span style="min-width:0"><span class="t">Remisión '+esc(c.remision||'—')+' <span class="r">· '+esc(m.modelo)+' · '+esc(L.cap((c.destino||'').toLowerCase()))+'</span></span>' +
+            return '<'+tag+(u?' type="button" data-i="'+u.i+'"':'')+' class="cb">' +
+              '<span class="arriba"><span class="t">Remisión '+esc(c.remision||'—')+' <span class="r">· '+esc(m.modelo)+' · '+esc(L.cap((c.destino||'').toLowerCase()))+'</span></span>' +
+              '<span class="hora"><span class="fch">'+fecha(h)+'</span>'+String(h.getHours()).padStart(2,'0')+':'+String(h.getMinutes()).padStart(2,'0')+'</span></span>' +
               '<span class="d" style="display:block">'+esc(x.t)+(x.d?'. '+esc(x.d):'')+'</span>' +
-              (x.chips.length ? '<span class="chips">'+x.chips.join('')+'</span>' : '') + '</span>' +
-              '<span class="der"><span class="lado">'+lado+'</span><span class="hora" style="display:block"><span class="fch">'+fecha(h)+'</span>'+String(h.getHours()).padStart(2,'0')+':'+String(h.getMinutes()).padStart(2,'0')+'</span></span></'+tag+'>';
+              '<span class="par">'+izq+'<span class="flecha" aria-hidden="true">'+(c.tipo==='nueva'?'':FLECHA)+'</span>'+der+'</span>' +
+              (x.chips.length ? '<span class="chips">'+x.chips.join('')+'</span>' : '') + '</'+tag+'>';
           }).join('') + '</div></section>';
       }).join('');
   }
