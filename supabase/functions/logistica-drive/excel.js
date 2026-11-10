@@ -27,7 +27,7 @@ function hexColor(c) {
 function txt(v) {
   if (v === undefined || v === null) return "";
   if (typeof v === "number" && Number.isInteger(v)) v = String(v);
-  return String(v).replace(/\s+/g, " ").replace(/�/g, "Ñ").trim();
+  return String(v).replace(/\s+/g, " ").replace(/\uFFFD/g, "Ñ").trim();
 }
 function titulo(s) { return s.toLowerCase().replace(/(^|[^\p{L}])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()); }
 function capital(s) { s = s.toLowerCase(); return s.charAt(0).toUpperCase() + s.slice(1); }
@@ -44,10 +44,39 @@ function fecha(v, hoy) {
   return iso(anio, mes, dia);
 }
 function paso(v) { const s = txt(v).toUpperCase(); return s === "OK" ? "ok" : s === "X" ? "x" : ""; }
-function celda(ws, fila, col) { return ws[String.fromCharCode(64 + col) + fila]; }
+let XL; // SheetJS, para encode_cell
+function celda(ws, fila, col) { return ws[XL.utils.encode_cell({ r: fila - 1, c: col - 1 })]; }
 
-export function leerVentas(XLSX, wb, hoy = new Date()) { return leerHoja(XLSX, wb, "VENTAS", 4, hoy); }
-export function leerEntregado(XLSX, wb, hoy = new Date()) { return wb.Sheets["ENTREGADO"] ? leerHoja(XLSX, wb, "ENTREGADO", 2, hoy) : []; }
+// Las columnas se buscan por su título (así no se rompe si agregan o mueven columnas en el Excel).
+// "prepara" no tiene título: es la columna que sigue de FALTANTE.
+const TITULOS = {
+  vendedor: "VENDEDOR", vehiculo: "VEHICULO", ar: "AR", h: "H", f: "F", p: "P", r: "R", fecha: "FECHA",
+  remision: "REMISION", destino: "DESTINO", activacion: "ACTIVACION", costo: "COSTO", fletero: "FLETERO", eta: "ETA", faltante: "FALTANTE",
+};
+// ENTREGADO no tiene renglón de títulos: ahí se usan las posiciones de siempre (A, B, C…)
+const FIJAS = { vendedor: 1, vehiculo: 2, ar: 3, h: 4, f: 5, p: 6, r: 7, fecha: 8, remision: 9, destino: 10, activacion: 11, costo: 12, fletero: 13, eta: 14, faltante: 15, prepara: 16 };
+function norma(v) { return txt(v).toUpperCase().normalize("NFD").replace(/\p{M}/gu, "").replace(/[^A-Z]/g, ""); }
+
+function columnas(ws, nombre, ultimaCol) {
+  for (let fila = 1; fila <= 6; fila++) {
+    const t = {}; for (let c = 1; c <= ultimaCol; c++) { const x = celda(ws, fila, c); t[c] = norma(x && x.v); }
+    const vals = Object.values(t);
+    if (!vals.includes("VEHICULO") || !vals.includes("DESTINO")) continue;
+    const col = {}, faltan = [];
+    for (const [clave, tit] of Object.entries(TITULOS)) {
+      const c = Object.keys(t).find((k) => clave === "costo" ? t[k].startsWith(tit) : t[k] === tit);
+      if (c) col[clave] = +c; else faltan.push(tit);
+    }
+    if (faltan.length) throw new Error("En la hoja " + nombre + " no encuentro la columna " + faltan.join(", ") + " (revisa los títulos del Excel)");
+    col.prepara = col.faltante + 1;
+    return { col, desde: fila + 1 };
+  }
+  if (nombre === "ENTREGADO") return { col: FIJAS, desde: 2 };
+  throw new Error("En la hoja " + nombre + " no encuentro el renglón de títulos (VEHICULO, DESTINO…)");
+}
+
+export function leerVentas(XLSX, wb, hoy = new Date()) { return leerHoja(XLSX, wb, "VENTAS", hoy); }
+export function leerEntregado(XLSX, wb, hoy = new Date()) { return wb.Sheets["ENTREGADO"] ? leerHoja(XLSX, wb, "ENTREGADO", hoy) : []; }
 
 // Estado de una unidad (la misma regla que logica.js de la app)
 export function estado(r) {
@@ -79,23 +108,27 @@ export function compararVentas(antes, ahora) {
   return cambios;
 }
 
-function leerHoja(XLSX, wb, nombre, desde, hoy) {
+function leerHoja(XLSX, wb, nombre, hoy) {
+  XL = XLSX;
   const ws = wb.Sheets[nombre];
   if (!ws) throw new Error("El Excel no tiene la hoja " + nombre);
-  const ultima = XLSX.utils.decode_range(ws["!ref"]).e.r + 1;
+  const rango = XLSX.utils.decode_range(ws["!ref"]);
+  const ultima = rango.e.r + 1;
+  const { col, desde } = columnas(ws, nombre, rango.e.c + 1);
   const rows = [];
   for (let r = desde; r <= ultima; r++) {
-    const a = []; for (let c = 1; c <= 16; c++) { const x = celda(ws, r, c); a.push(x ? x.v : null); }
-    if (!txt(a[1])) continue; // sin vehículo: renglón vacío o que todavía están capturando
-    const rem = a[8] instanceof Date ? a[8].getUTCDate() + "/" + (a[8].getUTCMonth() + 1) : txt(a[8]);
-    const cDest = colorDe(celda(ws, r, 10));
+    const v = (k) => { const x = celda(ws, r, col[k]); return x ? x.v : null; };
+    if (!txt(v("vehiculo"))) continue; // sin vehículo: renglón vacío o que todavía están capturando
+    const rem = v("remision") instanceof Date ? v("remision").getUTCDate() + "/" + (v("remision").getUTCMonth() + 1) : txt(v("remision"));
+    const cDest = colorDe(celda(ws, r, col.destino));
+    const costo = v("costo");
     rows.push({
-      vendedor: titulo(txt(a[0])), vehiculo: txt(a[1]).replace(/[*\s]+$/, ""),
-      pasos: a.slice(2, 7).map(paso), fecha_txt: txt(a[7]), fecha: fecha(a[7], hoy),
-      remision: rem, destino: txt(a[9]).replace(/[*\s]+$/, ""), zona: ZONA[cDest] || "sin",
-      activacion: titulo(txt(a[10])), costo: typeof a[11] === "number" ? a[11] : null,
-      fletero: titulo(txt(a[12])), eta: txt(a[13]), faltante: capital(txt(a[14])), prepara: titulo(txt(a[15])),
-      color_vehiculo: colorDe(celda(ws, r, 2)), color_destino: hexColor(cDest),
+      vendedor: titulo(txt(v("vendedor"))), vehiculo: txt(v("vehiculo")).replace(/[*\s]+$/, ""),
+      pasos: ["ar", "h", "f", "p", "r"].map((k) => paso(v(k))), fecha_txt: txt(v("fecha")), fecha: fecha(v("fecha"), hoy),
+      remision: rem, destino: txt(v("destino")).replace(/[*\s]+$/, ""), zona: ZONA[cDest] || "sin",
+      activacion: titulo(txt(v("activacion"))), costo: typeof costo === "number" ? costo : null,
+      fletero: titulo(txt(v("fletero"))), eta: txt(v("eta")), faltante: capital(txt(v("faltante"))), prepara: titulo(txt(v("prepara"))),
+      color_vehiculo: colorDe(celda(ws, r, col.vehiculo)), color_destino: hexColor(cDest),
     });
   }
   return rows;
