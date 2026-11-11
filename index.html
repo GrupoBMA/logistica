@@ -275,7 +275,6 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .paradas li{position:relative;display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px;padding:0 0 12px}
 .paradas li:not(:last-child)::before{content:"";position:absolute;left:12px;top:24px;bottom:0;width:2px;background:var(--border)}
 .paradas .pn{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--raised);color:var(--text);position:relative}
-.paradas .salida .pn{background:var(--text);color:var(--surface)}
 .paradas .pt{display:flex;justify-content:space-between;gap:10px;align-items:baseline;min-height:26px;padding-top:3px}
 .paradas .pt b{font-weight:600;font-size:14px;line-height:20px}
 .paradas .pt span{font-size:12px;color:var(--muted);white-space:nowrap}
@@ -734,15 +733,6 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
   // Rutas de entrega: las unidades de Ventas cuyo destino cae en una ruta (logica.js, RUTAS)
   var NOMBRE_PILL = {flete:'Lista para salir', taller:'En proceso', empezar:'No iniciado', piezas:'Esperando piezas'};
   function pill(u){ return '<button type="button" class="rpill '+u.estado+'" data-i="'+u.i+'" title="'+esc(NOMBRE_PILL[u.estado]+' · '+u.modelo+(u.dias==null?'':' · '+u.dias+' días'))+'">'+esc(u.remision||'s/n')+'</button>' }
-  // De dónde sale la ruta: según el filtro de bodega o, con "Todas", según dónde se arman sus unidades.
-  var LUGAR_B2 = 'Tlajomulco de Zúñiga · CP 45640';
-  function salida(us){
-    var b2 = st.bodega ? st.bodega==='b2' : us.some(function(u){ return u.bodega==='b2' });
-    var gr = st.bodega ? st.bodega!=='b2' : (!us.length || us.some(function(u){ return u.bodega!=='b2' }));
-    if(gr && b2) return '<b>Sale de la granja y de Bodega 2</b><span>Bodega 2: '+LUGAR_B2+'</span>';
-    if(b2) return '<b>Sale de Bodega 2</b><span>'+LUGAR_B2+'</span>';
-    return '<b>Sale de la granja</b>';
-  }
   function drawRutas(){
     $('vt').textContent = 'Rutas';
     $('vo').innerHTML = '';
@@ -767,7 +757,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
       return '<section class="ruta"><header><div><h2>'+esc(ru.nombre)+'</h2><small>'+esc(ru.rumbo)+'</small></div>' +
         '<div class="rc"><b>'+us.length+'</b> '+(us.length===1?'unidad':'unidades')+'<br><em>'+listas+(listas===1?' lista':' listas')+'</em></div></header>' +
         '<div class="meter" title="'+listas+' de '+us.length+' listas para salir"><i style="width:'+(us.length ? Math.round(listas/us.length*100) : 0)+'%"></i></div>' +
-        '<ol class="paradas"><li class="salida"><span class="pn" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="3" fill="currentColor"/></svg></span><div class="pt">'+salida(us)+'</div></li>'+paradas+'</ol></section>';
+        '<ol class="paradas">'+paradas+'</ol></section>';
     }).join('');
   }
   function drawCambios(){
