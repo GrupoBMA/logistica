@@ -90,11 +90,12 @@ button.cb:hover{border-color:var(--text)}
 .cb .d{font-size:14px;line-height:20px;margin-top:2px}
 .cb .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .cb .par .chips{grid-column:3;margin-top:8px}
-.cb .chips span{font-size:12px;line-height:16px;padding:3px 8px;border-radius:6px;background:var(--raised);color:var(--muted)}
-.cb .chips .mas{background:var(--ok-bg);color:var(--ok)}
-.cb .chips .menos{background:var(--neg-bg);color:var(--neg)}
-.cb .chips .conx{background:var(--xpaso-bg);color:var(--xpaso-ink)}
-.cb .chips .falta{background:var(--warn-bg);color:var(--warn)}
+.chips span{font-size:12px;line-height:16px;padding:3px 8px;border-radius:6px;background:var(--raised);color:var(--muted)}
+.chips .mas{background:var(--ok-bg);color:var(--ok)}
+.chips .menos{background:var(--neg-bg);color:var(--neg)}
+.chips .conx{background:var(--xpaso-bg);color:var(--xpaso-ink)}
+.chips .falta{background:var(--warn-bg);color:var(--warn)}
+.chips .nueva{background:var(--work-bg);color:var(--work)}
 .cb .hora{font-size:12px;color:var(--muted);text-align:right;white-space:nowrap}
 .cb .hora .fch{margin-right:8px;color:var(--text);font-weight:500}
 .nota{color:var(--muted);font-size:13px;line-height:18px;margin:0 0 18px}
@@ -176,12 +177,18 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 #campana:hover,#campana[aria-expanded="true"]{color:var(--text)}
 #campana .badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--neg);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center}
 #campana .badge:empty{display:none}
-.pop{position:absolute;right:0;top:46px;z-index:30;width:300px;max-width:calc(100vw - 32px);max-height:360px;overflow:auto;padding:6px;border-radius:12px;background:var(--surface);border:1px solid var(--border);box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.pop{position:absolute;right:0;top:46px;z-index:30;width:340px;max-width:calc(100vw - 32px);max-height:360px;overflow:auto;padding:6px;border-radius:12px;background:var(--surface);border:1px solid var(--border);box-shadow:0 10px 30px rgba(0,0,0,.18)}
 .pop h3{margin:6px 8px 8px;font-size:13px;font-weight:600;color:var(--muted)}
-.pop button{display:flex;justify-content:space-between;gap:10px;width:100%;padding:8px;border:0;border-radius:8px;background:none;text-align:left;font-size:14px;line-height:20px}
+.pop button{display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:start;gap:10px;width:100%;padding:8px;border:0;border-radius:8px;background:none;text-align:left;font-size:14px;line-height:20px}
 .pop button:hover{background:var(--raised)}
-.pop button b{font-weight:600}
-.pop button small{color:var(--muted);font-size:12px;white-space:nowrap}
+.pop .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center}
+.pop .ic svg{width:16px;height:16px}
+.pop .t{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pop .t b{font-weight:600}
+.pop .t span{color:var(--muted)}
+.pop .chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.pop .chips span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:2px 7px}
+.pop small{color:var(--muted);font-size:12px;white-space:nowrap;line-height:20px}
 .pop p{margin:8px;color:var(--muted);font-size:14px}
 
 /* Vista de lista (como el modo Detalles de una carpeta de Windows) */
@@ -677,8 +684,13 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
     var l = CAMBIOS.filter(function(c){ return new Date(c.fecha).getTime() > desde });
     $('nAv').textContent = l.length ? (l.length>99?'99+':l.length) : '';
     $('avPop').innerHTML = '<h3>Últimas '+AVISO_HORAS+' horas</h3>' + (l.length ? l.map(function(c){
-      var u = unidadDe(c), h = new Date(c.fecha);
-      return '<button type="button"'+(u?' data-i="'+u.i+'"':'')+'><span><b>Remisión '+esc(c.remision||'—')+'</b> '+esc(resumen(c))+'</span><small>'+hora(h)+'</small></button>';
+      // Miniatura de la pestaña Cambios: ícono, remisión, tipo de vehículo y el cambio en etiquetas
+      var u = unidadDe(c), h = new Date(c.fecha), x = describir(c);
+      var tipo = u ? L.nombreDe(L.TIPOS, u.tipo) : L.nombre(c.vehiculo).modelo;
+      var chips = x.chips.length ? x.chips.join('') : '<span class="'+(c.tipo==='nueva'?'nueva':'')+'">'+esc(resumen(c))+'</span>';
+      return '<button type="button"'+(u?' data-i="'+u.i+'"':'')+'><span class="ic '+x.ic+'">'+ICON[x.ic]+'</span>' +
+        '<span style="min-width:0"><span class="t"><b>Remisión '+esc(c.remision||'—')+'</b> <span>· '+esc(tipo)+'</span></span><span class="chips">'+chips+'</span></span>' +
+        '<small>'+hora(h)+'</small></button>';
     }).join('') : '<p>Sin cambios en las últimas '+AVISO_HORAS+' horas.</p>');
   }
   function cerrarAvisos(){ $('avPop').hidden = true; $('campana').setAttribute('aria-expanded','false'); }
