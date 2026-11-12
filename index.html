@@ -457,7 +457,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
 </aside>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="logica.js?v=20261112-lugares"></script>
+<script src="logica.js?v=20261112-fijas"></script>
 <script>
 (function(){
   // Regreso de Google ("Conectar con Google"): la función logistica-google manda aquí ?google=ok|error&msg=
@@ -794,17 +794,19 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
       var paradas = ru.paradas.map(function(p,k){
         var en = us.filter(function(u){ return u.parada===k }).sort(function(a,b){ return (ORDEN_ESTADO[a.estado]-ORDEN_ESTADO[b.estado]) || (b.dias||0)-(a.dias||0) });
         var lk = en.filter(function(u){ return u.estado==='flete' }).length;
-        // En las locales cada lugar (renglón) se arrastra con todas sus remisiones
-        var lug = ru.local ? ' data-lugar="'+esc(p[1][0])+'" title="Arrastra el lugar para juntarlo con otro o cambiar su orden"' : '';
+        // Cada lugar con unidades (renglón) se arrastra con todas sus remisiones, en cualquier tarjeta.
+        // p[2] es la clave del lugar; p[3], en una ruta fija, la ruta armada a la que el usuario lo pasó.
+        var lug = en.length ? ' data-lugar="'+esc(p[2])+'" title="Arrastra el lugar para juntarlo con otro o cambiar su orden"' : '';
         return '<li class="'+(en.length?'':'sin')+'"'+lug+'><span class="pn">'+(k+1)+'</span><div style="min-width:0"><div class="pt"><b>'+esc(p[0])+'</b><span>' +
-          (en.length ? unidades(en.length)+(lk ? ' · <em>'+lk+(lk===1?' lista':' listas')+'</em>' : '') : 'Sin unidades') + '</span></div>' +
+          (en.length ? unidades(en.length)+(lk ? ' · <em>'+lk+(lk===1?' lista':' listas')+'</em>' : '') : p[3] ? 'En '+esc(p[3]) : 'Sin unidades') + '</span></div>' +
           (en.length ? '<div class="pills">'+en.map(pill).join('')+'</div>' : '') + '</div></li>';
       }).join('');
-      // Tarjeta local suelta: la tarjeta es su lugar (data-lugar). Ruta local armada: data-grupo y su último lugar (data-ultimo)
-      var datos = !ru.local ? '' : ru.grupo!=null
-        ? ' data-ruta="'+esc(ru.id)+'" data-grupo="'+ru.grupo+'" data-ultimo="'+esc(ru.paradas[ru.paradas.length-1][1][0])+'"'
-        : ' data-ruta="'+esc(ru.id)+'" data-lugar="'+esc(ru.paradas[0][1][0])+'"';
-      return '<section class="ruta'+(ru.local?' rlocal':'')+'"'+datos+'>' +
+      // Ruta armada: data-grupo y su último lugar (data-ultimo). Tarjeta de un solo lugar con unidades: la tarjeta es su
+      // lugar (data-lugar). En las rutas fijas de varias paradas se arrastra cada renglón.
+      var datos = ru.armada
+        ? ' data-ruta="'+esc(ru.id)+'" data-grupo="'+ru.grupo+'" data-ultimo="'+esc(ru.paradas[ru.paradas.length-1][2])+'"'
+        : ru.paradas.length===1 && us.length ? ' data-ruta="'+esc(ru.id)+'" data-lugar="'+esc(ru.paradas[0][2])+'"' : '';
+      return '<section class="ruta rlocal"'+datos+'>' +
         '<header><div class="rnom"><div style="min-width:0"><h2>'+esc(ru.nombre)+'</h2>' +
         (ru.grupo!=null ? '<button type="button" class="deshacer" data-grupo="'+ru.grupo+'">Deshacer ruta</button>' : '') + '</div></div>' +
         presupuesto(us) +
@@ -893,7 +895,8 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
     var s=e.target.closest('.slot,.fila,button.cb,button.rpill'); if(s) abrir(+s.dataset.i);
   });
 
-  // Rutas locales: se arrastra el LUGAR (el renglón, o la tarjeta si va sola) con todas sus remisiones.
+  // Rutas armadas: se arrastra el LUGAR (el renglón, o la tarjeta si va sola) con todas sus remisiones, en cualquier tarjeta
+  // (locales, fijas y provisionales).
   // - Sobre otra tarjeta local suelta: se juntan en una "Ruta local N" (el que se arrastra va después).
   // - Sobre una parada de una ruta local: entra antes o después de ella (según la mitad donde se suelte); así se ordena.
   // - Sobre una ruta local (fuera de sus paradas): entra al final.
