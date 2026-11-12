@@ -93,6 +93,8 @@ El repo es **público** (GitHub Pages en el plan gratis). Ventas, clientes, remi
 - Repo **`GrupoBMA/logistica`** en la organización `GrupoBMA`, hermano de `GrupoBMA/administracion` y `GrupoBMA/catalogo`. Se publica con GitHub Pages desde `main` en <https://grupobma.github.io/logistica/>. **Cada push a `main` sale en vivo.**
 - Clon local: `OneDrive\Claude Code\Logistica`.
 - Flujo: editar, hacer un commit descriptivo, `git push origin main` y decirle al usuario dónde verlo.
+- **Antes de cada push, revisar que el JavaScript no tenga errores de sintaxis** (`index.html` y `logica.js`). El 12-nov-2026 se publicó un menú sin una coma y la app no dejaba entrar. Revisión rápida:
+  `node -e "const h=require('fs').readFileSync('index.html','utf8');const r=/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/g;let m;while((m=r.exec(h)))new Function(m[1]);console.log('ok')" && node --check logica.js`
 
 ## Datos y seguridad
 
