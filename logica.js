@@ -76,21 +76,16 @@
     {id:'costa-sur', nombre:'Ruta Costa Sur', rumbo:'Sur de Jalisco y Colima', paradas:[
       ['Villa de los Niños · Acatlán',['VILLA DE LOS NINOS','ACATLAN']], ['Tuxpan',['TUXPAN']], ['Colima',['COLIMA']],
       ['Tecomán',['TECOMAN']]]},
-    // Durango y Monterrey quedan en direcciones distintas: van separadas (12-nov-2026)
-    {id:'durango', nombre:'Ruta Durango', rumbo:'Por Zacatecas · pocas unidades: juntar más o fletera', paradas:[
-      ['Durango',['DURANGO']]]},
-    {id:'monterrey', nombre:'Ruta Monterrey', rumbo:'Por San Luis Potosí y Saltillo · pocas unidades: juntar más o fletera', paradas:[
-      ['Monterrey',['MONTERREY']]]},
-    // Se sacaron de sus rutas porque se desvían mucho de la carretera (12-nov-2026). No comparten carretera:
-    // cada uno es su propio viaje (o fletera)
-    {id:'aparte-amatlan', nombre:'Viaje aparte · Amatlán de Cañas', rumbo:'Nayarit: autopista a Tepic hasta Ixtlán del Río y luego la sierra', paradas:[
-      ['Amatlán de Cañas',['AMATLAN']]]},
-    {id:'aparte-caracuaro', nombre:'Viaje aparte · Carácuaro', rumbo:'Michoacán: por Morelia hacia Tierra Caliente', paradas:[
-      ['Carácuaro',['CARACUARO']]]},
-    {id:'aparte-autlan', nombre:'Viaje aparte · Autlán de Navarro', rumbo:'Jalisco: carretera 80 por Acatlán y Villa Corona', paradas:[
-      ['Autlán de Navarro',['AUTLAN']]]},
-    {id:'fletera', nombre:'Por fletera', rumbo:'Muy lejos para una ruta propia', paradas:[
-      ['Tijuana',['TIJUANA']]]}
+    // Individuales: un solo destino, van por fletera (12-nov-2026). En la pestaña salen primero (ver cargar()).
+    // Durango (por Zacatecas) y Monterrey (por SLP y Saltillo) van en direcciones distintas.
+    // Amatlán (sierra, al sur de Ixtlán del Río), Carácuaro (Tierra Caliente, al sur de Morelia) y Autlán (carretera 80)
+    // se sacaron de sus rutas porque se desvían mucho de la carretera.
+    {id:'durango', nombre:'Por fletera - Durango', paradas:[['Durango',['DURANGO']]]},
+    {id:'monterrey', nombre:'Por fletera - Monterrey', paradas:[['Monterrey',['MONTERREY']]]},
+    {id:'aparte-amatlan', nombre:'Por fletera - Amatlán de Cañas', paradas:[['Amatlán de Cañas',['AMATLAN']]]},
+    {id:'aparte-caracuaro', nombre:'Por fletera - Carácuaro', paradas:[['Carácuaro',['CARACUARO']]]},
+    {id:'aparte-autlan', nombre:'Por fletera - Autlán de Navarro', paradas:[['Autlán de Navarro',['AUTLAN']]]},
+    {id:'fletera', nombre:'Por fletera - Tijuana', paradas:[['Tijuana',['TIJUANA']]]}
   ];
   function normaDestino(t){ return ' '+String(t||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Z0-9]+/g,' ').trim()+' ' }
   // Ruta y parada de un destino: gana la palabra que aparece primero (así "TULTEPEC EDO. DE MEX." va a Tultepec);
@@ -122,7 +117,9 @@
         ruta: ru ? ru.ruta : null, parada: ru ? ru.parada : null
       });
     });
-    var rutas = RUTAS.concat(provisionales(U));
+    // Primero las individuales (un solo destino) para que no se pierdan, luego las provisionales y al final las de varias paradas
+    var unaParada = function(ru){ return ru.paradas.length===1 };
+    var rutas = RUTAS.filter(unaParada).concat(provisionales(U), RUTAS.filter(function(ru){ return !unaParada(ru) }));
     // Prioridad del flete: la venta más antigua sale primero
     U.filter(function(u){return u.estado==='flete'})
      .sort(function(a,b){ return (a.f||0)-(b.f||0) || a.i-b.i })
