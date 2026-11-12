@@ -76,8 +76,11 @@
     {id:'costa-sur', nombre:'Ruta Costa Sur', rumbo:'Sur de Jalisco y Colima', paradas:[
       ['Villa de los Niños · Acatlán',['VILLA DE LOS NINOS','ACATLAN']], ['Tuxpan',['TUXPAN']], ['Colima',['COLIMA']],
       ['Tecomán',['TECOMAN']]]},
-    {id:'norte', nombre:'Ruta Norte', rumbo:'Pocas unidades: juntar más o mandar por fletera', paradas:[
-      ['Durango',['DURANGO']], ['Monterrey',['MONTERREY']]]},
+    // Durango y Monterrey quedan en direcciones distintas: van separadas (12-nov-2026)
+    {id:'durango', nombre:'Ruta Durango', rumbo:'Por Zacatecas · pocas unidades: juntar más o fletera', paradas:[
+      ['Durango',['DURANGO']]]},
+    {id:'monterrey', nombre:'Ruta Monterrey', rumbo:'Por San Luis Potosí y Saltillo · pocas unidades: juntar más o fletera', paradas:[
+      ['Monterrey',['MONTERREY']]]},
     // Se sacaron de sus rutas porque se desvían mucho de la carretera (12-nov-2026)
     {id:'aparte', nombre:'Viaje aparte', rumbo:'Se desvían mucho de la carretera: viaje propio o fletera', paradas:[
       ['Amatlán de Cañas · Nayarit',['AMATLAN']], ['Carácuaro · Michoacán',['CARACUARO']], ['Autlán de Navarro',['AUTLAN']]]},
@@ -114,11 +117,33 @@
         ruta: ru ? ru.ruta : null, parada: ru ? ru.parada : null
       });
     });
+    var rutas = RUTAS.concat(provisionales(U));
     // Prioridad del flete: la venta más antigua sale primero
     U.filter(function(u){return u.estado==='flete'})
      .sort(function(a,b){ return (a.f||0)-(b.f||0) || a.i-b.i })
      .forEach(function(u,n){ u.prioridad = n+1 });
-    return {unidades:U, corte:CORTE};
+    return {unidades:U, corte:CORTE, rutas:rutas};
+  }
+
+  // Rutas provisionales (12-nov-2026): si 2 o más unidades de Ventas van al mismo destino que no está en
+  // ninguna ruta, se arma una ruta para ese destino. No cuentan las locales (zona naranja, distribuidor,
+  // granja, sin destino, TIPO DE DESTINO "Local" o lugares de la zona metropolitana).
+  var ESTADO_MX = /( (JAL|JALISCO|NAY|NAYARIT|MICH|MICHOACAN|GTO|GUANAJUATO|COL|COLIMA|SIN|SINALOA|SON|SONORA|ZAC|ZACATECAS|DGO|AGS|QRO|SLP|NL|BC|BCS|GRO|OAX|VER|CHIS|CHIH|COAH|TAMPS|HGO|MOR|PUE|TLAX|TAB|YUC|QROO|CAMP|EDO DE MEX|EDOMEX|MEX))+ $/;
+  var LOCAL = / (WASH|WASHINGTON|SUC|AMERICAS|GDL|GUADALAJARA|ZMG|ZAPOPAN|TLAQUEPAQUE|TONALA|TLAJOMULCO|TLAJO|VALLE DE LOS MOLINOS|COLONIA|LOCAL|GRANJA|PENDIENTE) /;
+  function provisionales(U){
+    var grupos = {};
+    U.forEach(function(u){
+      if(u.hoja==='entregado' || u.ruta) return;
+      if(['cerca','distribuidor','granja','sin'].indexOf(u.z)>-1 || /^\s*local\s*$/i.test(u.tipo_destino||'')) return;
+      var d = normaDestino(u.destino), clave = d.replace(ESTADO_MX,' ').trim();
+      if(!clave || LOCAL.test(d)) return;
+      (grupos[clave] = grupos[clave] || []).push(u);
+    });
+    return Object.keys(grupos).sort().filter(function(k){ return grupos[k].length>=2 }).map(function(k){
+      var id = 'prov-'+k.toLowerCase().replace(/ /g,'-'), lugar = k.toLowerCase().replace(/(^| )(\S)/g,function(m,a,b){ return a+b.toUpperCase() });
+      grupos[k].forEach(function(u){ u.ruta = id; u.parada = 0 });
+      return {id:id, provisional:true, nombre:'Ruta provisional · '+lugar, rumbo:'Hay '+grupos[k].length+' envíos a este destino y no tiene ruta', paradas:[[lugar,[k]]]};
+    });
   }
 
   window.Logistica = {

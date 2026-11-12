@@ -433,7 +433,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
 </aside>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="logica.js?v=20261112-desvios"></script>
+<script src="logica.js?v=20261112-provisionales"></script>
 <script>
 (function(){
   // Regreso de Google ("Conectar con Google"): la función logistica-google manda aquí ?google=ok|error&msg=
@@ -453,7 +453,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
   var GOOGLE_CLIENT_ID = '580029556888-pg3prpg2e3cnlqsv6tok69pej6e8n7cq.apps.googleusercontent.com'; // proyecto de Google "Grupo BMA" (público por diseño)
   var DOMINIO = '@logistica.bma';   // el usuario se escribe sin correo: "juan" -> juan@logistica.bma
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth:{persistSession:true, autoRefreshToken:true}});
-  var TODAS = [], ENTREGADOS = [], ALL = [], CAMBIOS = [];
+  var TODAS = [], ENTREGADOS = [], ALL = [], CAMBIOS = [], RUTAS_HOY = L.RUTAS;
 
   // Renglón de la tabla logistica.entregas -> el mismo formato que trae el Excel
   function deTabla(e){
@@ -474,7 +474,8 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
         $('lErr').textContent='No se pudieron cargar los datos. Intenta de nuevo.'; sesionVisible(false); return;
       }
       var filas = (r.data && r.data.entregas) || [];
-      ALL = L.cargar(filas.map(deTabla), hoyISO()).unidades;
+      var carga = L.cargar(filas.map(deTabla), hoyISO());
+      ALL = carga.unidades; RUTAS_HOY = carga.rutas;
       TODAS = ALL.filter(function(u){ return u.hoja!=='entregado' });
       ENTREGADOS = ALL.filter(function(u){ return u.hoja==='entregado' });
       sb.rpc('logistica_cambios', {p_dias: 60}).then(function(c){ CAMBIOS = (c && c.data) || []; draw(); });
@@ -743,9 +744,9 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
     var nota = '<p class="rnota"><span>Cada cuadrito es una remisión; picale para ver su ficha.</span>' +
       ['flete','taller','empezar','piezas'].map(function(e){ return '<span class="rpill '+e+'">'+NOMBRE_PILL[e]+'</span>' }).join('') +
       '<span>Las locales, las que se recogen en granja y las que no tienen destino no van en rutas.</span></p>';
-    $('slots').innerHTML = nota + L.RUTAS.map(function(ru){
+    $('slots').innerHTML = nota + RUTAS_HOY.map(function(ru){
       var us = l.filter(function(u){ return u.ruta===ru.id });
-      if(!us.length && st.q.trim()) return '';
+      if(!us.length && (st.q.trim() || ru.provisional)) return '';
       var listas = us.filter(function(u){ return u.estado==='flete' }).length;
       var paradas = ru.paradas.map(function(p,k){
         var en = us.filter(function(u){ return u.parada===k }).sort(function(a,b){ return (ORDEN_ESTADO[a.estado]-ORDEN_ESTADO[b.estado]) || (b.dias||0)-(a.dias||0) });
