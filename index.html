@@ -14,7 +14,7 @@
   --border:#e0e0da; --control:#cdcdc5;
   --text:#121310; --muted:#5d5f58; --faint:#6b6d66;
   --primary:#121310; --on-primary:#ffffff;
-  --ok:#1f7a45; --ok-bg:#e1f3e8;
+  --ok:#1f7a45; --ok-bg:#e1f3e8; --pz-apr:#0f766e; --pz-apr-bg:#dcf3f0; --pz-pen:#c2410c; --pz-pen-bg:#fdeadb;
   --work:#1d5fbf; --work-bg:#e4edfa;
   --lock:#5b5e8a; --lock-bg:#ecebf7;
   --warn:#8a4b05; --warn-bg:#fff4d6;
@@ -29,7 +29,7 @@
     --border:#272824; --control:#3e403a;
     --text:#f3f4f0; --muted:#b3b5ae; --faint:#979991;
     --primary:#f3f4f0; --on-primary:#121310;
-    --ok:#5cc184; --ok-bg:#16291d; --work:#7fb0f5; --work-bg:#15233a;
+    --ok:#5cc184; --ok-bg:#16291d; --work:#7fb0f5; --work-bg:#15233a; --pz-apr:#4fd1c5; --pz-apr-bg:#11292a; --pz-pen:#fb923c; --pz-pen-bg:#2e1c10;
     --lock:#aeb0e6; --lock-bg:#20213a; --warn:#e9b65a; --warn-bg:#2b2210; --neg:#ec6a5f; --neg-bg:#2e1715; --xpaso:#f2c94c; --xpaso-bg:#2e2610; --xpaso-ink:#f2c94c; color-scheme:dark;
   }
 }
@@ -38,7 +38,7 @@
   --border:#272824; --control:#3e403a;
   --text:#f3f4f0; --muted:#b3b5ae; --faint:#979991;
   --primary:#f3f4f0; --on-primary:#121310;
-  --ok:#5cc184; --ok-bg:#16291d; --work:#7fb0f5; --work-bg:#15233a;
+  --ok:#5cc184; --ok-bg:#16291d; --work:#7fb0f5; --work-bg:#15233a; --pz-apr:#4fd1c5; --pz-apr-bg:#11292a; --pz-pen:#fb923c; --pz-pen-bg:#2e1c10;
   --lock:#aeb0e6; --lock-bg:#20213a; --warn:#e9b65a; --warn-bg:#2b2210; --neg:#ec6a5f; --neg-bg:#2e1715; --xpaso:#f2c94c; --xpaso-bg:#2e2610; --xpaso-ink:#f2c94c; color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -312,8 +312,9 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
 .pz{display:flex;align-items:baseline;gap:4px;padding:2px 7px;border-radius:6px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .pz small{font-size:9px;font-weight:600}
 .pz b{font-size:10.5px}
-.pz.apr{background:var(--ok-bg);color:var(--ok)}
-.pz.pen{background:var(--neg-bg);color:var(--neg)}
+/* Verde azulado y naranja para que no se confundan con las remisiones listas (verde) ni con lo vencido (rojo) */
+.pz.apr{background:var(--pz-apr-bg);color:var(--pz-apr)}
+.pz.pen{background:var(--pz-pen-bg);color:var(--pz-pen)}
 .deshacer{margin-top:4px;padding:0;border:0;background:none;color:var(--muted);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer}
 .deshacer:hover{color:var(--text)}
 @media (max-width:1100px){ .slots.rutas{grid-template-columns:minmax(0,1fr)} }
