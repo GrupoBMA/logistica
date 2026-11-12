@@ -68,16 +68,19 @@
       ['Irapuato',['IRAPUATO']], ['Cuerámaro',['CUERAMARO']], ['San Francisco del Rincón',['SAN FRANCISCO DEL RINCON']],
       ['León',['LEON']], ['Aguascalientes · sucursal',['AGS','AGUASCALIENTES']]]},
     {id:'bajio-sur', nombre:'Ruta Bajío Sur', rumbo:'Ribera de Chapala y Michoacán', paradas:[
-      ['El Refugio · Tizapán el Alto',['REFUGIO','TIZAPAN']], ['Zamora',['ZAMORA']], ['Morelia',['MORELIA']], ['Carácuaro',['CARACUARO']],
+      ['El Refugio · Tizapán el Alto',['REFUGIO','TIZAPAN']], ['Zamora',['ZAMORA']], ['Morelia',['MORELIA']],
       ['Tototlán',['TOTOTLAN']], ['Rancho Nuevo · Juanacatlán',['RANCHO NUEVO','JUANACATLAN']], ['El Salto',['EL SALTO']]]},
     {id:'pacifico', nombre:'Ruta Pacífico', rumbo:'Nayarit y Sinaloa', paradas:[
       ['El Arenal',['ARENAL']], ['La Estanzuela · Teuchitlán',['ESTANZUELA','TEUCHITLAN']], ['Etzatlán',['ETZATLAN']],
-      ['Amatlán de Cañas',['AMATLAN']], ['Tepic · sucursal',['TEPIC']], ['Mazatlán',['MAZATLAN']], ['Culiacán',['CULIACAN']], ['Los Mochis',['MOCHIS']]]},
+      ['Tepic · sucursal',['TEPIC']], ['Mazatlán',['MAZATLAN']], ['Culiacán',['CULIACAN']], ['Los Mochis',['MOCHIS']]]},
     {id:'costa-sur', nombre:'Ruta Costa Sur', rumbo:'Sur de Jalisco y Colima', paradas:[
       ['Villa de los Niños · Acatlán',['VILLA DE LOS NINOS','ACATLAN']], ['Tuxpan',['TUXPAN']], ['Colima',['COLIMA']],
-      ['Tecomán',['TECOMAN']], ['Autlán de Navarro',['AUTLAN']]]},
+      ['Tecomán',['TECOMAN']]]},
     {id:'norte', nombre:'Ruta Norte', rumbo:'Pocas unidades: juntar más o mandar por fletera', paradas:[
       ['Durango',['DURANGO']], ['Monterrey',['MONTERREY']]]},
+    // Se sacaron de sus rutas porque se desvían mucho de la carretera (12-nov-2026)
+    {id:'aparte', nombre:'Viaje aparte', rumbo:'Se desvían mucho de la carretera: viaje propio o fletera', paradas:[
+      ['Amatlán de Cañas · Nayarit',['AMATLAN']], ['Carácuaro · Michoacán',['CARACUARO']], ['Autlán de Navarro',['AUTLAN']]]},
     {id:'fletera', nombre:'Por fletera', rumbo:'Muy lejos para una ruta propia', paradas:[
       ['Tijuana',['TIJUANA']]]}
   ];
