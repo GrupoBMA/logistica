@@ -294,6 +294,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
 .rpill.sobre{box-shadow:0 0 0 2px var(--text)}
 .ruta.sobre{border-color:var(--text);box-shadow:inset 0 0 0 1px var(--text)}
 .fantasma{position:fixed;z-index:60;pointer-events:none;transform:translate(-50%,-50%) scale(1.08);box-shadow:0 6px 18px rgb(0 0 0/.3);cursor:grabbing}
+.fantasma.fuera{opacity:.65;outline:2px dashed currentColor;outline-offset:2px}
 .deshacer{margin-top:4px;padding:0;border:0;background:none;color:var(--muted);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer}
 .deshacer:hover{color:var(--text)}
 @media (max-width:1100px){ .slots.rutas{grid-template-columns:minmax(0,1fr)} }
@@ -440,7 +441,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
 </aside>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="logica.js?v=20261112-sn"></script>
+<script src="logica.js?v=20261112-blanco"></script>
 <script>
 (function(){
   // Regreso de Google ("Conectar con Google"): la función logistica-google manda aquí ?google=ok|error&msg=
@@ -885,7 +886,9 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
   }
   function moverArr(x, y){
     arr.fan.style.left = x+'px'; arr.fan.style.top = y+'px';
-    var d = destinoArr(x, y);
+    var d = destinoArr(x, y), el = document.elementFromPoint(x, y);
+    arr.blanco = !el || !el.closest('section.ruta,.rpill,header,nav,aside,button,input,select');
+    arr.fan.classList.toggle('fuera', arr.blanco && /^rl-/.test(ALL[+arr.p.dataset.i].ruta));
     if(arr.sobre && arr.sobre!==d) arr.sobre.classList.remove('sobre');
     if(d) d.classList.add('sobre'); arr.sobre = d;
   }
@@ -895,7 +898,9 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
       soltado = true; setTimeout(function(){ soltado = false }, 400);
       arr.fan.remove(); document.querySelectorAll('.arrando,.sobre').forEach(function(x){ x.classList.remove('arrando','sobre') });
       var d = arr.sobre, rem = arr.rem, u = ALL[+arr.p.dataset.i];
-      if(d && d.classList.contains('rpill')) guardarRuta('logistica_ruta_local', {p_remision: rem, p_con: d.dataset.rem});
+      // Soltarla en un espacio en blanco (fuera de cualquier tarjeta) la saca de su ruta local
+      if(arr.blanco && /^rl-/.test(u.ruta)) guardarRuta('logistica_ruta_local', {p_remision: rem, p_con: null});
+      else if(d && d.classList.contains('rpill')) guardarRuta('logistica_ruta_local', {p_remision: rem, p_con: d.dataset.rem});
       else if(d && d.dataset.ruta && d.dataset.ruta!==u.ruta){
         var suyo = d.dataset.ruta==='local-'+u.claveLocal.toLowerCase().replace(/ /g,'-');
         if(suyo) guardarRuta('logistica_ruta_local', {p_remision: rem, p_con: null});

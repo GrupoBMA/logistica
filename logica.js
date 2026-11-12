@@ -172,7 +172,7 @@
     var sueltas = Object.keys(porDestino).sort().map(function(k){
       var id = 'local-'+k.toLowerCase().replace(/ /g,'-');
       porDestino[k].forEach(function(u){ u.ruta = id; u.parada = 0 });
-      return {id:id, local:true, provisional:true, nombre:'Local - '+titulo(k), paradas:[[titulo(k),[k]]]};
+      return {id:id, local:true, provisional:true, nombre:titulo(k), paradas:[[titulo(k),[k]]]};
     });
     return armadas.concat(sueltas);
   }
