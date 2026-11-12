@@ -300,6 +300,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .rpill{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 8px;border-radius:7px;border:0;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;background:var(--raised);color:var(--text)}
 .rpill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.9}
 .rpill.flete{background:var(--ok-bg);color:var(--ok)}
+.rpill.fletefalta{background:var(--warn-bg);color:var(--warn)}
 .rpill.taller{background:var(--work-bg);color:var(--work)}
 .rpill.empezar{background:var(--raised);color:var(--muted)}
 .rpill.piezas{background:var(--lock-bg);color:var(--lock)}
@@ -610,6 +611,9 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
       L.BODEGAS.map(function(b){ return '<option value="'+b.id+'"'+(st.bodega===b.id?' selected':'')+'>'+b.nombre+'</option>' }).join('') +
       '</select></label>';
   }
+  // Completa (5 OK) pero con faltante: va en amarillo, no en verde, para no confundirla con las listas (12-nov-2026)
+  function color(u){ return u.estado==='flete' && u.faltante ? 'fletefalta' : u.estado }
+  function nombreEstado(u){ return color(u)==='fletefalta' ? 'Completo con faltante' : L.nombreDe(L.ESTADOS,u.estado) }
   function unidades(n){ return n===1?'1 unidad':n+' unidades' }
 
   function drawMenu(){
@@ -646,7 +650,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
   function fila(u){
     var barras = '<span class="bar5" aria-hidden="true">'+u.pasos.map(function(x){return '<i class="'+x+'"></i>'}).join('')+'</span>';
     return '<button class="fila" type="button" data-i="'+u.i+'" aria-label="Remisión '+esc(u.remision||'sin número')+', '+esc(u.modelo)+', '+L.nombreDe(L.ESTADOS,u.estado)+', '+esc(L.lugar(u))+(u.faltante?', con faltante':'')+'">' +
-      '<span class="c-ic"><span class="ic '+u.estado+'" title="'+L.nombreDe(L.ESTADOS,u.estado)+'">'+ICON[u.estado]+'</span></span>' +
+      '<span class="c-ic"><span class="ic '+color(u)+'" title="'+nombreEstado(u)+'">'+ICON[color(u)]+'</span></span>' +
       '<span class="c-rem num">'+esc(u.remision||'—')+'</span>' +
       '<span class="c-veh"><b>'+esc(u.modelo)+(u.cant>1?' × '+u.cant:'')+' <span class="rem-m num">· '+esc(u.remision||'—')+'</span></b>' +
         (u.faltante ? '<small class="falta">Falta: '+esc(u.faltante.toLowerCase())+'</small>' : '<small>'+esc(u.detalle)+'</small>') + '</span>' +
@@ -659,7 +663,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
     var grande = true; // las 5 rayitas grandes en todas las casillas (pedido del usuario)
     var mid = grande ? '<span class="prog5"><span class="bar5" aria-hidden="true">'+u.pasos.map(function(x){return '<i class="'+x+'"></i>'}).join('')+'</span><span>'+u.ok+' de 5</span></span>' : '';
     return '<button class="slot" type="button" data-i="'+u.i+'" aria-label="Remisión '+esc(u.remision||'sin número')+', '+esc(u.modelo)+', '+L.nombreDe(L.ESTADOS,u.estado)+', '+esc(L.lugar(u))+(u.faltante?', con faltante':'')+'">' +
-      '<span class="top"><span class="izq"><span class="ic '+u.estado+'" title="'+L.nombreDe(L.ESTADOS,u.estado)+'">'+ICON[u.estado]+'</span><span class="rem num"><small>Remisión</small>'+esc(u.remision||'—')+'</span></span>' +
+      '<span class="top"><span class="izq"><span class="ic '+color(u)+'" title="'+nombreEstado(u)+'">'+ICON[color(u)]+'</span><span class="rem num"><small>Remisión</small>'+esc(u.remision||'—')+'</span></span>' +
         '<span></span>' +
         '<span class="sold num"><small>Vendida</small>'+fecha(u.f)+'</span></span>' +
       '<span><span class="m">'+esc(u.modelo)+(u.cant>1?' <span class="q">× '+u.cant+'</span>':'')+'</span><span class="dt">'+esc(u.detalle)+'</span></span>' + mid +
@@ -803,8 +807,8 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
   }
   function cerrarAvisos(){ $('avPop').hidden = true; $('campana').setAttribute('aria-expanded','false'); }
   // Rutas de entrega: las unidades de Ventas cuyo destino cae en una ruta (logica.js, RUTAS)
-  var NOMBRE_PILL = {flete:'Lista para salir', taller:'En proceso', empezar:'No iniciado', piezas:'Esperando piezas'};
-  function pill(u){ return '<button type="button" class="rpill '+u.estado+'" data-i="'+u.i+'" title="'+esc(NOMBRE_PILL[u.estado]+' · '+u.modelo+(u.dias==null?'':' · '+u.dias+' días'))+'">'+esc(u.remision||'s/n')+'</button>' }
+  var NOMBRE_PILL = {flete:'Lista para salir', fletefalta:'Completa con faltante', taller:'En proceso', empezar:'No iniciado', piezas:'Esperando piezas'};
+  function pill(u){ return '<button type="button" class="rpill '+color(u)+'" data-i="'+u.i+'" title="'+esc(NOMBRE_PILL[color(u)]+' · '+u.modelo+(u.dias==null?'':' · '+u.dias+' días'))+'">'+esc(u.remision||'s/n')+'</button>' }
   // Presupuesto de la ruta (12-nov-2026): suma de la columna COSTO/ENVIO del Excel. Aprobado = celdas en verde,
   // pendiente = celdas en rojo (mismo criterio que la etiqueta Liquidado/Anticipo de la ficha). Lo que no es número no suma.
   function pesos(n){ return '$'+n.toLocaleString('es-MX',{maximumFractionDigits:2}) }
@@ -827,7 +831,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
     $('slots').className = 'slots rutas';
     if(!l.length){ $('slots').innerHTML = '<div class="empty">'+(st.q.trim() ? 'Ninguna unidad de las rutas coincide con la búsqueda.' : 'No hay unidades para las rutas.')+'</div>'; return; }
     var nota = '<p class="rnota">' +
-      ['flete','taller','empezar','piezas'].map(function(e){ return '<span class="rpill '+e+'">'+NOMBRE_PILL[e]+'</span>' }).join('') + '</p>';
+      ['flete','fletefalta','taller','empezar','piezas'].map(function(e){ return '<span class="rpill '+e+'">'+NOMBRE_PILL[e]+'</span>' }).join('') + '</p>';
     // Dos secciones (pedido del usuario, 12-nov-2026): 1. Locales y por fletera; 2. Rutas
     var TITULO_SECCION = {1:'Locales y por fletera', 2:'Rutas'}, seccion = 0;
     $('slots').innerHTML = nota + RUTAS_HOY.map(function(ru){
@@ -835,10 +839,10 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
       if(!us.length && (st.q.trim() || ru.provisional)) return '';
       var titulo = '';
       if(ru.seccion!==seccion){ seccion = ru.seccion; titulo = '<h3 class="rsec">'+TITULO_SECCION[seccion]+'</h3>'; }
-      var listas = us.filter(function(u){ return u.estado==='flete' }).length;
+      var listas = us.filter(function(u){ return u.estado==='flete' && !u.faltante }).length;
       var paradas = ru.paradas.map(function(p,k){
         var en = us.filter(function(u){ return u.parada===k }).sort(function(a,b){ return (ORDEN_ESTADO[a.estado]-ORDEN_ESTADO[b.estado]) || (b.dias||0)-(a.dias||0) });
-        var lk = en.filter(function(u){ return u.estado==='flete' }).length;
+        var lk = en.filter(function(u){ return u.estado==='flete' && !u.faltante }).length;
         var info = p[3] || {};
         // Se arrastran (con todas sus remisiones) los lugares de una ruta provisional, lo metido en una ruta fija y las
         // tarjetas del grupo 1. Las paradas fijas no se mueven, pero sirven para soltar antes o después de ellas (data-orden).
@@ -916,7 +920,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
       ['Zona',u.tipo_destino||L.nombreDe(L.ZONAS,u.z)],['Bodega',u.bodega==='b2'?'Bodega 2':'Bodega 1 · Granja'],
       ['Fecha de venta',fecha(u.f)+(u.estado==='entregada' ? '' : ' · hace '+(u.dias==null?'—':u.dias)+' días')],
       ['Vendedor',u.vendedor||'—'],['Flete',{html:flete(u)}],['Fletero',u.fletero||'—'],['Faltante',u.faltante||'—']];
-    $('ib').innerHTML = '<div class="state"><span class="ic '+u.estado+'">'+ICON[u.estado]+'</span><span><b>'+esc(info[0])+'</b><small>'+esc(info[1])+'</small></span></div>' +
+    $('ib').innerHTML = '<div class="state"><span class="ic '+color(u)+'">'+ICON[color(u)]+'</span><span><b>'+esc(info[0])+'</b><small>'+esc(info[1])+'</small></span></div>' +
       '<div class="st5">'+L.PASOS.map(function(p,k){ return '<div class="'+u.pasos[k]+'"><b>'+p[0]+'</b>'+p[1]+'</div>' }).join('')+'</div>' +
       '<dl class="kv">'+kv.map(function(x){return '<dt>'+x[0]+'</dt><dd>'+(x[1] && x[1].html!=null ? x[1].html : esc(x[1]))+'</dd>'}).join('')+'</dl>';
     $('insp').classList.add('on'); $('scrim').classList.add('on'); $('insp').setAttribute('aria-hidden','false'); $('close').focus();
