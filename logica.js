@@ -81,9 +81,14 @@
       ['Durango',['DURANGO']]]},
     {id:'monterrey', nombre:'Ruta Monterrey', rumbo:'Por San Luis Potosí y Saltillo · pocas unidades: juntar más o fletera', paradas:[
       ['Monterrey',['MONTERREY']]]},
-    // Se sacaron de sus rutas porque se desvían mucho de la carretera (12-nov-2026)
-    {id:'aparte', nombre:'Viaje aparte', rumbo:'Se desvían mucho de la carretera: viaje propio o fletera', paradas:[
-      ['Amatlán de Cañas · Nayarit',['AMATLAN']], ['Carácuaro · Michoacán',['CARACUARO']], ['Autlán de Navarro',['AUTLAN']]]},
+    // Se sacaron de sus rutas porque se desvían mucho de la carretera (12-nov-2026). No comparten carretera:
+    // cada uno es su propio viaje (o fletera)
+    {id:'aparte-amatlan', nombre:'Viaje aparte · Amatlán de Cañas', rumbo:'Nayarit: autopista a Tepic hasta Ixtlán del Río y luego la sierra', paradas:[
+      ['Amatlán de Cañas',['AMATLAN']]]},
+    {id:'aparte-caracuaro', nombre:'Viaje aparte · Carácuaro', rumbo:'Michoacán: por Morelia hacia Tierra Caliente', paradas:[
+      ['Carácuaro',['CARACUARO']]]},
+    {id:'aparte-autlan', nombre:'Viaje aparte · Autlán de Navarro', rumbo:'Jalisco: carretera 80 por Acatlán y Villa Corona', paradas:[
+      ['Autlán de Navarro',['AUTLAN']]]},
     {id:'fletera', nombre:'Por fletera', rumbo:'Muy lejos para una ruta propia', paradas:[
       ['Tijuana',['TIJUANA']]]}
   ];
