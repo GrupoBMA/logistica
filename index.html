@@ -288,6 +288,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .rpill.piezas{background:var(--lock-bg);color:var(--lock)}
 button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
 .rlocal li[data-lugar],.rlocal[data-lugar] header{cursor:grab;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.rlocal .rpill{cursor:pointer}
 .rlocal .arrando,.rlocal.arrando{opacity:.4}
 .ruta.sobre{border-color:var(--text);box-shadow:inset 0 0 0 1px var(--text)}
 .paradas li.antes{box-shadow:0 -2px 0 var(--text)}
@@ -922,7 +923,8 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
     arr = null;
   }
   $('slots').addEventListener('pointerdown', function(e){
-    if(e.button>0 || e.target.closest('button.deshacer')) return;
+    // Las remisiones (cuadritos) no se arrastran: solo abren su ficha. Se arrastra desde el nombre o el resto del renglón
+    if(e.button>0 || e.target.closest('button.deshacer, .rpill')) return;
     var el = e.target.closest('section.rlocal li[data-lugar], section.rlocal[data-lugar]'); if(!el) return;
     // En una tarjeta suelta se arrastra la tarjeta completa
     if(el.tagName==='LI' && el.closest('section[data-lugar]')) el = el.closest('section');
