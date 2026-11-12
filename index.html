@@ -328,16 +328,16 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
 .pz{display:flex;align-items:center;gap:4px;padding:2px 7px;border-radius:6px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .pz svg{flex:none}
 /* Presupuesto (la suma): neutro, con el letrero en mayúsculas chiquitas */
-/* Presupuesto (la suma): invertido (como el botón Entrar) para que se note; gris solo si no hay ni pagado ni pendiente */
-.pz.tot{background:var(--primary);color:var(--on-primary)}
-.pz.tot small{opacity:.75;text-transform:uppercase;letter-spacing:.04em}
+/* Presupuesto (la suma): el azul suave de los filtros activos, para que se note sin resaltar tanto; gris solo si no hay ni pagado ni pendiente */
+.pz.tot{background:var(--work-bg);color:var(--work);box-shadow:inset 0 0 0 1px var(--work)}
+.pz.tot small{text-transform:uppercase;letter-spacing:.04em}
 .pz small{font-size:9px;font-weight:600}
 .pz b{font-size:10.5px}
 /* Verde azulado y naranja para que no se confundan con las remisiones listas (verde) ni con lo vencido (rojo) */
 .pz.apr{background:var(--pz-apr-bg);color:var(--pz-apr)}
 .pz.pen{background:var(--pz-pen-bg);color:var(--pz-pen)}
 /* En $0 va en gris (que se distinga de la tarjeta); con monto, en su color (12-nov-2026) */
-.pz.cero{background:var(--active);color:var(--muted)}
+.pz.cero{background:var(--active);color:var(--muted);box-shadow:none}
 /* Nombre editable de una ruta provisional (doble clic) */
 .ruta h2.editable{cursor:text}
 .ruta h2 input{font:inherit;color:inherit;background:var(--raised);border:1px solid var(--border);border-radius:6px;padding:0 6px;width:min(220px,60vw);outline:none}
