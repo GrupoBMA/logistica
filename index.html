@@ -333,6 +333,8 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
 /* Verde azulado y naranja para que no se confundan con las remisiones listas (verde) ni con lo vencido (rojo) */
 .pz.apr{background:var(--pz-apr-bg);color:var(--pz-apr)}
 .pz.pen{background:var(--pz-pen-bg);color:var(--pz-pen)}
+/* En $0 va en gris (que se distinga de la tarjeta); con monto, en su color (12-nov-2026) */
+.pz.cero{background:var(--active);color:var(--muted)}
 /* Nombre editable de una ruta provisional (doble clic) */
 .ruta h2.editable{cursor:text}
 .ruta h2 input{font:inherit;color:inherit;background:var(--raised);border:1px solid var(--border);border-radius:6px;padding:0 6px;width:min(220px,60vw);outline:none}
@@ -820,8 +822,8 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
       if(p==='liquidado') apr += u.costo; else if(p==='anticipo') pen += u.costo;
     });
     return '<div class="presu"><span>Presupuesto</span><div class="pzs">' +
-      '<div class="pz apr"><small>Aprobado</small><b>'+pesos(apr)+'</b></div>' +
-      '<div class="pz pen"><small>Pendiente</small><b>'+pesos(pen)+'</b></div></div></div>';
+      '<div class="pz apr'+(apr?'':' cero')+'"><small>Pagado</small><b>'+pesos(apr)+'</b></div>' +
+      '<div class="pz pen'+(pen?'':' cero')+'"><small>Pendiente</small><b>'+pesos(pen)+'</b></div></div></div>';
   }
   function drawRutas(){
     $('vt').textContent = 'Rutas';
