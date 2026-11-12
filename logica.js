@@ -144,7 +144,7 @@
     return Object.keys(grupos).sort().filter(function(k){ return grupos[k].length>=2 }).map(function(k){
       var id = 'prov-'+k.toLowerCase().replace(/ /g,'-'), lugar = k.toLowerCase().replace(/(^| )(\S)/g,function(m,a,b){ return a+b.toUpperCase() });
       grupos[k].forEach(function(u){ u.ruta = id; u.parada = 0 });
-      return {id:id, provisional:true, nombre:'Ruta provisional · '+lugar, rumbo:'Hay '+grupos[k].length+' envíos a este destino y no tiene ruta', paradas:[[lugar,[k]]]};
+      return {id:id, provisional:true, nombre:'Por fletera - '+lugar, paradas:[[lugar,[k]]]};
     });
   }
 
