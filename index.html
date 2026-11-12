@@ -157,7 +157,7 @@ body.sin-sesion .login{display:grid}
 .ic.taller{background:var(--work-bg);color:var(--work)}
 .ic.empezar{background:var(--raised);color:var(--text)}
 .ic.piezas{background:var(--lock-bg);color:var(--lock)}
-.ic.faltante{background:var(--warn-bg);color:var(--warn)}
+.ic.faltante,.ic.fletefalta{background:var(--warn-bg);color:var(--warn)}
 .ic.todas{background:var(--raised);color:var(--text)}
 
 /* Contenido */
@@ -216,6 +216,13 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .filter select{height:40px;min-width:220px;max-width:min(320px,100%);padding:0 36px 0 12px;border:1px solid var(--control);border-radius:10px;background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236b6d66' stroke-width='1.6'%3E%3Cpath d='m2.5 4.5 3.5 3.5 3.5-3.5'/%3E%3C/svg%3E") right 12px center no-repeat;color:var(--text);font:inherit;font-size:15px;font-weight:500;appearance:none;-webkit-appearance:none;cursor:pointer}
 .filter select:hover{border-color:var(--text)}
 .filter.on select{border-color:var(--text);box-shadow:inset 0 0 0 1px var(--text)}
+.pasosf{flex-basis:100%;display:flex;flex-wrap:wrap;gap:8px}
+.paso{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 12px 0 6px;border:1px solid var(--control);border-radius:10px;background:var(--surface);color:var(--text);font:inherit;font-size:14px;font-weight:500;cursor:pointer}
+.paso b{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;background:var(--raised);font-size:13px;font-weight:700}
+.paso span{color:var(--muted);font-size:13px}
+.paso:hover{border-color:var(--text)}
+.paso[aria-pressed="true"]{border-color:var(--text);box-shadow:inset 0 0 0 1px var(--text)}
+.paso[aria-pressed="true"] b{background:var(--warn-bg);color:var(--warn)}
 .clear{height:40px;padding:0 12px;border:0;background:none;color:var(--muted);font-size:14px;text-decoration:underline}
 
 /* Inventario en casillas */
@@ -551,6 +558,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
 
   var ICON = {
     flete:'<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3.5 9.5l3.5 3.5 7.5-8"/></svg>',
+    fletefalta:'<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3.5 9.5l3.5 3.5 7.5-8"/></svg>',
     taller:'<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.5 2.5a3.5 3.5 0 0 0-3.2 4.9L3 12.7 5.3 15l5.3-5.3a3.5 3.5 0 0 0 4.9-3.2l-2 2-2.3-.6-.6-2.3z"/></svg>',
     empezar:'<svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><path d="M6 4.5v9l7-4.5z"/></svg>',
     piezas:'<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3.5" y="8" width="11" height="7.5" rx="1.5"/><path d="M6 8V6a3 3 0 0 1 6 0v2"/></svg>',
@@ -563,14 +571,16 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
 
   // El menú: cada vista tiene su objetivo
   var VISTAS = [
-    {id:'flete',   nombre:'Completo',         sub:'5 pasos en OK',      objetivo:'Ya tienen los 5 pasos en OK: falta mandar el flete a su destino. Van de la venta más antigua a la más reciente.', filtro:function(u){return u.estado==='flete'}, orden:'prio'},
+    // Completo se divide en dos (pedido del usuario, 12-nov-2026): sin faltante ya puede salir; con faltante, todavía no
+    {id:'flete',   nombre:'Listo para enviar', sub:'5 pasos en OK',     objetivo:'Tienen los 5 pasos en OK y no les falta nada: ya se puede mandar el flete.', filtro:function(u){return u.estado==='flete' && !u.faltante}, orden:'prio'},
+    {id:'fletefalta', ic:'fletefalta', nombre:'Completo con faltante', sub:'5 pasos en OK', objetivo:'Tienen los 5 pasos en OK, pero les falta algo antes de poder salir.', filtro:function(u){return u.estado==='flete' && !!u.faltante}, orden:'prio'},
     {id:'faltante',nombre:'Con faltante',     sub:'',     objetivo:'Conseguir lo que les falta antes de que salgan.', filtro:function(u){return !!u.faltante}, orden:'estado'},
     {id:'taller',  nombre:'En proceso',       sub:'',  objetivo:'Terminar los 5 pasos para que puedan salir.', filtro:function(u){return u.estado==='taller'}, orden:'dias'},
     {id:'empezar', nombre:'No iniciado',      sub:'',      objetivo:'Arrancar el armado.', filtro:function(u){return u.estado==='empezar'}, orden:'dias'},
     {id:'piezas',  nombre:'Esperando piezas', sub:'',         objetivo:'No se pueden trabajar hasta que llegue el vehículo o sus piezas.', filtro:function(u){return u.estado==='piezas'}, orden:'dias'},
     {id:'todas',   nombre:'Todas',            sub:'', objetivo:'Todas las unidades vendidas que aún no se entregan.', filtro:function(){return true}, orden:'estado'}
   ];
-  var st = {tab:'ventas', vista:'flete', bodega:'', tipo:'', destino:'', q:''};
+  var st = {tab:'ventas', vista:'flete', bodega:'', tipo:'', destino:'', q:'', paso:-1}; // paso: filtro de En proceso (-1 = ninguno)
   var modo = 'tarjetas';
   try { if(localStorage.getItem('logistica.modo')==='lista') modo = 'lista' } catch(e){}
 
@@ -593,7 +603,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
     var b = base();
     $('menu').innerHTML = VISTAS.map(function(v,k){
       var n = b.filter(v.filtro).length;
-      return '<button class="mi" type="button" data-v="'+v.id+'" aria-current="'+(st.tab==='ventas' && st.vista===v.id && !st.q.trim())+'"><span class="ic '+v.id+'">'+ICON[v.id]+'</span><span><b>'+v.nombre+'</b>'+(v.sub?'<small>'+v.sub+'</small>':'')+'</span><span class="c num">'+n+'</span></button>';
+      return '<button class="mi" type="button" data-v="'+v.id+'" aria-current="'+(st.tab==='ventas' && st.vista===v.id && !st.q.trim())+'"><span class="ic '+(v.ic||v.id)+'">'+ICON[v.ic||v.id]+'</span><span><b>'+v.nombre+'</b>'+(v.sub?'<small>'+v.sub+'</small>':'')+'</span><span class="c num">'+n+'</span></button>';
     }).join('');
     var listas = b.filter(function(u){return u.estado==='flete'}).length;
     $('gm').style.width = (b.length ? listas/b.length*100 : 0)+'%';
@@ -683,10 +693,18 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
       ((st.tipo || st.destino) ? '<button class="clear" type="button" id="tipoClear">Quitar filtros</button>' : '') : '';
     if(st.tipo) l = l.filter(function(u){return u.tipo===st.tipo});
     if(st.destino) l = l.filter(function(u){return L.lugar(u)===st.destino});
+    // En proceso: un botón por paso del taller (A, H, F, P, R). Al elegir uno quedan las que no tienen ese paso en OK.
+    if(!ent && !buscando && v.id==='taller'){
+      $('cats').innerHTML += '<div class="pasosf" role="group" aria-label="Les falta">' + L.PASOS.map(function(p,k){
+        var n = l.filter(function(u){ return u.pasos[k]!=='ok' }).length;
+        return '<button type="button" class="paso" data-paso="'+k+'" aria-pressed="'+(st.paso===k)+'" title="Les falta '+p[1].toLowerCase()+'"><b>'+p[0]+'</b>'+p[1]+'<span class="num">'+n+'</span></button>';
+      }).join('') + '</div>';
+      if(st.paso>-1) l = l.filter(function(u){ return u.pasos[st.paso]!=='ok' });
+    }
     l.sort(ent ? function(a,b){ return (b.f||0)-(a.f||0) || b.i-a.i } : ORDENES.dias); // Ventas: más días desde la venta primero; Entregados: la venta más reciente primero
 
     $('vt').textContent = buscando ? 'Resultados de “'+st.q.trim()+'”' : v.nombre;
-    $('vo').innerHTML = buscando ? '<span></span><span>'+unidades(l.length)+(ent ? ' en Entregados.' : ', de todas las vistas de Ventas.')+'</span>' : '<span class="ic '+v.id+'" style="width:26px;height:26px;border-radius:7px;display:inline-grid;place-items:center;flex:none">'+ICON[v.id]+'</span><span>'+v.objetivo+'</span>';
+    $('vo').innerHTML = buscando ? '<span></span><span>'+unidades(l.length)+(ent ? ' en Entregados.' : ', de todas las vistas de Ventas.')+'</span>' : '<span class="ic '+(v.ic||v.id)+'" style="width:26px;height:26px;border-radius:7px;display:inline-grid;place-items:center;flex:none">'+ICON[v.ic||v.id]+'</span><span>'+v.objetivo+'</span>';
 
     $('modo').querySelectorAll('button').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.m===modo) });
     $('slots').className = modo==='lista' ? 'lista' : 'slots';
@@ -890,7 +908,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
   }
   function cerrar(){ $('insp').classList.remove('on'); $('scrim').classList.remove('on'); $('insp').setAttribute('aria-hidden','true'); }
 
-  function ir(v){ st.tab='ventas'; st.vista=v; st.tipo=''; st.destino=''; st.q=''; $('q').value=''; draw(); scrollTo({top:0}); }
+  function ir(v){ st.tab='ventas'; st.vista=v; st.tipo=''; st.destino=''; st.paso=-1; st.q=''; $('q').value=''; draw(); scrollTo({top:0}); }
   $('menu').addEventListener('click', function(e){ var b=e.target.closest('.mi'); if(b) ir(b.dataset.v) });
   $('tabs').addEventListener('click', function(e){ var b=e.target.closest('.tab'); if(!b) return; st.tab=b.dataset.t; st.tipo=''; st.destino=''; st.q=''; $('q').value=''; draw(); scrollTo({top:0}); });
   $('cats').addEventListener('change', function(e){
@@ -898,7 +916,11 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
     if(id==='tipoSel') st.tipo=e.target.value; else st.destino=e.target.value;
     drawView(); var s=$(id); if(s) s.focus();
   });
-  $('cats').addEventListener('click', function(e){ if(e.target.id==='tipoClear'){ st.tipo=''; st.destino=''; drawView(); } });
+  $('cats').addEventListener('click', function(e){
+    if(e.target.id==='tipoClear'){ st.tipo=''; st.destino=''; drawView(); return; }
+    var b = e.target.closest('button.paso'); if(!b) return;
+    var k = +b.dataset.paso; st.paso = st.paso===k ? -1 : k; drawView(); // al picarlo otra vez se quita
+  });
   $('bodegas').addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return; st.bodega=b.dataset.b; $('bodegas').querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed', x===b)}); draw(); });
   $('q').addEventListener('input', function(e){ st.q=e.target.value; st.tipo=''; st.destino=''; draw(); });
   $('campana').addEventListener('click', function(e){ e.stopPropagation(); var abierto = $('avPop').hidden; $('avPop').hidden = !abierto; $('campana').setAttribute('aria-expanded', abierto); });
