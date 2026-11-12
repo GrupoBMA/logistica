@@ -212,10 +212,14 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .fila .c-dias{text-align:right;font-size:20px;font-weight:700;line-height:24px}
 .fila .c-dias.old{color:var(--neg)}
 .fila .c-dias small{display:block;font-size:11px;font-weight:400;line-height:14px;color:var(--muted)}
-.filter{display:inline-flex;align-items:center;gap:10px;font-size:14px;color:var(--muted)}
-.filter select{height:40px;min-width:220px;max-width:min(320px,100%);padding:0 36px 0 12px;border:1px solid var(--control);border-radius:10px;background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236b6d66' stroke-width='1.6'%3E%3Cpath d='m2.5 4.5 3.5 3.5 3.5-3.5'/%3E%3C/svg%3E") right 12px center no-repeat;color:var(--text);font:inherit;font-size:15px;font-weight:500;appearance:none;-webkit-appearance:none;cursor:pointer}
-.filter select:hover{border-color:var(--text)}
-.filter.on select{border-color:var(--text);box-shadow:inset 0 0 0 1px var(--text)}
+/* Filtro desplegable: el nombre del filtro va dentro de la barra, en chiquito, y a un lado lo elegido
+   ("Bodega · Todas"); la primera opción dice Todos/Todas = sin filtro (12-nov-2026) */
+.filter{position:relative;display:inline-flex;align-items:center;height:40px;max-width:100%;border:1px solid var(--control);border-radius:10px;background:var(--surface);cursor:pointer}
+.filter:hover{border-color:var(--text)}
+.filter.on{border-color:var(--text);box-shadow:inset 0 0 0 1px var(--text)}
+.filter .fnom{padding:0 0 0 12px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;pointer-events:none}
+.filter select{height:38px;min-width:120px;max-width:min(280px,60vw);padding:0 34px 0 8px;border:0;border-radius:10px;background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236b6d66' stroke-width='1.6'%3E%3Cpath d='m2.5 4.5 3.5 3.5 3.5-3.5'/%3E%3C/svg%3E") right 12px center no-repeat;color:var(--text);font:inherit;font-size:15px;font-weight:500;appearance:none;-webkit-appearance:none;cursor:pointer;outline:none}
+.filter:has(select:focus-visible){outline:2px solid var(--text);outline-offset:1px}
 .pasosf{display:flex;flex-wrap:wrap;gap:8px;margin:-6px 0 18px}
 .pasosf[hidden]{display:none}
 .paso{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 12px 0 6px;border:1px solid var(--control);border-radius:10px;background:var(--surface);color:var(--text);font:inherit;font-size:14px;font-weight:500;cursor:pointer}
@@ -596,8 +600,8 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
   };
   // Desplegable de bodega (12-nov-2026; antes eran 3 botones arriba a la derecha)
   function selBodega(){
-    return '<label class="filter'+(st.bodega?' on':'')+'"><select id="bodegaSel" aria-label="Bodega">' +
-      '<option value="">Bodega</option>' +
+    return '<label class="filter'+(st.bodega?' on':'')+'"><span class="fnom">Bodega</span><select id="bodegaSel" aria-label="Bodega">' +
+      '<option value="">Todas</option>' +
       L.BODEGAS.map(function(b){ return '<option value="'+b.id+'"'+(st.bodega===b.id?' selected':'')+'>'+b.nombre+'</option>' }).join('') +
       '</select></label>';
   }
@@ -686,12 +690,12 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
     var destinos = Object.keys(cuentaDestino).sort(function(a,b){ return a.localeCompare(b, 'es') });
     if(st.destino && !cuentaDestino[st.destino]) st.destino='';
     $('cats').innerHTML = l.length ?
-      '<label class="filter'+(st.tipo?' on':'')+'"><select id="tipoSel" aria-label="Tipo de vehículo">' +
-        '<option value="">Tipo de vehículo</option>' +
+      '<label class="filter'+(st.tipo?' on':'')+'"><span class="fnom">Tipo</span><select id="tipoSel" aria-label="Tipo de vehículo">' +
+        '<option value="">Todos</option>' +
         porTipo.map(function(x){ return '<option value="'+x.t.id+'"'+(st.tipo===x.t.id?' selected':'')+'>'+x.t.nombre+' ('+x.n+')</option>' }).join('') +
       '</select></label>' +
-      '<label class="filter'+(st.destino?' on':'')+'"><select id="destinoSel" aria-label="Destino">' +
-        '<option value="">Destino</option>' +
+      '<label class="filter'+(st.destino?' on':'')+'"><span class="fnom">Destino</span><select id="destinoSel" aria-label="Destino">' +
+        '<option value="">Todos</option>' +
         destinos.map(function(d){ return '<option value="'+esc(d)+'"'+(st.destino===d?' selected':'')+'>'+esc(d)+' ('+cuentaDestino[d]+')</option>' }).join('') +
       '</select></label>' + selBodega() +
       ((st.tipo || st.destino || st.bodega) ? '<button class="clear" type="button" id="tipoClear">Quitar filtros</button>' : '') : selBodega();
