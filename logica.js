@@ -135,43 +135,35 @@
   // granja, sin destino, TIPO DE DESTINO "Local" o lugares de la zona metropolitana).
   var ESTADO_MX = /( (JAL|JALISCO|NAY|NAYARIT|MICH|MICHOACAN|GTO|GUANAJUATO|COL|COLIMA|SIN|SINALOA|SON|SONORA|ZAC|ZACATECAS|DGO|AGS|QRO|SLP|NL|BC|BCS|GRO|OAX|VER|CHIS|CHIH|COAH|TAMPS|HGO|MOR|PUE|TLAX|TAB|YUC|QROO|CAMP|EDO DE MEX|EDOMEX|MEX))+ $/;
   function titulo(k){ return k.toLowerCase().replace(/(^| )(\S)/g,function(m,a,b){ return a+b.toUpperCase() }) }
-  // Envíos locales (12-nov-2026): lo de Guadalajara y alrededores que no cae en ninguna ruta. Una tarjeta por destino
-  // ("Local - Tlaquepaque"); si el usuario junta remisiones arrastrándolas, esas salen en "Ruta local 1", "Ruta local 2"…
-  // con una parada por destino. No van las que se recogen en granja ni las que no tienen destino.
+  // Envíos locales (12-nov-2026): lo de Guadalajara y alrededores que no cae en ninguna ruta. Una tarjeta por lugar
+  // ("Tlaquepaque"). El usuario arrastra lugares (con todas sus remisiones) para armar "Ruta local 1", "Ruta local 2"…,
+  // con las paradas en el orden que él decide. No van las que se recogen en granja ni las que no tienen destino.
+  // manuales: [{lugar, grupo, orden}] de logistica_rutas_lugares(); el lugar es el destino normalizado sin estado.
   function locales(U, manuales){
-    var grupoDe = {}; manuales.forEach(function(m){ grupoDe[m.remision] = m.grupo });
-    var porDestino = {}, porGrupo = {};
+    var en = {}; manuales.forEach(function(m){ en[m.lugar] = m });
+    var porLugar = {};
     U.forEach(function(u){
       if(u.hoja==='entregado' || u.ruta || u.z==='granja' || u.z==='sin') return;
       var d = normaDestino(u.destino);
       if(/ (GRANJA|PENDIENTE|RECOGE) /.test(d)) return;
       if(['cerca','lejos','distribuidor'].indexOf(u.z)<0 && !LOCAL.test(d) && !/^\s*(semi\s*)?local\s*$/i.test(u.tipo_destino||'')) return;
       var clave = d.replace(ESTADO_MX,' ').trim(); if(!clave) return;
-      // Se juntan por remisión. Las que no tienen ("S/N" o vacía) se reconocen por vehículo, destino y fecha de venta,
-      // para que dos S/N distintas no se muevan juntas
-      var sinRem = !u.remision || /^\s*s\s*\/?\s*n\s*$/i.test(u.remision);
-      u.local = true; u.claveLocal = clave; u.juntable = true;
-      u.claveRuta = sinRem ? 'S/N|'+normaDestino(u.vehiculo).trim()+'|'+clave+'|'+(u.fecha||'') : u.remision;
-      var g = grupoDe[u.claveRuta];
-      if(g!=null) (porGrupo[g] = porGrupo[g] || []).push(u);
-      else (porDestino[clave] = porDestino[clave] || []).push(u);
+      u.local = true; u.lugar = clave;
+      (porLugar[clave] = porLugar[clave] || []).push(u);
     });
-    // Si una ruta armada se quedó con una sola remisión (las otras ya se entregaron), esa vuelve a su destino
-    Object.keys(porGrupo).forEach(function(g){
-      var rems = {}; porGrupo[g].forEach(function(u){ rems[u.claveRuta] = 1 });
-      if(Object.keys(rems).length<2){ porGrupo[g].forEach(function(u){ (porDestino[u.claveLocal] = porDestino[u.claveLocal] || []).push(u) }); delete porGrupo[g]; }
-    });
+    // Lugares de cada ruta armada, en su orden (los que ya no tienen unidades no cuentan)
+    var porGrupo = {};
+    Object.keys(porLugar).forEach(function(k){ var m = en[k]; if(m) (porGrupo[m.grupo] = porGrupo[m.grupo] || []).push(m) });
+    // Una ruta que se quedó con un solo lugar (los otros ya se entregaron) no se muestra como ruta
+    Object.keys(porGrupo).forEach(function(g){ if(porGrupo[g].length<2) delete porGrupo[g] });
     var armadas = Object.keys(porGrupo).map(Number).sort(function(a,b){ return a-b }).map(function(g,n){
-      var id = 'rl-'+g, lugares = [];
-      porGrupo[g].forEach(function(u){
-        var k = lugares.indexOf(u.claveLocal); if(k<0){ k = lugares.length; lugares.push(u.claveLocal) }
-        u.ruta = id; u.parada = k;
-      });
+      var id = 'rl-'+g, lugares = porGrupo[g].sort(function(a,b){ return a.orden-b.orden }).map(function(m){ return m.lugar });
+      lugares.forEach(function(k,i){ porLugar[k].forEach(function(u){ u.ruta = id; u.parada = i }); delete porLugar[k] });
       return {id:id, local:true, grupo:g, provisional:true, nombre:'Ruta local '+(n+1), paradas:lugares.map(function(k){ return [titulo(k),[k]] })};
     });
-    var sueltas = Object.keys(porDestino).sort().map(function(k){
+    var sueltas = Object.keys(porLugar).sort().map(function(k){
       var id = 'local-'+k.toLowerCase().replace(/ /g,'-');
-      porDestino[k].forEach(function(u){ u.ruta = id; u.parada = 0 });
+      porLugar[k].forEach(function(u){ u.ruta = id; u.parada = 0 });
       return {id:id, local:true, provisional:true, nombre:titulo(k), paradas:[[titulo(k),[k]]]};
     });
     return armadas.concat(sueltas);

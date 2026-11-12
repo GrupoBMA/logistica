@@ -287,11 +287,13 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .rpill.empezar{background:var(--raised);color:var(--muted)}
 .rpill.piezas{background:var(--lock-bg);color:var(--lock)}
 button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
-.rpill.arr{cursor:grab;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.rpill.arrando{opacity:.35}
-.rpill.sobre{box-shadow:0 0 0 2px var(--text)}
+.rlocal li[data-lugar],.rlocal[data-lugar] header{cursor:grab;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.rlocal .arrando,.rlocal.arrando{opacity:.4}
 .ruta.sobre{border-color:var(--text);box-shadow:inset 0 0 0 1px var(--text)}
-.fantasma{position:fixed;z-index:60;pointer-events:none;transform:translate(-50%,-50%) scale(1.08);box-shadow:0 6px 18px rgb(0 0 0/.3);cursor:grabbing}
+.paradas li.antes{box-shadow:0 -2px 0 var(--text)}
+.paradas li.despues{box-shadow:0 2px 0 var(--text)}
+.fantasma{position:fixed;z-index:60;pointer-events:none;transform:translate(-50%,-50%) scale(1.05);box-shadow:0 6px 18px rgb(0 0 0/.3);cursor:grabbing;height:30px;padding:0 12px;font-size:13px;white-space:nowrap}
+.fantasma::before{display:none}
 .fantasma.fuera{opacity:.65;outline:2px dashed currentColor;outline-offset:2px}
 .deshacer{margin-top:4px;padding:0;border:0;background:none;color:var(--muted);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer}
 .deshacer:hover{color:var(--text)}
@@ -439,7 +441,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
 </aside>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="logica.js?v=20261112-blanco"></script>
+<script src="logica.js?v=20261112-lugares"></script>
 <script>
 (function(){
   // Regreso de Google ("Conectar con Google"): la función logistica-google manda aquí ?google=ok|error&msg=
@@ -490,7 +492,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
       FILAS = ((r.data && r.data.entregas) || []).map(deTabla);
       armar();
       sb.rpc('logistica_cambios', {p_dias: 60}).then(function(c){ CAMBIOS = (c && c.data) || []; draw(); });
-      sb.rpc('logistica_rutas_locales').then(function(m){ if(!m.error){ MANUALES = m.data || []; armar(); draw(); } });
+      sb.rpc('logistica_rutas_lugares').then(function(m){ if(!m.error){ MANUALES = m.data || []; armar(); draw(); } });
       var sub = r.data && r.data.subido ? new Date(r.data.subido) : null;
       var txt = info && info.modificado
         ? 'Excel del Drive guardado por última vez el <b>'+fecha(new Date(info.modificado))+'</b> a las '+hora(new Date(info.modificado))+'. Leído a las '+hora(new Date())+'.'
@@ -745,11 +747,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
   function cerrarAvisos(){ $('avPop').hidden = true; $('campana').setAttribute('aria-expanded','false'); }
   // Rutas de entrega: las unidades de Ventas cuyo destino cae en una ruta (logica.js, RUTAS)
   var NOMBRE_PILL = {flete:'Lista para salir', taller:'En proceso', empezar:'No iniciado', piezas:'Esperando piezas'};
-  // Las remisiones locales se pueden arrastrar (data-rem) para juntarlas en una "Ruta local"
-  function pill(u){
-    var arr = u.juntable;
-    return '<button type="button" class="rpill '+u.estado+(arr?' arr':'')+'" data-i="'+u.i+'"'+(arr?' data-rem="'+esc(u.claveRuta)+'"':'')+' title="'+esc(NOMBRE_PILL[u.estado]+' · '+u.modelo+(u.dias==null?'':' · '+u.dias+' días')+(arr?' · arrástrala a otra remisión para juntarlas':''))+'">'+esc(u.remision||'s/n')+'</button>';
-  }
+  function pill(u){ return '<button type="button" class="rpill '+u.estado+'" data-i="'+u.i+'" title="'+esc(NOMBRE_PILL[u.estado]+' · '+u.modelo+(u.dias==null?'':' · '+u.dias+' días'))+'">'+esc(u.remision||'s/n')+'</button>' }
   function drawRutas(){
     $('vt').textContent = 'Rutas';
     $('vo').innerHTML = '';
@@ -766,12 +764,17 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
       var paradas = ru.paradas.map(function(p,k){
         var en = us.filter(function(u){ return u.parada===k }).sort(function(a,b){ return (ORDEN_ESTADO[a.estado]-ORDEN_ESTADO[b.estado]) || (b.dias||0)-(a.dias||0) });
         var lk = en.filter(function(u){ return u.estado==='flete' }).length;
-        return '<li class="'+(en.length?'':'sin')+'"><span class="pn">'+(k+1)+'</span><div style="min-width:0"><div class="pt"><b>'+esc(p[0])+'</b><span>' +
+        // En las locales cada lugar (renglón) se arrastra con todas sus remisiones
+        var lug = ru.local ? ' data-lugar="'+esc(p[1][0])+'" title="Arrastra el lugar para juntarlo con otro o cambiar su orden"' : '';
+        return '<li class="'+(en.length?'':'sin')+'"'+lug+'><span class="pn">'+(k+1)+'</span><div style="min-width:0"><div class="pt"><b>'+esc(p[0])+'</b><span>' +
           (en.length ? unidades(en.length)+(lk ? ' · <em>'+lk+(lk===1?' lista':' listas')+'</em>' : '') : 'Sin unidades') + '</span></div>' +
           (en.length ? '<div class="pills">'+en.map(pill).join('')+'</div>' : '') + '</div></li>';
       }).join('');
-      var conRem = us.filter(function(u){ return u.juntable })[0];
-      return '<section class="ruta'+(ru.local?' rlocal':'')+'"'+(ru.local?' data-ruta="'+esc(ru.id)+'"'+(conRem?' data-con="'+esc(conRem.claveRuta)+'"':''):'')+'>' +
+      // Tarjeta local suelta: la tarjeta es su lugar (data-lugar). Ruta local armada: data-grupo y su último lugar (data-ultimo)
+      var datos = !ru.local ? '' : ru.grupo!=null
+        ? ' data-ruta="'+esc(ru.id)+'" data-grupo="'+ru.grupo+'" data-ultimo="'+esc(ru.paradas[ru.paradas.length-1][1][0])+'"'
+        : ' data-ruta="'+esc(ru.id)+'" data-lugar="'+esc(ru.paradas[0][1][0])+'"';
+      return '<section class="ruta'+(ru.local?' rlocal':'')+'"'+datos+'>' +
         '<header><div class="rnom"><div style="min-width:0"><h2>'+esc(ru.nombre)+'</h2>' +
         (ru.grupo!=null ? '<button type="button" class="deshacer" data-grupo="'+ru.grupo+'">Deshacer ruta</button>' : '') + '</div></div>' +
         '<div class="rc"><b>'+us.length+'</b> '+(us.length===1?'unidad':'unidades')+'<br><em>'+listas+(listas===1?' lista':' listas')+'</em></div></header>' +
@@ -859,9 +862,12 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
     var s=e.target.closest('.slot,.fila,button.cb,button.rpill'); if(s) abrir(+s.dataset.i);
   });
 
-  // Rutas locales: arrastrar una remisión local sobre otra (o sobre una tarjeta local) las junta en una "Ruta local N".
-  // Soltarla en la tarjeta de su propio destino la saca de la ruta. Se guarda en Supabase (logistica_ruta_local).
-  // Con mouse el arrastre empieza al moverse; en el celular, al mantener el dedo un momento.
+  // Rutas locales: se arrastra el LUGAR (el renglón, o la tarjeta si va sola) con todas sus remisiones.
+  // - Sobre otra tarjeta local suelta: se juntan en una "Ruta local N" (el que se arrastra va después).
+  // - Sobre una parada de una ruta local: entra antes o después de ella (según la mitad donde se suelte); así se ordena.
+  // - Sobre una ruta local (fuera de sus paradas): entra al final.
+  // - En un espacio en blanco: sale de su ruta (si la ruta era de 2, se deshace).
+  // Con mouse empieza al moverse; en el celular, al mantener el dedo un momento. Se guarda en Supabase (logistica_ruta_lugar).
   var arr = null, soltado = false;
   function guardarRuta(rpc, args){
     sb.rpc(rpc, args).then(function(r){
@@ -869,46 +875,59 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
       MANUALES = r.data || []; armar(); draw();
     });
   }
+  // A dónde caería: {con, antes, marca, clase}, {blanco:true} o null (nada)
   function destinoArr(x, y){
-    var el = document.elementFromPoint(x, y); if(!el) return null;
-    var p = el.closest('.rpill.arr'); if(p && p.dataset.rem!==arr.rem) return p;
-    return el.closest('section.rlocal');
+    var el = document.elementFromPoint(x, y);
+    if(!el || !el.closest('section.ruta,header,nav,aside,button,input,select,.rpill,.fantasma')) return {blanco:true};
+    var sec = el.closest('section.rlocal'); if(!sec) return null;
+    if(sec.dataset.grupo){
+      var li = el.closest('li[data-lugar]');
+      if(li){
+        if(li.dataset.lugar===arr.lugar) return null;
+        var r = li.getBoundingClientRect(), antes = y < r.top + r.height/2;
+        return {con:li.dataset.lugar, antes:antes, marca:li, clase:antes?'antes':'despues'};
+      }
+      if(sec.dataset.ultimo===arr.lugar) return null;
+      return {con:sec.dataset.ultimo, antes:false, marca:sec, clase:'sobre'};
+    }
+    if(sec.dataset.lugar===arr.lugar) return null;
+    return {con:sec.dataset.lugar, antes:false, marca:sec, clase:'sobre'};
   }
+  function limpiarMarca(){ if(arr && arr.d && arr.d.marca) arr.d.marca.classList.remove('sobre','antes','despues') }
   function empezarArr(){
     arr.activo = true;
-    arr.fan = arr.p.cloneNode(true); arr.fan.classList.add('fantasma'); arr.fan.removeAttribute('data-i');
+    arr.fan = document.createElement('div'); arr.fan.className = 'rpill fantasma';
+    var n = arr.el.querySelectorAll('.rpill').length;
+    arr.fan.textContent = arr.nombre+' · '+n+(n===1?' remisión':' remisiones');
     document.body.appendChild(arr.fan);
-    document.querySelectorAll('.rpill.arr').forEach(function(x){ if(x.dataset.rem===arr.rem) x.classList.add('arrando') });
+    arr.el.classList.add('arrando');
     moverArr(arr.x, arr.y);
   }
   function moverArr(x, y){
     arr.fan.style.left = x+'px'; arr.fan.style.top = y+'px';
-    var d = destinoArr(x, y), el = document.elementFromPoint(x, y);
-    arr.blanco = !el || !el.closest('section.ruta,.rpill,header,nav,aside,button,input,select');
-    arr.fan.classList.toggle('fuera', arr.blanco && /^rl-/.test(ALL[+arr.p.dataset.i].ruta));
-    if(arr.sobre && arr.sobre!==d) arr.sobre.classList.remove('sobre');
-    if(d) d.classList.add('sobre'); arr.sobre = d;
+    limpiarMarca();
+    arr.d = destinoArr(x, y);
+    if(arr.d && arr.d.marca) arr.d.marca.classList.add(arr.d.clase);
+    arr.fan.classList.toggle('fuera', !!(arr.d && arr.d.blanco && arr.enRuta));
   }
   function terminarArr(){
     if(!arr) return; clearTimeout(arr.timer);
     if(arr.activo){
       soltado = true; setTimeout(function(){ soltado = false }, 400);
-      arr.fan.remove(); document.querySelectorAll('.arrando,.sobre').forEach(function(x){ x.classList.remove('arrando','sobre') });
-      var d = arr.sobre, rem = arr.rem, u = ALL[+arr.p.dataset.i];
-      // Soltarla en un espacio en blanco (fuera de cualquier tarjeta) la saca de su ruta local
-      if(arr.blanco && /^rl-/.test(u.ruta)) guardarRuta('logistica_ruta_local', {p_remision: rem, p_con: null});
-      else if(d && d.classList.contains('rpill')) guardarRuta('logistica_ruta_local', {p_remision: rem, p_con: d.dataset.rem});
-      else if(d && d.dataset.ruta && d.dataset.ruta!==u.ruta){
-        var suyo = d.dataset.ruta==='local-'+u.claveLocal.toLowerCase().replace(/ /g,'-');
-        if(suyo) guardarRuta('logistica_ruta_local', {p_remision: rem, p_con: null});
-        else if(d.dataset.con) guardarRuta('logistica_ruta_local', {p_remision: rem, p_con: d.dataset.con});
-      }
+      arr.fan.remove(); limpiarMarca(); arr.el.classList.remove('arrando');
+      var d = arr.d;
+      if(d && d.blanco){ if(arr.enRuta) guardarRuta('logistica_ruta_lugar', {p_lugar: arr.lugar, p_con: null}); }
+      else if(d && d.con) guardarRuta('logistica_ruta_lugar', {p_lugar: arr.lugar, p_con: d.con, p_antes: d.antes});
     }
     arr = null;
   }
   $('slots').addEventListener('pointerdown', function(e){
-    var p = e.target.closest('.rpill.arr'); if(!p || e.button>0) return;
-    arr = {p:p, rem:p.dataset.rem, x:e.clientX, y:e.clientY, activo:false, touch:e.pointerType!=='mouse'};
+    if(e.button>0 || e.target.closest('button.deshacer')) return;
+    var el = e.target.closest('section.rlocal li[data-lugar], section.rlocal[data-lugar]'); if(!el) return;
+    // En una tarjeta suelta se arrastra la tarjeta completa
+    if(el.tagName==='LI' && el.closest('section[data-lugar]')) el = el.closest('section');
+    arr = {el:el, lugar:el.dataset.lugar, nombre:(el.querySelector('.pt b')||el.querySelector('h2')).textContent,
+           enRuta:!!el.closest('section[data-grupo]'), x:e.clientX, y:e.clientY, activo:false, touch:e.pointerType!=='mouse'};
     if(arr.touch) arr.timer = setTimeout(function(){ if(arr && !arr.activo){ empezarArr(); if(navigator.vibrate) navigator.vibrate(15); } }, 350);
   });
   document.addEventListener('pointermove', function(e){
@@ -924,10 +943,10 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
   document.addEventListener('pointercancel', function(){ if(arr && !arr.activo){ clearTimeout(arr.timer); arr = null; } });
   // Mientras se arrastra con el dedo, que la página no se desplace
   document.addEventListener('touchmove', function(e){ if(arr && arr.activo) e.preventDefault(); }, {passive:false});
-  document.addEventListener('contextmenu', function(e){ if(e.target.closest('.rpill.arr')) e.preventDefault(); });
+  document.addEventListener('contextmenu', function(e){ if(e.target.closest('section.rlocal')) e.preventDefault(); });
   $('slots').addEventListener('click', function(e){
     var b = e.target.closest('button.deshacer'); if(!b) return;
-    guardarRuta('logistica_ruta_local_deshacer', {p_grupo: +b.dataset.grupo});
+    guardarRuta('logistica_ruta_lugar_deshacer', {p_grupo: +b.dataset.grupo});
   });
   $('close').addEventListener('click', cerrar); $('scrim').addEventListener('click', cerrar);
   document.addEventListener('keydown', function(e){
