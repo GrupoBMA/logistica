@@ -573,9 +573,9 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
     {id:'fletefalta', ic:'fletefalta', nombre:'Completo con faltante', sub:'5 pasos en OK', objetivo:'Tienen los 5 pasos en OK, pero les falta algo antes de poder salir.', filtro:function(u){return u.estado==='flete' && !!u.faltante}, orden:'prio'},
     {id:'taller',  nombre:'En proceso',       sub:'',  objetivo:'Terminar los 5 pasos para que puedan salir.', filtro:function(u){return u.estado==='taller'}, orden:'dias'},
     {id:'empezar', nombre:'No iniciado',      sub:'',      objetivo:'Arrancar el armado.', filtro:function(u){return u.estado==='empezar'}, orden:'dias'},
-    {id:'faltante',nombre:'Con faltante',     sub:'',     objetivo:'Conseguir lo que les falta antes de que salgan.', filtro:function(u){return !!u.faltante}, orden:'estado'},
     {id:'piezas',  nombre:'Esperando piezas', sub:'',         objetivo:'No se pueden trabajar hasta que llegue el vehículo o sus piezas.', filtro:function(u){return u.estado==='piezas'}, orden:'dias'},
     {id:'todas',   nombre:'Todas',            sub:'', objetivo:'Todas las unidades vendidas que aún no se entregan.', filtro:function(){return true}, orden:'estado'}
+    {id:'faltante',nombre:'Con faltante',     sub:'',     objetivo:'Conseguir lo que les falta antes de que salgan.', filtro:function(u){return !!u.faltante}, orden:'estado'},
   ];
   var st = {tab:'ventas', vista:'flete', bodega:'', tipo:'', destino:'', q:'', paso:-1}; // paso: filtro de En proceso (-1 = ninguno)
   var modo = 'tarjetas';
