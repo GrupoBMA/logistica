@@ -845,7 +845,14 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
       ['flete','fletefalta','taller','empezar','piezas'].map(function(e){ return '<span class="rpill '+e+'">'+NOMBRE_PILL[e]+'</span>' }).join('') + '</p>';
     // Dos secciones (pedido del usuario, 12-nov-2026): 1. Locales y por fletera; 2. Rutas
     var TITULO_SECCION = {1:'Locales y por fletera', 2:'Rutas'}, seccion = 0;
-    $('slots').innerHTML = nota + RUTAS_HOY.map(function(ru){
+    // Sección Rutas (provisionales y fijas): de más a menos unidades listas para enviar (5 OK y sin faltante);
+    // si empatan, la de más unidades. Respeta el filtro de bodega y el buscador (12-nov-2026)
+    var listasDe = function(ru){ return l.filter(function(u){ return u.ruta===ru.id && u.estado==='flete' && !u.faltante }).length };
+    var totalDe = function(ru){ return l.filter(function(u){ return u.ruta===ru.id }).length };
+    var orden = RUTAS_HOY.filter(function(ru){ return ru.seccion!==2 }).concat(
+      RUTAS_HOY.filter(function(ru){ return ru.seccion===2 }).map(function(ru,k){ return {ru:ru, l:listasDe(ru), t:totalDe(ru), k:k} })
+        .sort(function(a,b){ return b.l-a.l || b.t-a.t || a.k-b.k }).map(function(x){ return x.ru }));
+    $('slots').innerHTML = nota + orden.map(function(ru){
       var us = l.filter(function(u){ return u.ruta===ru.id });
       if(!us.length && (st.q.trim() || ru.provisional)) return '';
       var titulo = '';
