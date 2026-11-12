@@ -189,10 +189,11 @@
   function locales(U){
     var porLugar = {};
     U.forEach(function(u){
-      if(u.hoja==='entregado' || u.ruta || u.z==='granja' || u.z==='sin') return;
+      // Sin color en el destino (zona 'sin') también cuenta si TIPO DE DESTINO dice Local o Semi/Local (12-nov-2026)
+      if(u.hoja==='entregado' || u.ruta || u.z==='granja') return;
       var d = normaDestino(u.destino);
       if(/ (GRANJA|PENDIENTE|RECOGE) /.test(d)) return;
-      if(['cerca','lejos','distribuidor'].indexOf(u.z)<0 && !LOCAL.test(d) && !/^\s*(semi\s*)?local\s*$/i.test(u.tipo_destino||'')) return;
+      if(['cerca','lejos','distribuidor'].indexOf(u.z)<0 && !LOCAL.test(d) && !tipoLocal(u)) return;
       var clave = d.replace(ESTADO_MX,' ').trim(); if(!clave) return;
       u.local = true;
       (porLugar[clave] = porLugar[clave] || []).push(u);
@@ -203,6 +204,8 @@
       return {id:id, local:true, provisional:true, nombre:titulo(k), paradas:[[titulo(k),[k],k]]};
     });
   }
+  // TIPO DE DESTINO Local, Semi Local o Semi/Local (en el Excel lo escriben con diagonal)
+  function tipoLocal(u){ return /^\s*(semi\W*)?local\s*$/i.test(u.tipo_destino||'') }
   var LOCAL = / (WASH|WASHINGTON|SUC|AMERICAS|GDL|GUADALAJARA|ZMG|ZAPOPAN|TLAQUEPAQUE|TONALA|TLAJOMULCO|TLAJO|VALLE DE LOS MOLINOS|COLONIA|LOCAL|GRANJA|PENDIENTE) /;
   // Desde 1 envío (antes 2; pedido del usuario, 12-nov-2026, para que no se pierdan destinos sueltos como Mesa Colorada).
   // Si la columna TIPO DE DESTINO dice Foráneo, va aquí aunque el color diga local.
@@ -214,7 +217,7 @@
       if(!clave || / (GRANJA|PENDIENTE|RECOGE) /.test(d)) return;
       var foranea = /for[aá]ne/i.test(u.tipo_destino||'');
       if(!foranea){
-        if(['cerca','distribuidor','granja','sin'].indexOf(u.z)>-1 || /^\s*(semi\s*)?local\s*$/i.test(u.tipo_destino||'')) return;
+        if(['cerca','distribuidor','granja','sin'].indexOf(u.z)>-1 || tipoLocal(u)) return;
         if(LOCAL.test(d)) return;
       }
       (grupos[clave] = grupos[clave] || []).push(u);
