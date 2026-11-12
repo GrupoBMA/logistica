@@ -162,7 +162,9 @@
     var armadas = Object.keys(porGrupo).map(Number).sort(function(a,b){ return a-b }).map(function(g,n){
       var id = 'rl-'+g, lugares = porGrupo[g].sort(function(a,b){ return a.orden-b.orden }).map(function(m){ return m.lugar });
       lugares.forEach(function(k,i){ unidadesDe[k].forEach(function(u){ u.ruta = id; u.parada = i }) });
-      return {id:id, armada:true, seccion:2, grupo:g, provisional:true, nombre:'Ruta provisional '+(n+1), paradas:lugares.map(parada)};
+      // El usuario le puede cambiar el nombre (doble clic); siempre empieza con "Ruta "
+      var propio = porGrupo[g].map(function(m){ return m.nombre }).filter(Boolean)[0];
+      return {id:id, armada:true, seccion:2, grupo:g, provisional:true, propio:propio||'', nombre:'Ruta '+(propio || 'provisional '+(n+1)), paradas:lugares.map(parada)};
     });
     // Rutas fijas con lugares metidos: las paradas fijas ocupan el orden 1, 2, 3…; lo metido va entre ellas
     multi.forEach(function(ru){

@@ -315,6 +315,10 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
 /* Verde azulado y naranja para que no se confundan con las remisiones listas (verde) ni con lo vencido (rojo) */
 .pz.apr{background:var(--pz-apr-bg);color:var(--pz-apr)}
 .pz.pen{background:var(--pz-pen-bg);color:var(--pz-pen)}
+/* Nombre editable de una ruta provisional (doble clic) */
+.ruta h2.editable{cursor:text}
+.ruta h2 input{font:inherit;color:inherit;background:var(--raised);border:1px solid var(--border);border-radius:6px;padding:0 6px;width:min(220px,60vw);outline:none}
+.ruta h2 input:focus{border-color:var(--muted)}
 .deshacer{margin-top:4px;padding:0;border:0;background:none;color:var(--muted);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer}
 .deshacer:hover{color:var(--text)}
 @media (max-width:1100px){ .slots.rutas{grid-template-columns:minmax(0,1fr)} }
@@ -461,7 +465,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
 </aside>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="logica.js?v=20261112-grupos"></script>
+<script src="logica.js?v=20261112-nombre"></script>
 <script>
 (function(){
   // Regreso de Google ("Conectar con Google"): la función logistica-google manda aquí ?google=ok|error&msg=
@@ -819,7 +823,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
         : ru.fija ? ' data-fija="'+esc(ru.id)+'"'
         : ru.movible && us.length ? ' data-lugar="'+esc(ru.paradas[0][2])+'"' : '';
       return titulo + '<section class="ruta"'+datos+'>' +
-        '<header><div class="rnom"><div style="min-width:0"><h2>'+esc(ru.nombre)+'</h2>' +
+        '<header><div class="rnom"><div style="min-width:0"><h2'+(ru.armada ? ' class="editable" data-propio="'+esc(ru.propio)+'" title="Doble clic para cambiar el nombre"' : '')+'>'+esc(ru.nombre)+'</h2>' +
         (ru.grupo!=null ? '<button type="button" class="deshacer" data-grupo="'+ru.grupo+'">Deshacer ruta</button>' : '') + '</div></div>' +
         '<div class="rc"><b>'+us.length+'</b> '+(us.length===1?'unidad':'unidades')+'<br><em>'+listas+(listas===1?' lista':' listas')+'</em></div></header>' +
         '<ol class="paradas">'+paradas+'</ol>' + presupuesto(us) + '</section>';
@@ -1006,6 +1010,27 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
   $('slots').addEventListener('click', function(e){
     var b = e.target.closest('button.deshacer'); if(!b) return;
     guardarRuta('logistica_ruta_lugar_deshacer', {p_grupo: +b.dataset.grupo});
+  });
+  // Nombre de una ruta provisional: doble clic para cambiarlo. "Ruta " se queda fijo; se edita lo que sigue.
+  // Enter o salir del cuadro guarda; Esc cancela; vacío = vuelve a "Ruta provisional N".
+  $('slots').addEventListener('dblclick', function(e){
+    var h = e.target.closest('h2.editable'); if(!h || h.querySelector('input')) return;
+    var sec = h.closest('section[data-grupo]'), antes = h.dataset.propio || '';
+    var sugerido = h.textContent.replace(/^Ruta\s+/, '');
+    h.innerHTML = 'Ruta <input type="text" maxlength="60" aria-label="Nombre de la ruta" placeholder="'+esc(sugerido)+'">';
+    var inp = h.querySelector('input'), listo = false;
+    inp.value = antes; inp.focus(); inp.select();
+    function terminar(guardar){
+      if(listo) return; listo = true;
+      var nuevo = inp.value.trim();
+      if(guardar && nuevo!==antes) guardarRuta('logistica_ruta_nombre', {p_grupo: +sec.dataset.grupo, p_nombre: nuevo});
+      else draw();
+    }
+    inp.addEventListener('keydown', function(ev){
+      if(ev.key==='Enter'){ ev.preventDefault(); terminar(true); }
+      else if(ev.key==='Escape'){ ev.preventDefault(); ev.stopPropagation(); terminar(false); }
+    });
+    inp.addEventListener('blur', function(){ terminar(true) });
   });
   $('close').addEventListener('click', cerrar); $('scrim').addEventListener('click', cerrar);
   document.addEventListener('keydown', function(e){
