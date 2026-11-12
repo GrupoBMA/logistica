@@ -147,15 +147,18 @@
       if(/ (GRANJA|PENDIENTE|RECOGE) /.test(d)) return;
       if(['cerca','lejos','distribuidor'].indexOf(u.z)<0 && !LOCAL.test(d) && !/^\s*(semi\s*)?local\s*$/i.test(u.tipo_destino||'')) return;
       var clave = d.replace(ESTADO_MX,' ').trim(); if(!clave) return;
-      // Solo se pueden juntar las que tienen remisión de verdad ("S/N" no cuenta)
-      u.local = true; u.claveLocal = clave; u.juntable = !!u.remision && !/^\s*s\s*\/?\s*n\s*$/i.test(u.remision);
-      var g = u.juntable ? grupoDe[u.remision] : null;
+      // Se juntan por remisión. Las que no tienen ("S/N" o vacía) se reconocen por vehículo, destino y fecha de venta,
+      // para que dos S/N distintas no se muevan juntas
+      var sinRem = !u.remision || /^\s*s\s*\/?\s*n\s*$/i.test(u.remision);
+      u.local = true; u.claveLocal = clave; u.juntable = true;
+      u.claveRuta = sinRem ? 'S/N|'+normaDestino(u.vehiculo).trim()+'|'+clave+'|'+(u.fecha||'') : u.remision;
+      var g = grupoDe[u.claveRuta];
       if(g!=null) (porGrupo[g] = porGrupo[g] || []).push(u);
       else (porDestino[clave] = porDestino[clave] || []).push(u);
     });
     // Si una ruta armada se quedó con una sola remisión (las otras ya se entregaron), esa vuelve a su destino
     Object.keys(porGrupo).forEach(function(g){
-      var rems = {}; porGrupo[g].forEach(function(u){ rems[u.remision] = 1 });
+      var rems = {}; porGrupo[g].forEach(function(u){ rems[u.claveRuta] = 1 });
       if(Object.keys(rems).length<2){ porGrupo[g].forEach(function(u){ (porDestino[u.claveLocal] = porDestino[u.claveLocal] || []).push(u) }); delete porGrupo[g]; }
     });
     var armadas = Object.keys(porGrupo).map(Number).sort(function(a,b){ return a-b }).map(function(g,n){

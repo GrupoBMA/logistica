@@ -440,7 +440,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
 </aside>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="logica.js?v=20261112-locales3"></script>
+<script src="logica.js?v=20261112-sn"></script>
 <script>
 (function(){
   // Regreso de Google ("Conectar con Google"): la función logistica-google manda aquí ?google=ok|error&msg=
@@ -749,7 +749,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
   // Las remisiones locales se pueden arrastrar (data-rem) para juntarlas en una "Ruta local"
   function pill(u){
     var arr = u.juntable;
-    return '<button type="button" class="rpill '+u.estado+(arr?' arr':'')+'" data-i="'+u.i+'"'+(arr?' data-rem="'+esc(u.remision)+'"':'')+' title="'+esc(NOMBRE_PILL[u.estado]+' · '+u.modelo+(u.dias==null?'':' · '+u.dias+' días')+(arr?' · arrástrala a otra remisión para juntarlas':''))+'">'+esc(u.remision||'s/n')+'</button>';
+    return '<button type="button" class="rpill '+u.estado+(arr?' arr':'')+'" data-i="'+u.i+'"'+(arr?' data-rem="'+esc(u.claveRuta)+'"':'')+' title="'+esc(NOMBRE_PILL[u.estado]+' · '+u.modelo+(u.dias==null?'':' · '+u.dias+' días')+(arr?' · arrástrala a otra remisión para juntarlas':''))+'">'+esc(u.remision||'s/n')+'</button>';
   }
   function drawRutas(){
     $('vt').textContent = 'Rutas';
@@ -772,7 +772,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
           (en.length ? '<div class="pills">'+en.map(pill).join('')+'</div>' : '') + '</div></li>';
       }).join('');
       var conRem = us.filter(function(u){ return u.juntable })[0];
-      return '<section class="ruta'+(ru.local?' rlocal':'')+'"'+(ru.local?' data-ruta="'+esc(ru.id)+'"'+(conRem?' data-con="'+esc(conRem.remision)+'"':''):'')+'>' +
+      return '<section class="ruta'+(ru.local?' rlocal':'')+'"'+(ru.local?' data-ruta="'+esc(ru.id)+'"'+(conRem?' data-con="'+esc(conRem.claveRuta)+'"':''):'')+'>' +
         '<header><div><h2>'+esc(ru.nombre)+'</h2>' +
         (ru.grupo!=null ? '<button type="button" class="deshacer" data-grupo="'+ru.grupo+'">Deshacer ruta</button>' : '') + '</div>' +
         '<div class="rc"><b>'+us.length+'</b> '+(us.length===1?'unidad':'unidades')+'<br><em>'+listas+(listas===1?' lista':' listas')+'</em></div></header>' +
