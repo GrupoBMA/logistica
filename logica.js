@@ -31,7 +31,7 @@
   ];
 
   // Bodega donde se arma (columna Activación). S. Cruz = Bodega 1, "Granja".
-  var BODEGAS = [{id:'granja', nombre:'Granja', largo:'Bodega 1 · Granja'},{id:'b2', nombre:'Bodega 2', largo:'Bodega 2'}];
+  var BODEGAS = [{id:'granja', nombre:'Bodega 1', largo:'Bodega 1 · Granja'},{id:'b2', nombre:'Bodega 2', largo:'Bodega 2'}];
   function bodega(txt){ return /bodega\s*2/i.test(txt||'') ? 'b2' : 'granja' }
 
   var ABREV = {'PK':'pick up','CAB':'cabina','SIN/HIDR':'sin hidráulico','CON/HIDR':'con hidráulico','PTAS':'puertas','PTAS.':'puertas','C/C':'con','S/E':'sin','BCO':'blanco','BCO.':'blanco'};
