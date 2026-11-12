@@ -291,9 +291,11 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
 .rlocal .rpill{cursor:pointer}
 .rlocal .arrando,.rlocal.arrando{opacity:.4}
 .ruta.sobre{border-color:var(--text);box-shadow:inset 0 0 0 1px var(--text)}
-.paradas li.antes{box-shadow:0 -2px 0 var(--text)}
-.paradas li.despues{box-shadow:0 2px 0 var(--text)}
-.fantasma{position:fixed;z-index:60;pointer-events:none;transform:translate(-50%,-50%) scale(1.05);box-shadow:0 6px 18px rgb(0 0 0/.3);cursor:grabbing;height:30px;padding:0 12px;font-size:13px;white-space:nowrap}
+/* Raya que marca si el lugar que se arrastra va antes o después */
+.paradas li.antes::after,.paradas li.despues::after{content:"";position:absolute;left:-4px;right:0;height:3px;border-radius:2px;background:var(--work);box-shadow:0 0 0 2px var(--surface);pointer-events:none}
+.paradas li.antes::after{top:-6px}
+.paradas li.despues::after{bottom:3px}
+.fantasma{position:fixed;z-index:60;pointer-events:none;transform:translate(18px,-140%);box-shadow:0 6px 18px rgb(0 0 0/.3);cursor:grabbing;height:30px;padding:0 12px;font-size:13px;white-space:nowrap}
 .fantasma::before{display:none}
 .fantasma.fuera{opacity:.65;outline:2px dashed currentColor;outline-offset:2px}
 .deshacer{margin-top:4px;padding:0;border:0;background:none;color:var(--muted);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer}
@@ -881,20 +883,18 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
     var el = document.elementFromPoint(x, y);
     if(!el || !el.closest('section.ruta,header,nav,aside,button,input,select,.rpill,.fantasma')) return {blanco:true};
     var sec = el.closest('section.rlocal'); if(!sec) return null;
-    if(sec.dataset.grupo){
-      var li = el.closest('li[data-lugar]');
-      if(li){
-        if(li.dataset.lugar===arr.lugar) return null;
-        var r = li.getBoundingClientRect(), antes = y < r.top + r.height/2;
-        return {con:li.dataset.lugar, antes:antes, marca:li, clase:antes?'antes':'despues'};
-      }
-      if(sec.dataset.ultimo===arr.lugar) return null;
-      return {con:sec.dataset.ultimo, antes:false, marca:sec, clase:'sobre'};
+    // Siempre se marca con una raya si va antes o después de un lugar (también al juntar con una tarjeta suelta)
+    var lis = [].filter.call(sec.querySelectorAll('li[data-lugar]'), function(li){ return li.dataset.lugar!==arr.lugar });
+    if(!lis.length) return null;
+    var li = el.closest('li[data-lugar]');
+    if(!li || li.dataset.lugar===arr.lugar){
+      // Fuera de las paradas: antes de la primera cuya mitad quede abajo del dedo; si no, después de la última
+      li = lis.filter(function(x){ var r = x.getBoundingClientRect(); return y < r.top + r.height/2 })[0] || lis[lis.length-1];
     }
-    if(sec.dataset.lugar===arr.lugar) return null;
-    return {con:sec.dataset.lugar, antes:false, marca:sec, clase:'sobre'};
+    var r = li.getBoundingClientRect(), antes = y < r.top + r.height/2;
+    return {con:li.dataset.lugar, antes:antes, marca:li, clase:antes?'antes':'despues', sec:sec};
   }
-  function limpiarMarca(){ if(arr && arr.d && arr.d.marca) arr.d.marca.classList.remove('sobre','antes','despues') }
+  function limpiarMarca(){ if(arr && arr.d && arr.d.marca){ arr.d.marca.classList.remove('antes','despues'); arr.d.sec.classList.remove('sobre') } }
   function empezarArr(){
     arr.activo = true;
     arr.fan = document.createElement('div'); arr.fan.className = 'rpill fantasma';
@@ -908,7 +908,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
     arr.fan.style.left = x+'px'; arr.fan.style.top = y+'px';
     limpiarMarca();
     arr.d = destinoArr(x, y);
-    if(arr.d && arr.d.marca) arr.d.marca.classList.add(arr.d.clase);
+    if(arr.d && arr.d.marca){ arr.d.marca.classList.add(arr.d.clase); arr.d.sec.classList.add('sobre') }
     arr.fan.classList.toggle('fuera', !!(arr.d && arr.d.blanco && arr.enRuta));
   }
   function terminarArr(){
