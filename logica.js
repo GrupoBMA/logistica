@@ -204,16 +204,22 @@
     });
   }
   var LOCAL = / (WASH|WASHINGTON|SUC|AMERICAS|GDL|GUADALAJARA|ZMG|ZAPOPAN|TLAQUEPAQUE|TONALA|TLAJOMULCO|TLAJO|VALLE DE LOS MOLINOS|COLONIA|LOCAL|GRANJA|PENDIENTE) /;
+  // Desde 1 envío (antes 2; pedido del usuario, 12-nov-2026, para que no se pierdan destinos sueltos como Mesa Colorada).
+  // Si la columna TIPO DE DESTINO dice Foráneo, va aquí aunque el color diga local.
   function provisionales(U){
     var grupos = {};
     U.forEach(function(u){
       if(u.hoja==='entregado' || u.ruta) return;
-      if(['cerca','distribuidor','granja','sin'].indexOf(u.z)>-1 || /^\s*local\s*$/i.test(u.tipo_destino||'')) return;
       var d = normaDestino(u.destino), clave = d.replace(ESTADO_MX,' ').trim();
-      if(!clave || LOCAL.test(d)) return;
+      if(!clave || / (GRANJA|PENDIENTE|RECOGE) /.test(d)) return;
+      var foranea = /for[aá]ne/i.test(u.tipo_destino||'');
+      if(!foranea){
+        if(['cerca','distribuidor','granja','sin'].indexOf(u.z)>-1 || /^\s*(semi\s*)?local\s*$/i.test(u.tipo_destino||'')) return;
+        if(LOCAL.test(d)) return;
+      }
       (grupos[clave] = grupos[clave] || []).push(u);
     });
-    return Object.keys(grupos).sort().filter(function(k){ return grupos[k].length>=2 }).map(function(k){
+    return Object.keys(grupos).sort().map(function(k){
       var id = 'prov-'+k.toLowerCase().replace(/ /g,'-'), lugar = titulo(k);
       grupos[k].forEach(function(u){ u.ruta = id; u.parada = 0 });
       return {id:id, provisional:true, nombre:'Por fletera - '+lugar, paradas:[[lugar,[k],'F|'+id]]};
