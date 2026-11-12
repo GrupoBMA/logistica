@@ -328,8 +328,9 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
 .pz{display:flex;align-items:center;gap:4px;padding:2px 7px;border-radius:6px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .pz svg{flex:none}
 /* Presupuesto (la suma): neutro, con el letrero en mayúsculas chiquitas */
-.pz.tot{background:var(--raised);color:var(--text)}
-.pz.tot small{color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+/* Presupuesto (la suma): invertido (como el botón Entrar) para que se note; gris solo si no hay ni pagado ni pendiente */
+.pz.tot{background:var(--primary);color:var(--on-primary)}
+.pz.tot small{opacity:.75;text-transform:uppercase;letter-spacing:.04em}
 .pz small{font-size:9px;font-weight:600}
 .pz b{font-size:10.5px}
 /* Verde azulado y naranja para que no se confundan con las remisiones listas (verde) ni con lo vencido (rojo) */
