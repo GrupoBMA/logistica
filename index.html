@@ -304,7 +304,9 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
 .fantasma.fuera{opacity:.65;outline:2px dashed currentColor;outline-offset:2px}
 /* Presupuesto: en una fila, arriba del nombre de la tarjeta */
 /* 25% más chico que al principio para que no llame tanto la atención (pedido del usuario, 12-nov-2026) */
-.presu{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:9px}
+/* Va abajo a la derecha de la tarjeta (la tarjeta es columna y el presupuesto se empuja al fondo) */
+.ruta{display:flex;flex-direction:column}
+.presu{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:6px}
 .presu>span{font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-right:3px}
 .pzs{display:flex;flex-wrap:nowrap;gap:6px}
 .pz{display:flex;align-items:baseline;gap:4px;padding:2px 7px;border-radius:6px;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -815,11 +817,11 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
       var datos = ru.armada ? ' data-grupo="'+ru.grupo+'" data-ultimo="'+esc(ru.paradas[ru.paradas.length-1][2])+'"'
         : ru.fija ? ' data-fija="'+esc(ru.id)+'"'
         : ru.movible && us.length ? ' data-lugar="'+esc(ru.paradas[0][2])+'"' : '';
-      return titulo + '<section class="ruta"'+datos+'>' + presupuesto(us) +
+      return titulo + '<section class="ruta"'+datos+'>' +
         '<header><div class="rnom"><div style="min-width:0"><h2>'+esc(ru.nombre)+'</h2>' +
         (ru.grupo!=null ? '<button type="button" class="deshacer" data-grupo="'+ru.grupo+'">Deshacer ruta</button>' : '') + '</div></div>' +
         '<div class="rc"><b>'+us.length+'</b> '+(us.length===1?'unidad':'unidades')+'<br><em>'+listas+(listas===1?' lista':' listas')+'</em></div></header>' +
-        '<ol class="paradas">'+paradas+'</ol></section>';
+        '<ol class="paradas">'+paradas+'</ol>' + presupuesto(us) + '</section>';
     }).join('');
   }
   function drawCambios(){
