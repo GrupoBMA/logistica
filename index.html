@@ -172,7 +172,7 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .modo button:hover{color:var(--text)}
 .modo button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08)}
 /* Campana: cambios de las últimas 2 horas, en una lista sencilla */
-.avisos{position:relative;margin-left:auto}
+.avisos{position:relative;margin-left:auto} /* arriba a la derecha (12-nov-2026) */
 #campana{position:relative;width:40px;height:40px;border-radius:10px;border:0;background:var(--raised);color:var(--muted);display:grid;place-items:center}
 #campana:hover,#campana[aria-expanded="true"]{color:var(--text)}
 #campana .badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--neg);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center}
@@ -216,7 +216,8 @@ h1{font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.015em;margin
 .filter select{height:40px;min-width:220px;max-width:min(320px,100%);padding:0 36px 0 12px;border:1px solid var(--control);border-radius:10px;background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236b6d66' stroke-width='1.6'%3E%3Cpath d='m2.5 4.5 3.5 3.5 3.5-3.5'/%3E%3C/svg%3E") right 12px center no-repeat;color:var(--text);font:inherit;font-size:15px;font-weight:500;appearance:none;-webkit-appearance:none;cursor:pointer}
 .filter select:hover{border-color:var(--text)}
 .filter.on select{border-color:var(--text);box-shadow:inset 0 0 0 1px var(--text)}
-.pasosf{flex-basis:100%;display:flex;flex-wrap:wrap;gap:8px}
+.pasosf{display:flex;flex-wrap:wrap;gap:8px;margin:-6px 0 18px}
+.pasosf[hidden]{display:none}
 .paso{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 12px 0 6px;border:1px solid var(--control);border-radius:10px;background:var(--surface);color:var(--text);font:inherit;font-size:14px;font-weight:500;cursor:pointer}
 .paso b{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;background:var(--raised);font-size:13px;font-weight:700}
 .paso span{color:var(--muted);font-size:13px}
@@ -419,10 +420,9 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
   </div>
   <label class="find"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="6" r="4.8"/><path d="m9.6 9.6 3.4 3.4"/></svg>
     <input id="q" type="search" placeholder="Buscar cualquier unidad: modelo, destino, remisión…" aria-label="Buscar"><kbd>/</kbd></label>
-  <div class="seg" role="group" aria-label="Bodega" id="bodegas">
-    <button type="button" data-b="" aria-pressed="true">Todas</button>
-    <button type="button" data-b="granja" aria-pressed="false">Granja</button>
-    <button type="button" data-b="b2" aria-pressed="false">Bodega 2</button>
+  <div class="avisos" id="avisos" hidden>
+    <button type="button" id="campana" aria-expanded="false" aria-controls="avPop" title="Cambios de las últimas 2 horas" aria-label="Cambios de las últimas 2 horas"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5V8a4.5 4.5 0 0 1 9 0v4.5l1.2 1.5H3.3z"/><path d="M7.3 15.5a1.8 1.8 0 0 0 3.4 0"/></svg><span class="badge" id="nAv"></span></button>
+    <div class="pop" id="avPop" hidden></div>
   </div>
 </header>
 
@@ -454,11 +454,8 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
         <button type="button" data-m="tarjetas" aria-pressed="true" title="Ver como tarjetas" aria-label="Ver como tarjetas"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2.5" y="2.5" width="5" height="5" rx="1"/><rect x="10.5" y="2.5" width="5" height="5" rx="1"/><rect x="2.5" y="10.5" width="5" height="5" rx="1"/><rect x="10.5" y="10.5" width="5" height="5" rx="1"/></svg></button>
         <button type="button" data-m="lista" aria-pressed="false" title="Ver como lista" aria-label="Ver como lista"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6.5 4.5h9M6.5 9h9M6.5 13.5h9"/><circle cx="3" cy="4.5" r=".9" fill="currentColor"/><circle cx="3" cy="9" r=".9" fill="currentColor"/><circle cx="3" cy="13.5" r=".9" fill="currentColor"/></svg></button>
       </div>
-      <div class="avisos" id="avisos" hidden>
-        <button type="button" id="campana" aria-expanded="false" aria-controls="avPop" title="Cambios de las últimas 2 horas" aria-label="Cambios de las últimas 2 horas"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5V8a4.5 4.5 0 0 1 9 0v4.5l1.2 1.5H3.3z"/><path d="M7.3 15.5a1.8 1.8 0 0 0 3.4 0"/></svg><span class="badge" id="nAv"></span></button>
-        <div class="pop" id="avPop" hidden></div>
-      </div>
     </div>
+    <div class="pasosf" id="pasosf" role="group" aria-label="Les falta" hidden></div>
     <div class="slots" id="slots"></div>
     <div class="legend" id="legend"></div>
   </main>
@@ -574,9 +571,9 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
     // Completo se divide en dos (pedido del usuario, 12-nov-2026): sin faltante ya puede salir; con faltante, todavía no
     {id:'flete',   nombre:'Listo para enviar', sub:'5 pasos en OK',     objetivo:'Tienen los 5 pasos en OK y no les falta nada: ya se puede mandar el flete.', filtro:function(u){return u.estado==='flete' && !u.faltante}, orden:'prio'},
     {id:'fletefalta', ic:'fletefalta', nombre:'Completo con faltante', sub:'5 pasos en OK', objetivo:'Tienen los 5 pasos en OK, pero les falta algo antes de poder salir.', filtro:function(u){return u.estado==='flete' && !!u.faltante}, orden:'prio'},
-    {id:'faltante',nombre:'Con faltante',     sub:'',     objetivo:'Conseguir lo que les falta antes de que salgan.', filtro:function(u){return !!u.faltante}, orden:'estado'},
     {id:'taller',  nombre:'En proceso',       sub:'',  objetivo:'Terminar los 5 pasos para que puedan salir.', filtro:function(u){return u.estado==='taller'}, orden:'dias'},
     {id:'empezar', nombre:'No iniciado',      sub:'',      objetivo:'Arrancar el armado.', filtro:function(u){return u.estado==='empezar'}, orden:'dias'},
+    {id:'faltante',nombre:'Con faltante',     sub:'',     objetivo:'Conseguir lo que les falta antes de que salgan.', filtro:function(u){return !!u.faltante}, orden:'estado'},
     {id:'piezas',  nombre:'Esperando piezas', sub:'',         objetivo:'No se pueden trabajar hasta que llegue el vehículo o sus piezas.', filtro:function(u){return u.estado==='piezas'}, orden:'dias'},
     {id:'todas',   nombre:'Todas',            sub:'', objetivo:'Todas las unidades vendidas que aún no se entregan.', filtro:function(){return true}, orden:'estado'}
   ];
@@ -597,6 +594,13 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
     dias:function(a,b){return (b.dias==null?-1:b.dias)-(a.dias==null?-1:a.dias) || a.i-b.i},
     estado:function(a,b){return ORDEN_ESTADO[a.estado]-ORDEN_ESTADO[b.estado] || (a.prioridad||0)-(b.prioridad||0) || (b.dias||0)-(a.dias||0)}
   };
+  // Desplegable de bodega (12-nov-2026; antes eran 3 botones arriba a la derecha)
+  function selBodega(){
+    return '<label class="filter'+(st.bodega?' on':'')+'"><select id="bodegaSel" aria-label="Bodega">' +
+      '<option value="">Bodega</option>' +
+      L.BODEGAS.map(function(b){ return '<option value="'+b.id+'"'+(st.bodega===b.id?' selected':'')+'>'+b.nombre+'</option>' }).join('') +
+      '</select></label>';
+  }
   function unidades(n){ return n===1?'1 unidad':n+' unidades' }
 
   function drawMenu(){
@@ -605,7 +609,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
       var n = b.filter(v.filtro).length;
       return '<button class="mi" type="button" data-v="'+v.id+'" aria-current="'+(st.tab==='ventas' && st.vista===v.id && !st.q.trim())+'"><span class="ic '+(v.ic||v.id)+'">'+ICON[v.ic||v.id]+'</span><span><b>'+v.nombre+'</b>'+(v.sub?'<small>'+v.sub+'</small>':'')+'</span><span class="c num">'+n+'</span></button>';
     }).join('');
-    var listas = b.filter(function(u){return u.estado==='flete'}).length;
+    var listas = b.filter(function(u){return u.estado==='flete' && !u.faltante}).length; // las completas con faltante todavía no salen
     $('gm').style.width = (b.length ? listas/b.length*100 : 0)+'%';
     $('gt').textContent = listas+' de '+unidades(b.length);
   }
@@ -689,16 +693,18 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
       '<label class="filter'+(st.destino?' on':'')+'"><select id="destinoSel" aria-label="Destino">' +
         '<option value="">Destino</option>' +
         destinos.map(function(d){ return '<option value="'+esc(d)+'"'+(st.destino===d?' selected':'')+'>'+esc(d)+' ('+cuentaDestino[d]+')</option>' }).join('') +
-      '</select></label>' +
-      ((st.tipo || st.destino) ? '<button class="clear" type="button" id="tipoClear">Quitar filtros</button>' : '') : '';
+      '</select></label>' + selBodega() +
+      ((st.tipo || st.destino || st.bodega) ? '<button class="clear" type="button" id="tipoClear">Quitar filtros</button>' : '') : selBodega();
     if(st.tipo) l = l.filter(function(u){return u.tipo===st.tipo});
     if(st.destino) l = l.filter(function(u){return L.lugar(u)===st.destino});
     // En proceso: un botón por paso del taller (A, H, F, P, R). Al elegir uno quedan las que no tienen ese paso en OK.
-    if(!ent && !buscando && v.id==='taller'){
-      $('cats').innerHTML += '<div class="pasosf" role="group" aria-label="Les falta">' + L.PASOS.map(function(p,k){
+    var conPasos = !ent && !buscando && v.id==='taller';
+    $('pasosf').hidden = !conPasos;
+    if(conPasos){
+      $('pasosf').innerHTML = L.PASOS.map(function(p,k){
         var n = l.filter(function(u){ return u.pasos[k]!=='ok' }).length;
         return '<button type="button" class="paso" data-paso="'+k+'" aria-pressed="'+(st.paso===k)+'" title="Les falta '+p[1].toLowerCase()+'"><b>'+p[0]+'</b>'+p[1]+'<span class="num">'+n+'</span></button>';
-      }).join('') + '</div>';
+      }).join('');
       if(st.paso>-1) l = l.filter(function(u){ return u.pasos[st.paso]!=='ok' });
     }
     l.sort(ent ? function(a,b){ return (b.f||0)-(a.f||0) || b.i-a.i } : ORDENES.dias); // Ventas: más días desde la venta primero; Entregados: la venta más reciente primero
@@ -807,7 +813,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
   function drawRutas(){
     $('vt').textContent = 'Rutas';
     $('vo').innerHTML = '';
-    $('cats').innerHTML = ''; $('modo').hidden = true; $('legend').hidden = true;
+    $('cats').innerHTML = selBodega(); $('modo').hidden = true; $('legend').hidden = true; $('pasosf').hidden = true;
     var l = buscar(base()).filter(function(u){ return u.ruta });
     $('slots').className = 'slots rutas';
     if(!l.length){ $('slots').innerHTML = '<div class="empty">'+(st.q.trim() ? 'Ninguna unidad de las rutas coincide con la búsqueda.' : 'No hay unidades para las rutas.')+'</div>'; return; }
@@ -850,7 +856,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
   function drawCambios(){
     $('vt').textContent = 'Cambios';
     $('vo').innerHTML = '<span class="ic todas" style="width:26px;height:26px;border-radius:7px;display:inline-grid;place-items:center;flex:none">'+ICON.taller+'</span><span>Lo que cambió en el Excel entre una lectura y la siguiente: avances del taller, unidades nuevas y las que pasaron a Entregados.</span>';
-    $('cats').innerHTML = ''; $('modo').hidden = true; $('legend').hidden = true;
+    $('cats').innerHTML = selBodega(); $('modo').hidden = true; $('legend').hidden = true; $('pasosf').hidden = true;
     var q = st.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
     var lista = CAMBIOS.filter(function(c){
       if(st.bodega){ var u = unidadDe(c); if(u && u.bodega!==st.bodega) return false; }
@@ -912,16 +918,18 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
   $('menu').addEventListener('click', function(e){ var b=e.target.closest('.mi'); if(b) ir(b.dataset.v) });
   $('tabs').addEventListener('click', function(e){ var b=e.target.closest('.tab'); if(!b) return; st.tab=b.dataset.t; st.tipo=''; st.destino=''; st.q=''; $('q').value=''; draw(); scrollTo({top:0}); });
   $('cats').addEventListener('change', function(e){
-    var id = e.target.id; if(id!=='tipoSel' && id!=='destinoSel') return;
-    if(id==='tipoSel') st.tipo=e.target.value; else st.destino=e.target.value;
-    drawView(); var s=$(id); if(s) s.focus();
+    var id = e.target.id; if(id!=='tipoSel' && id!=='destinoSel' && id!=='bodegaSel') return;
+    if(id==='tipoSel') st.tipo=e.target.value; else if(id==='destinoSel') st.destino=e.target.value; else st.bodega=e.target.value;
+    if(id==='bodegaSel') draw(); else drawView(); // la bodega cambia también los contadores del menú
+    var s=$(id); if(s) s.focus();
   });
   $('cats').addEventListener('click', function(e){
-    if(e.target.id==='tipoClear'){ st.tipo=''; st.destino=''; drawView(); return; }
+    if(e.target.id==='tipoClear'){ st.tipo=''; st.destino=''; st.bodega=''; draw(); }
+  });
+  $('pasosf').addEventListener('click', function(e){
     var b = e.target.closest('button.paso'); if(!b) return;
     var k = +b.dataset.paso; st.paso = st.paso===k ? -1 : k; drawView(); // al picarlo otra vez se quita
   });
-  $('bodegas').addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return; st.bodega=b.dataset.b; $('bodegas').querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed', x===b)}); draw(); });
   $('q').addEventListener('input', function(e){ st.q=e.target.value; st.tipo=''; st.destino=''; draw(); });
   $('campana').addEventListener('click', function(e){ e.stopPropagation(); var abierto = $('avPop').hidden; $('avPop').hidden = !abierto; $('campana').setAttribute('aria-expanded', abierto); });
   $('avPop').addEventListener('click', function(e){ e.stopPropagation(); var b=e.target.closest('button[data-i]'); if(b){ cerrarAvisos(); abrir(+b.dataset.i); } });
