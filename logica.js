@@ -102,7 +102,7 @@
   // Celda del vehículo pintada en el Excel = no hay vehículo o piezas para empezar
   function esperaPiezas(r){ return !!r.color_vehiculo && r.color_vehiculo !== 'theme0' }
 
-  // manuales: las rutas que armó el usuario arrastrando lugares ([{lugar, grupo, orden}], de logistica_rutas_lugares())
+  // manuales: las rutas locales que armó el usuario arrastrando remisiones ([{remision, grupo}], de logistica_rutas_locales())
   function cargar(ventas, corte, manuales){
     var CORTE = corte ? new Date(corte+'T12:00:00') : new Date();
     var U = (ventas||[]).map(function(r,i){
@@ -118,23 +118,11 @@
         ruta: ru ? ru.ruta : null, parada: ru ? ru.parada : null
       });
     });
-    // Cada parada lleva [nombre, palabras, lugar]; "lugar" es la clave con que se guarda en una ruta armada.
-    // Las fijas se copian para poder marcar las paradas que el usuario pasó a una ruta armada.
-    var fijas = RUTAS.map(function(ru){
-      return Object.assign({}, ru, {paradas: ru.paradas.map(function(p){ return [p[0], p[1], 'F|'+ru.id+'|'+p[1][0]] })});
-    });
-    var porId = {}; fijas.forEach(function(ru){ porId[ru.id] = ru });
-    var prov = provisionales(U);
-    prov.forEach(function(ru){ porId[ru.id] = ru });
-    U.forEach(function(u){ if(u.ruta && porId[u.ruta]) u.lugar = porId[u.ruta].paradas[u.parada][2] });
-    var sueltas = locales(U);
-    var armadas = armar(U, manuales||[], fijas.concat(prov, sueltas));
-    var vivas = function(lista){ return lista.filter(function(ru){ return !ru.vacia }) };
-    // Orden (pedido del usuario): rutas locales armadas y locales sueltas primero; luego las rutas armadas con lugares
-    // foráneos, las individuales fijas, las provisionales y al final las fijas de varias paradas
+    // Primero las individuales (un solo destino) para que no se pierdan, luego las provisionales y al final las de varias paradas
     var unaParada = function(ru){ return ru.paradas.length===1 };
-    var rutas = armadas.filter(function(ru){ return ru.local }).concat(vivas(sueltas), armadas.filter(function(ru){ return !ru.local }),
-      vivas(fijas.filter(unaParada)), vivas(prov), fijas.filter(function(ru){ return !unaParada(ru) }));
+    var prov = provisionales(U);
+    // Las locales van primero (pedido del usuario, 12-nov-2026)
+    var rutas = locales(U, manuales||[]).concat(RUTAS.filter(unaParada), prov, RUTAS.filter(function(ru){ return !unaParada(ru) }));
     // Prioridad del flete: la venta más antigua sale primero
     U.filter(function(u){return u.estado==='flete'})
      .sort(function(a,b){ return (a.f||0)-(b.f||0) || a.i-b.i })
@@ -142,42 +130,17 @@
     return {unidades:U, corte:CORTE, rutas:rutas};
   }
 
-  // Rutas armadas a mano (12-nov-2026): el usuario arrastra lugares (con todas sus remisiones), locales o de cualquier
-  // ruta, para juntarlos en una ruta nueva con las paradas en el orden que decide. Si todos sus lugares son locales se
-  // llama "Ruta local N"; si no, "Ruta foránea N". El lugar sale de su tarjeta original: en una ruta fija su parada
-  // dice en qué ruta quedó; una tarjeta de un solo lugar se esconde.
-  function armar(U, manuales, origen){
-    var parada = {}; // lugar -> {ruta, k}
-    origen.forEach(function(ru){ ru.paradas.forEach(function(p,k){ parada[p[2]] = {ruta:ru, k:k} }) });
-    var conUnidades = {}; U.forEach(function(u){ if(u.lugar && u.hoja!=='entregado') (conUnidades[u.lugar] = conUnidades[u.lugar] || []).push(u) });
-    // Lugares de cada ruta armada, en su orden (los que ya no tienen unidades no cuentan)
-    var porGrupo = {};
-    manuales.forEach(function(m){ if(conUnidades[m.lugar] && parada[m.lugar]) (porGrupo[m.grupo] = porGrupo[m.grupo] || []).push(m) });
-    // Una ruta que se quedó con un solo lugar (los otros ya se entregaron) no se muestra como ruta
-    Object.keys(porGrupo).forEach(function(g){ if(porGrupo[g].length<2) delete porGrupo[g] });
-    var n = {local:0, foranea:0};
-    return Object.keys(porGrupo).map(Number).sort(function(a,b){ return a-b }).map(function(g){
-      var id = 'rl-'+g, lugares = porGrupo[g].sort(function(a,b){ return a.orden-b.orden }).map(function(m){ return m.lugar });
-      var local = lugares.every(function(k){ return conUnidades[k][0].local });
-      var nombre = local ? 'Ruta local '+(++n.local) : 'Ruta foránea '+(++n.foranea);
-      var paradas = lugares.map(function(k,i){
-        var o = parada[k];
-        conUnidades[k].forEach(function(u){ u.ruta = id; u.parada = i });
-        // Marca la parada original: en una ruta fija dice dónde quedó; una tarjeta de un solo lugar se esconde
-        o.ruta.paradas[o.k] = o.ruta.paradas[o.k].slice(0,3).concat([nombre]);
-        if(o.ruta.paradas.length===1) o.ruta.vacia = true;
-        return [o.ruta.paradas[o.k][0], o.ruta.paradas[o.k][1], k];
-      });
-      return {id:id, local:local, armada:true, grupo:g, provisional:true, nombre:nombre, paradas:paradas};
-    });
-  }
-
+  // Rutas provisionales (12-nov-2026): si 2 o más unidades de Ventas van al mismo destino que no está en
+  // ninguna ruta, se arma una ruta para ese destino. No cuentan las locales (zona naranja, distribuidor,
+  // granja, sin destino, TIPO DE DESTINO "Local" o lugares de la zona metropolitana).
   var ESTADO_MX = /( (JAL|JALISCO|NAY|NAYARIT|MICH|MICHOACAN|GTO|GUANAJUATO|COL|COLIMA|SIN|SINALOA|SON|SONORA|ZAC|ZACATECAS|DGO|AGS|QRO|SLP|NL|BC|BCS|GRO|OAX|VER|CHIS|CHIH|COAH|TAMPS|HGO|MOR|PUE|TLAX|TAB|YUC|QROO|CAMP|EDO DE MEX|EDOMEX|MEX))+ $/;
   function titulo(k){ return k.toLowerCase().replace(/(^| )(\S)/g,function(m,a,b){ return a+b.toUpperCase() }) }
   // Envíos locales (12-nov-2026): lo de Guadalajara y alrededores que no cae en ninguna ruta. Una tarjeta por lugar
-  // ("Tlaquepaque"). No van las que se recogen en granja ni las que no tienen destino.
-  // El lugar de una local es su destino normalizado sin estado.
-  function locales(U){
+  // ("Tlaquepaque"). El usuario arrastra lugares (con todas sus remisiones) para armar "Ruta local 1", "Ruta local 2"…,
+  // con las paradas en el orden que él decide. No van las que se recogen en granja ni las que no tienen destino.
+  // manuales: [{lugar, grupo, orden}] de logistica_rutas_lugares(); el lugar es el destino normalizado sin estado.
+  function locales(U, manuales){
+    var en = {}; manuales.forEach(function(m){ en[m.lugar] = m });
     var porLugar = {};
     U.forEach(function(u){
       if(u.hoja==='entregado' || u.ruta || u.z==='granja' || u.z==='sin') return;
@@ -188,16 +151,24 @@
       u.local = true; u.lugar = clave;
       (porLugar[clave] = porLugar[clave] || []).push(u);
     });
-    return Object.keys(porLugar).sort().map(function(k){
+    // Lugares de cada ruta armada, en su orden (los que ya no tienen unidades no cuentan)
+    var porGrupo = {};
+    Object.keys(porLugar).forEach(function(k){ var m = en[k]; if(m) (porGrupo[m.grupo] = porGrupo[m.grupo] || []).push(m) });
+    // Una ruta que se quedó con un solo lugar (los otros ya se entregaron) no se muestra como ruta
+    Object.keys(porGrupo).forEach(function(g){ if(porGrupo[g].length<2) delete porGrupo[g] });
+    var armadas = Object.keys(porGrupo).map(Number).sort(function(a,b){ return a-b }).map(function(g,n){
+      var id = 'rl-'+g, lugares = porGrupo[g].sort(function(a,b){ return a.orden-b.orden }).map(function(m){ return m.lugar });
+      lugares.forEach(function(k,i){ porLugar[k].forEach(function(u){ u.ruta = id; u.parada = i }); delete porLugar[k] });
+      return {id:id, local:true, grupo:g, provisional:true, nombre:'Ruta local '+(n+1), paradas:lugares.map(function(k){ return [titulo(k),[k]] })};
+    });
+    var sueltas = Object.keys(porLugar).sort().map(function(k){
       var id = 'local-'+k.toLowerCase().replace(/ /g,'-');
       porLugar[k].forEach(function(u){ u.ruta = id; u.parada = 0 });
-      return {id:id, local:true, provisional:true, nombre:titulo(k), paradas:[[titulo(k),[k],k]]};
+      return {id:id, local:true, provisional:true, nombre:titulo(k), paradas:[[titulo(k),[k]]]};
     });
+    return armadas.concat(sueltas);
   }
   var LOCAL = / (WASH|WASHINGTON|SUC|AMERICAS|GDL|GUADALAJARA|ZMG|ZAPOPAN|TLAQUEPAQUE|TONALA|TLAJOMULCO|TLAJO|VALLE DE LOS MOLINOS|COLONIA|LOCAL|GRANJA|PENDIENTE) /;
-  // Rutas provisionales (12-nov-2026): si 2 o más unidades de Ventas van al mismo destino que no está en
-  // ninguna ruta, se arma una ruta para ese destino. No cuentan las locales (zona naranja, distribuidor,
-  // granja, sin destino, TIPO DE DESTINO "Local" o lugares de la zona metropolitana).
   function provisionales(U){
     var grupos = {};
     U.forEach(function(u){
@@ -210,7 +181,7 @@
     return Object.keys(grupos).sort().filter(function(k){ return grupos[k].length>=2 }).map(function(k){
       var id = 'prov-'+k.toLowerCase().replace(/ /g,'-'), lugar = titulo(k);
       grupos[k].forEach(function(u){ u.ruta = id; u.parada = 0 });
-      return {id:id, provisional:true, nombre:'Por fletera - '+lugar, paradas:[[lugar,[k],'F|'+id]]};
+      return {id:id, provisional:true, nombre:'Por fletera - '+lugar, paradas:[[lugar,[k]]]};
     });
   }
 
