@@ -592,7 +592,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
     {id:'todas',   nombre:'Todas',            sub:'', objetivo:'Todas las unidades vendidas que aún no se entregan.', filtro:function(){return true}, orden:'estado'},
     {id:'faltante',nombre:'Con faltante',     sub:'',     objetivo:'Conseguir lo que les falta antes de que salgan.', filtro:function(u){return !!u.faltante}, orden:'estado'},
   ];
-  var st = {tab:'ventas', vista:'flete', bodega:'', tipo:'', destino:'', q:'', paso:-1}; // paso: filtro de En proceso (-1 = ninguno)
+  var st = {tab:'ventas', vista:'flete', bodega:'', tipo:'', destino:'', vendedor:'', q:'', paso:-1}; // paso: filtro de En proceso (-1 = ninguno)
   var modo = 'tarjetas';
   try { if(localStorage.getItem('logistica.modo')==='lista') modo = 'lista' } catch(e){}
 
@@ -610,6 +610,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
     estado:function(a,b){return ORDEN_ESTADO[a.estado]-ORDEN_ESTADO[b.estado] || (a.prioridad||0)-(b.prioridad||0) || (b.dias||0)-(a.dias||0)}
   };
   // Desplegable de bodega (12-nov-2026; antes eran 3 botones arriba a la derecha)
+  function vendedorDe(u){ return (u.vendedor||'').trim() || 'Sin vendedor' }
   function selBodega(){
     return '<label class="filter'+(st.bodega?' on':'')+'"><span class="fnom">Bodega</span><select id="bodegaSel" aria-label="Bodega">' +
       '<option value="">Todas</option>' +
@@ -693,9 +694,12 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
     var v = ent ? {id:'entregada', nombre:'Entregados', objetivo:'Unidades que ya salieron (hoja ENTREGADO del Excel), de la venta más reciente a la más antigua.'} : VISTAS.find(function(x){return x.id===st.vista});
     var buscando = !!st.q.trim();
     var l = ent ? buscar(baseEntregados()) : buscar(buscando ? base() : base().filter(v.filtro));
-    // Filtros desplegables: tipo de vehículo y destino. Cada uno cuenta con el otro ya aplicado.
-    var conDestino = st.destino ? l.filter(function(u){return L.lugar(u)===st.destino}) : l;
-    var conTipo = st.tipo ? l.filter(function(u){return u.tipo===st.tipo}) : l;
+    // Filtros desplegables: tipo de vehículo, destino y vendedor. Cada uno cuenta con los otros ya aplicados.
+    var esTipo = function(u){ return !st.tipo || u.tipo===st.tipo };
+    var esDestino = function(u){ return !st.destino || L.lugar(u)===st.destino };
+    var esVendedor = function(u){ return !st.vendedor || vendedorDe(u)===st.vendedor };
+    var conDestino = l.filter(function(u){ return esDestino(u) && esVendedor(u) });
+    var conTipo = l.filter(function(u){ return esTipo(u) && esVendedor(u) });
     var porTipo = L.TIPOS.map(function(t){ return {t:t, n:conDestino.filter(function(u){return u.tipo===t.id}).length} }).filter(function(x){return x.n});
     if(st.tipo && !porTipo.some(function(x){return x.t.id===st.tipo})) st.tipo='';
     // Todos los destinos en una sola lista, en orden alfabético, con su número de unidades
@@ -703,6 +707,11 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
     conTipo.forEach(function(u){ var d=L.lugar(u); cuentaDestino[d]=(cuentaDestino[d]||0)+1 });
     var destinos = Object.keys(cuentaDestino).sort(function(a,b){ return a.localeCompare(b, 'es') });
     if(st.destino && !cuentaDestino[st.destino]) st.destino='';
+    // Vendedores (12-nov-2026), en orden alfabético con su número de unidades
+    var cuentaVendedor = {};
+    l.filter(function(u){ return esTipo(u) && esDestino(u) }).forEach(function(u){ var d=vendedorDe(u); cuentaVendedor[d]=(cuentaVendedor[d]||0)+1 });
+    var vendedores = Object.keys(cuentaVendedor).sort(function(a,b){ return a.localeCompare(b, 'es') });
+    if(st.vendedor && !cuentaVendedor[st.vendedor]) st.vendedor='';
     $('cats').innerHTML = l.length ?
       '<label class="filter'+(st.tipo?' on':'')+'"><span class="fnom">Tipo</span><select id="tipoSel" aria-label="Tipo de vehículo">' +
         '<option value="">Todos</option>' +
@@ -712,9 +721,12 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
         '<option value="">Todos</option>' +
         destinos.map(function(d){ return '<option value="'+esc(d)+'"'+(st.destino===d?' selected':'')+'>'+esc(d)+' ('+cuentaDestino[d]+')</option>' }).join('') +
       '</select></label>' + selBodega() +
-      ((st.tipo || st.destino || st.bodega) ? '<button class="clear" type="button" id="tipoClear">Quitar filtros</button>' : '') : selBodega();
-    if(st.tipo) l = l.filter(function(u){return u.tipo===st.tipo});
-    if(st.destino) l = l.filter(function(u){return L.lugar(u)===st.destino});
+      '<label class="filter'+(st.vendedor?' on':'')+'"><span class="fnom">Vendedor</span><select id="vendedorSel" aria-label="Vendedor">' +
+        '<option value="">Todos</option>' +
+        vendedores.map(function(d){ return '<option value="'+esc(d)+'"'+(st.vendedor===d?' selected':'')+'>'+esc(d)+' ('+cuentaVendedor[d]+')</option>' }).join('') +
+      '</select></label>' +
+      ((st.tipo || st.destino || st.bodega || st.vendedor) ? '<button class="clear" type="button" id="tipoClear">Quitar filtros</button>' : '') : selBodega();
+    l = l.filter(function(u){ return esTipo(u) && esDestino(u) && esVendedor(u) });
     // En proceso: un botón por paso del taller (A, H, F, P, R). Al elegir uno quedan las que no tienen ese paso en OK.
     var conPasos = !ent && !buscando && v.id==='taller';
     $('pasosf').hidden = !conPasos;
@@ -945,23 +957,23 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
   }
   function cerrar(){ $('insp').classList.remove('on'); $('scrim').classList.remove('on'); $('insp').setAttribute('aria-hidden','true'); }
 
-  function ir(v){ st.tab='ventas'; st.vista=v; st.tipo=''; st.destino=''; st.paso=-1; st.q=''; $('q').value=''; draw(); scrollTo({top:0}); }
+  function ir(v){ st.tab='ventas'; st.vista=v; st.tipo=''; st.destino=''; st.vendedor=''; st.paso=-1; st.q=''; $('q').value=''; draw(); scrollTo({top:0}); }
   $('menu').addEventListener('click', function(e){ var b=e.target.closest('.mi'); if(b) ir(b.dataset.v) });
-  $('tabs').addEventListener('click', function(e){ var b=e.target.closest('.tab'); if(!b) return; st.tab=b.dataset.t; st.tipo=''; st.destino=''; st.q=''; $('q').value=''; draw(); scrollTo({top:0}); });
+  $('tabs').addEventListener('click', function(e){ var b=e.target.closest('.tab'); if(!b) return; st.tab=b.dataset.t; st.tipo=''; st.destino=''; st.vendedor=''; st.q=''; $('q').value=''; draw(); scrollTo({top:0}); });
   $('cats').addEventListener('change', function(e){
-    var id = e.target.id; if(id!=='tipoSel' && id!=='destinoSel' && id!=='bodegaSel') return;
-    if(id==='tipoSel') st.tipo=e.target.value; else if(id==='destinoSel') st.destino=e.target.value; else st.bodega=e.target.value;
+    var id = e.target.id; if(id!=='tipoSel' && id!=='destinoSel' && id!=='bodegaSel' && id!=='vendedorSel') return;
+    if(id==='tipoSel') st.tipo=e.target.value; else if(id==='destinoSel') st.destino=e.target.value; else if(id==='vendedorSel') st.vendedor=e.target.value; else st.bodega=e.target.value;
     if(id==='bodegaSel') draw(); else drawView(); // la bodega cambia también los contadores del menú
     var s=$(id); if(s) s.focus();
   });
   $('cats').addEventListener('click', function(e){
-    if(e.target.id==='tipoClear'){ st.tipo=''; st.destino=''; st.bodega=''; draw(); }
+    if(e.target.id==='tipoClear'){ st.tipo=''; st.destino=''; st.bodega=''; st.vendedor=''; draw(); }
   });
   $('pasosf').addEventListener('click', function(e){
     var b = e.target.closest('button.paso'); if(!b) return;
     var k = +b.dataset.paso; st.paso = st.paso===k ? -1 : k; drawView(); // al picarlo otra vez se quita
   });
-  $('q').addEventListener('input', function(e){ st.q=e.target.value; st.tipo=''; st.destino=''; draw(); });
+  $('q').addEventListener('input', function(e){ st.q=e.target.value; st.tipo=''; st.destino=''; st.vendedor=''; draw(); });
   $('campana').addEventListener('click', function(e){ e.stopPropagation(); var abierto = $('avPop').hidden; $('avPop').hidden = !abierto; $('campana').setAttribute('aria-expanded', abierto); });
   $('avPop').addEventListener('click', function(e){ e.stopPropagation(); var b=e.target.closest('button[data-i]'); if(b){ cerrarAvisos(); abrir(+b.dataset.i); } });
   document.addEventListener('click', function(){ if(!$('avPop').hidden) cerrarAvisos(); });
