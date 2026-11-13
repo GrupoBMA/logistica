@@ -84,7 +84,7 @@ Ir de poco en poco, empezando por lo más importante: el vehículo, su entrega y
 - **Logo de Grupo BMA** (13-nov-2026): sacado como vectorial del PDF del logo (`Descargas\Logo Grupo BMA`; también hay PNG y JPG en azul marino #192440, negro, gris y blanco). Vive como `<symbol>` al inicio del `<body>` de `index.html` (`#logoGrupo` = "GRUPO BMA" completo, `#logoBMA` = solo "BMA") y se pinta con `--logo`: azul marino `#192440` en claro y blanco en oscuro.
   - **Inicio de sesión:** el logo completo (150 px de ancho) con "Logística" abajo.
   - **Barra de la app:** solo "BMA" (ahí "GRUPO" quedaría ilegible), una rayita y "Logística".
-  - **Ícono de la pestaña:** `icono.svg`, "BMA" en blanco sobre un cuadro azul marino (se ve igual en navegadores claros y oscuros). Antes la pestaña salía con el mundo genérico del navegador.
+  - **Ícono de la pestaña:** `icono.svg`, **las puras letras "BMA"** a todo lo ancho, un poco engrosadas (`stroke`) para que se lean a 16 px; azul marino si el navegador está en claro y blanco si está en oscuro (`@media (prefers-color-scheme:dark)` dentro del SVG). Primero fue "BMA" blanco en un cuadro azul marino, pero se veía muy chico (pedido del usuario, 13-nov-2026). Antes la pestaña salía con el mundo genérico del navegador.
 - **Diseño:** el skill `design-taste-frontend` en modo pantalla de app. Hay modo claro y modo oscuro, y funciona en celular.
 - **Probar:** `.claude/launch.json` levanta `python -m http.server 8768`.
 
