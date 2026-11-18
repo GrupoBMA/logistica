@@ -7,6 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="icono.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="inventario.css?v=20261118-a">
 <style>
 /* BMA Logística: se usa como un videojuego. Menú con contadores, un objetivo por vista,
    íconos de estado que se leen de un vistazo, inventario en casillas, atajos de teclado. */
@@ -496,7 +497,9 @@ body.solo-lectura .ruta li[data-lugar],body.solo-lectura .ruta[data-lugar] heade
       <button class="tab" type="button" role="tab" data-t="rutas" aria-selected="false">Rutas <span class="n" id="nR"></span></button>
       <button class="tab" type="button" role="tab" data-t="cambios" aria-selected="false">Cambios <span class="n" id="nC"></span></button>
       <button class="tab" type="button" role="tab" data-t="entregados" aria-selected="false">Entregados <span class="n" id="nE"></span></button>
+      <button class="tab" type="button" role="tab" data-t="inventario" aria-selected="false">Inventario</button>
     </nav>
+    <div id="inv" class="inv-raiz" hidden></div>
     <div class="view-head sr"><h1 id="vt"></h1><p class="objective" id="vo"></p></div>
     <div class="toolbar">
       <div class="cats" id="cats"></div>
@@ -520,6 +523,8 @@ body.solo-lectura .ruta li[data-lugar],body.solo-lectura .ruta[data-lugar] heade
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="logica.js?v=20261112-bodega1"></script>
+<script src="inventario-logica.js?v=20261118-a"></script>
+<script src="inventario.js?v=20261118-a"></script>
 <script>
 (function(){
   // Regreso de Google ("Conectar con Google"): la función logistica-google manda aquí ?google=ok|error&msg=
@@ -722,6 +727,7 @@ body.solo-lectura .ruta li[data-lugar],body.solo-lectura .ruta[data-lugar] heade
     $('nC').textContent = recientes || '';
     $('nR').textContent = base().filter(function(u){ return u.ruta }).length || '';
     drawAvisos();
+    if(st.tab==='inventario') return;   // lo dibuja inventario.js
     if(st.tab==='cambios'){ drawCambios(); return; }
     if(st.tab==='rutas'){ drawRutas(); return; }
     var ent = st.tab==='entregados';
@@ -1004,7 +1010,10 @@ body.solo-lectura .ruta li[data-lugar],body.solo-lectura .ruta[data-lugar] heade
 
   function ir(v){ st.tab='ventas'; st.vista=v; st.tipo=''; st.destino=''; st.vendedor=''; st.paso=-1; st.q=''; $('q').value=''; draw(); scrollTo({top:0}); }
   $('menu').addEventListener('click', function(e){ var b=e.target.closest('.mi'); if(b) ir(b.dataset.v) });
-  $('tabs').addEventListener('click', function(e){ var b=e.target.closest('.tab'); if(!b) return; st.tab=b.dataset.t; st.tipo=''; st.destino=''; st.vendedor=''; st.q=''; $('q').value=''; draw(); scrollTo({top:0}); });
+  $('tabs').addEventListener('click', function(e){ var b=e.target.closest('.tab'); if(!b) return;
+    if(b.dataset.t==='inventario'){ st.tab='inventario'; abrirInventario(); draw(); scrollTo({top:0}); return; }
+    document.body.classList.remove('en-inventario'); $('inv').hidden = true;
+    st.tab=b.dataset.t; st.tipo=''; st.destino=''; st.vendedor=''; st.q=''; $('q').value=''; draw(); scrollTo({top:0}); });
   $('cats').addEventListener('change', function(e){
     var id = e.target.id; if(id!=='tipoSel' && id!=='destinoSel' && id!=='bodegaSel' && id!=='vendedorSel') return;
     if(id==='tipoSel') st.tipo=e.target.value; else if(id==='destinoSel') st.destino=e.target.value; else if(id==='vendedorSel') st.vendedor=e.target.value; else st.bodega=e.target.value;
@@ -1153,7 +1162,7 @@ body.solo-lectura .ruta li[data-lugar],body.solo-lectura .ruta[data-lugar] heade
   $('close').addEventListener('click', cerrar); $('scrim').addEventListener('click', cerrar);
   document.addEventListener('keydown', function(e){
     if(e.key==='Escape'){ if(!$('avPop').hidden){ cerrarAvisos(); $('campana').focus(); return; } if($('insp').classList.contains('on')) return cerrar(); if(document.activeElement===$('q')){ $('q').value=''; st.q=''; $('q').blur(); draw(); } return; }
-    if(e.target.tagName==='INPUT' || document.body.classList.contains('sin-sesion')) return;
+    if(e.target.tagName==='INPUT' || e.target.tagName==='TEXTAREA' || document.body.classList.contains('sin-sesion') || document.body.classList.contains('en-inventario')) return;
     if(e.key==='/'){ e.preventDefault(); $('q').focus(); return; }
     var n = +e.key; if(n>=1 && n<=VISTAS.length) ir(VISTAS[n-1].id);
   });
@@ -1165,10 +1174,36 @@ body.solo-lectura .ruta li[data-lugar],body.solo-lectura .ruta[data-lugar] heade
     sb.auth.signInWithPassword({email:u, password:$('lPass').value}).then(function(r){
       $('lBtn').disabled = false;
       if(r.error){ $('lErr').textContent = 'Usuario o contraseña incorrectos.'; return; }
-      $('lPass').value = ''; leerDrive();
+      $('lPass').value = ''; entrar();
     });
   });
-  $('salir').addEventListener('click', function(){ sb.auth.signOut().then(function(){ TODAS=[]; cerrar(); sesionVisible(false); $('lUser').focus(); }) });
+  $('salir').addEventListener('click', salir);
+  function salir(){
+    sb.auth.signOut().then(function(){
+      TODAS=[]; cerrar(); if(window.InventarioApp) InventarioApp.cerrar();
+      document.body.classList.remove('modo-bodega','en-inventario'); $('inv').hidden = true; st.tab = 'ventas';
+      sesionVisible(false); $('lUser').focus();
+    });
+  }
+  // Al entrar se pregunta el rol (inv_sesion). Las bodegas solo ven Inventario: no se lee el Drive ni lo de Logística.
+  function entrar(){
+    sb.rpc('inv_sesion').then(function(r){
+      if(r.error){
+        if(r.error.code==='42501'){ sb.auth.signOut(); sesionVisible(false); $('lErr').textContent='Esta cuenta no tiene acceso a Logística.'; return; }
+        leerDrive(); return;
+      }
+      var s = r.data || {};
+      if(s.rol==='bodega'){
+        document.body.classList.add('modo-bodega'); sesionVisible(true); abrirInventario(s); return;
+      }
+      leerDrive();
+    });
+  }
+  // Muestra Inventario (inventario.js) dentro de la app
+  function abrirInventario(s){
+    document.body.classList.add('en-inventario'); $('inv').hidden = false;
+    InventarioApp.iniciar({sb: sb, contenedor: $('inv'), salir: salir, sesion: s || null});
+  }
   $('actualizar').addEventListener('click', function(){ leerDrive() });
 
   // ---------- Conectar con Google (solo lectura del Drive, con la cuenta que tiene acceso al Excel) ----------
@@ -1211,7 +1246,7 @@ body.solo-lectura .ruta li[data-lugar],body.solo-lectura .ruta[data-lugar] heade
   window.addEventListener('message', function(e){ if(e.origin===location.origin && e.data && e.data.logisticaGoogle) resultadoGoogle(e.data.logisticaGoogle, e.data.msg) });
   // Si Google regresó en la misma pestaña (sin ventanita), mostrar el resultado y limpiar la dirección
   if(RG.get('google')){ var est = RG.get('google'), m = RG.get('msg'); history.replaceState(null, '', location.pathname); setTimeout(function(){ resultadoGoogle(est, m) }, 300); }
-  sb.auth.getSession().then(function(r){ if(r.data && r.data.session) leerDrive(); else sesionVisible(false); });
+  sb.auth.getSession().then(function(r){ if(r.data && r.data.session) entrar(); else sesionVisible(false); });
 })();
 </script>
 </body>

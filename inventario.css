@@ -1,0 +1,145 @@
+/* Inventario de bodegas (inventario.js). Mismos tokens que Logística.
+   Pensado para tablet y computadora, para gente a la que no se le da la tecnología:
+   letra grande, botones grandes, una cosa a la vez, nada de desplegables nativos ni filtros regados. */
+
+.tabs{grid-template-columns:repeat(5,minmax(0,1fr))}
+
+/* Dentro de Inventario se esconde todo lo de Logística (menú, filtros, casillas) */
+body.en-inventario .app{grid-template-columns:minmax(0,1fr)}
+body.en-inventario .app > .menu,
+body.en-inventario .view-head, body.en-inventario .toolbar, body.en-inventario #pasosf,
+body.en-inventario #slots, body.en-inventario #legend{display:none!important}
+body.en-inventario .find{visibility:hidden}
+/* Las bodegas solo ven Inventario: sin pestañas, buscador ni campana */
+body.modo-bodega #tabs, body.modo-bodega .find, body.modo-bodega .avisos{display:none!important}
+
+.inv{display:grid;grid-template-columns:280px minmax(0,1fr);gap:28px;margin-top:16px;font-size:16px;line-height:24px}
+body.modo-bodega .inv{margin-top:0}
+.inv-menu{position:sticky;top:12px;align-self:start;display:flex;flex-direction:column;gap:4px}
+.inv-menu .mi{min-height:60px}
+.inv-menu .mi b{font-size:16px}
+.inv-menu .mi small{font-size:13px}
+.inv-menu .mi .ic{background:var(--raised);color:var(--text)}
+.inv-menu .mi[aria-current="true"] .ic{background:var(--work-bg);color:var(--work)}
+.inv-menu .mi .c .burbuja{min-width:28px;height:24px;padding:0 8px;border-radius:12px;background:var(--neg);color:#fff;font-size:13px;line-height:24px;text-align:center}
+.inv-quien{padding:4px 12px 10px;color:var(--muted);font-size:14px}
+.inv-quien b{display:block;color:var(--text);font-size:18px;line-height:24px}
+.inv-pie{margin-top:16px;padding:14px 12px 0;border-top:1px solid var(--border)}
+.inv-pie button{border:0;background:none;color:var(--muted);text-decoration:underline;padding:4px 0;font-size:15px}
+
+/* Botón para escoger (abre la lista): se ve como una tarjeta, nunca como un desplegable */
+.elegir{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:8px 14px;border-radius:12px;
+  border:1px solid var(--control);background:var(--surface);text-align:left}
+.elegir:hover{border-color:var(--text)}
+.elegir .et{display:block;font-size:13px;line-height:18px;color:var(--muted)}
+.elegir .va{display:block;font-size:17px;line-height:24px;font-weight:500}
+.elegir .va.vacio{color:var(--faint);font-weight:400}
+.elegir .fl{margin-left:auto;color:var(--muted);flex:none}
+
+.inv-main{min-width:0}
+.inv-cab{margin:4px 0 20px}
+.inv-cab h1{font-size:28px;line-height:34px;margin:0}
+.inv-cab p{margin:4px 0 0;color:var(--muted);font-size:16px}
+.inv-vacio{padding:40px 24px;border-radius:16px;background:var(--surface);border:1px dashed var(--control);text-align:center;color:var(--muted)}
+.inv-vacio b{display:block;color:var(--text);font-size:18px;margin-bottom:4px}
+.inv-cargando{color:var(--muted);padding:24px 0}
+.inv-error{margin:0 0 16px;padding:12px 16px;border-radius:12px;background:var(--neg-bg);color:var(--neg);font-weight:500}
+.inv-ok{margin:0 0 16px;padding:12px 16px;border-radius:12px;background:var(--ok-bg);color:var(--ok);font-weight:500}
+
+/* Botones */
+.btn{min-height:52px;padding:0 22px;border-radius:12px;border:1px solid var(--control);background:var(--surface);font-size:17px;font-weight:500;
+  display:inline-flex;align-items:center;justify-content:center;gap:10px}
+.btn:hover{border-color:var(--text)}
+.btn.prin{background:var(--primary);color:var(--on-primary);border-color:var(--primary);font-weight:700}
+.btn.prin:disabled{opacity:.5;cursor:default}
+.btn.peligro{color:var(--neg);border-color:var(--neg)}
+.btn.ancho{width:100%}
+.btn-link{border:0;background:none;color:var(--muted);text-decoration:underline;font-size:15px;padding:6px 0}
+.acciones{display:flex;flex-wrap:wrap;gap:12px;margin-top:24px}
+.acciones .der{margin-left:auto}
+
+/* Pasos (1 · 2 · 3) */
+.pasos{display:flex;gap:8px;margin:0 0 24px;padding:0;list-style:none}
+.pasos li{flex:1;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:var(--raised);color:var(--muted);font-weight:500}
+.pasos li .nn{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--surface);font-size:14px;font-weight:700;flex:none}
+.pasos li.hecho{color:var(--ok);background:var(--ok-bg)}
+.pasos li.hecho .nn{background:var(--ok);color:#fff}
+.pasos li.ahora{background:var(--surface);color:var(--text);box-shadow:inset 0 0 0 2px var(--text)}
+.pasos li.ahora .nn{background:var(--text);color:var(--surface)}
+
+/* Formularios grandes */
+.campo{display:flex;flex-direction:column;gap:8px;margin:0 0 20px;max-width:520px}
+.campo > span{font-size:16px;font-weight:500}
+.campo small{color:var(--muted);font-size:14px}
+.campo input,.campo textarea{min-height:52px;padding:12px 16px;border:1px solid var(--control);border-radius:12px;background:var(--surface);font-size:18px;color:var(--text)}
+.campo textarea{min-height:96px;resize:vertical;font:inherit;font-size:17px}
+.campo input:focus-visible,.campo textarea:focus-visible{outline:2px solid var(--text);outline-offset:1px}
+
+/* − número + */
+.contador{display:inline-flex;align-items:center;gap:6px}
+.contador button{width:52px;height:52px;border-radius:12px;border:1px solid var(--control);background:var(--surface);font-size:26px;line-height:1;display:grid;place-items:center}
+.contador button:hover{border-color:var(--text)}
+.contador input{width:88px;height:52px;border:1px solid var(--control);border-radius:12px;background:var(--surface);text-align:center;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
+
+/* Tarjetas de renglón */
+.tarjetas{display:flex;flex-direction:column;gap:10px}
+.tarjeta{display:flex;align-items:center;gap:16px;padding:14px 16px;border-radius:14px;background:var(--surface);border:1px solid var(--border)}
+.tarjeta .cant{font-size:26px;font-weight:700;min-width:56px;text-align:center;font-variant-numeric:tabular-nums}
+.tarjeta .txt{flex:1;min-width:0}
+.tarjeta .txt b{display:block;font-size:17px;line-height:24px;font-weight:500}
+.tarjeta .txt small{display:block;color:var(--muted);font-size:14px}
+.tarjeta .btns{display:flex;gap:8px;flex:none}
+.tarjeta.clic{cursor:pointer;text-align:left;width:100%}
+.tarjeta.clic:hover{border-color:var(--control)}
+.etq{display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:14px;font-size:14px;font-weight:500;white-space:nowrap}
+.etq.pend{background:var(--warn-bg);color:var(--warn)}
+.etq.ok{background:var(--ok-bg);color:var(--ok)}
+.etq.anul{background:var(--raised);color:var(--muted)}
+.etq.rojo{background:var(--neg-bg);color:var(--neg)}
+.resumen{padding:20px;border-radius:16px;background:var(--surface);border:1px solid var(--border);font-size:18px;line-height:28px}
+.resumen b{font-weight:700}
+
+/* Lista para escoger (la misma de la app de Catálogo): al centro en tablet/computadora, desde abajo en celular */
+.hoja{position:fixed;inset:0;z-index:60}
+.hoja[hidden]{display:none}
+html.hoja-on,html.hoja-on body{overflow:hidden}
+.hoja-fondo{position:absolute;inset:0;background:rgba(0,0,0,.45);opacity:0;transition:opacity .2s ease}
+.hoja.abierta .hoja-fondo{opacity:1}
+.hoja-caja{position:absolute;left:50%;top:50%;width:min(480px, calc(100% - 32px));max-height:min(680px, 86vh);display:flex;flex-direction:column;
+  background:var(--surface);color:var(--text);border-radius:18px;box-shadow:0 20px 50px rgba(0,0,0,.25);overflow:hidden;
+  transform:translate(-50%,-48%) scale(.98);opacity:0;transition:transform .22s cubic-bezier(.2,.8,.2,1),opacity .18s ease}
+.hoja.abierta .hoja-caja{transform:translate(-50%,-50%);opacity:1}
+.hoja-asa{display:none}
+.hoja-cab{position:relative;padding:18px 60px 14px 20px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:2px}
+.hoja-cab b{font-size:20px;line-height:26px;font-weight:700}
+.hoja-cab span{font-size:15px;color:var(--muted)}
+.hoja-x{position:absolute;right:12px;top:12px;width:44px;height:44px;border-radius:999px;border:0;display:grid;place-items:center;color:var(--muted);background:var(--raised);font-size:18px}
+.hoja-lista{overflow-y:auto;overscroll-behavior:contain;padding:8px 10px 16px}
+.hoja-cuerpo{overflow-y:auto;padding:18px 20px 20px}
+.h-grupo+.h-grupo{margin-top:8px}
+.h-tit-grupo{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:12px 12px 6px}
+.h-op{display:flex;align-items:center;gap:14px;width:100%;min-height:56px;padding:8px 12px;border:0;border-radius:12px;background:none;text-align:left;transition:background-color .12s ease}
+.h-op:hover{background:var(--raised)}
+.h-op.sel{background:var(--work-bg)}
+.h-op.sel .h-nom{color:var(--work);font-weight:700}
+.h-ico{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--raised);flex:none;font-weight:700;font-size:14px}
+.h-punto{width:22px;height:22px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
+.h-nom{flex:1 1 auto;min-width:0;font-size:17px;line-height:24px}
+.h-nom small{display:block;color:var(--muted);font-size:14px;line-height:20px;font-weight:400}
+.h-n{flex:0 0 auto;font-size:14px;font-weight:500;color:var(--muted);background:var(--raised);border-radius:999px;padding:2px 10px;min-width:32px;text-align:center}
+
+@media (max-width:900px){
+  .inv{grid-template-columns:minmax(0,1fr);gap:16px}
+  .inv-menu{position:static;flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:4px}
+  .inv-menu .mi{flex:0 0 auto;width:auto;grid-template-columns:36px auto auto}
+  .inv-menu .mi small,.inv-quien,.inv-pie{display:none}
+  .pasos li span.tx{display:none}
+}
+@media (max-width:640px){
+  .hoja-caja{left:0;right:0;top:auto;bottom:0;width:auto;max-height:86vh;border-radius:20px 20px 0 0;
+    padding-bottom:env(safe-area-inset-bottom, 0px);transform:translateY(100%);opacity:1}
+  .hoja.abierta .hoja-caja{transform:none}
+  .hoja-asa{display:block;width:40px;height:4px;border-radius:999px;background:var(--border);margin:8px auto 0}
+  .tarjeta{flex-wrap:wrap}
+}
+@media (prefers-reduced-motion: reduce){ .hoja-caja,.hoja-fondo{transition:none} }
