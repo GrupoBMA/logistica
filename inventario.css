@@ -2,7 +2,9 @@
    Pensado para tablet y computadora, para gente a la que no se le da la tecnología:
    letra grande, botones grandes, una cosa a la vez, nada de desplegables nativos ni filtros regados. */
 
-.tabs{grid-template-columns:repeat(5,minmax(0,1fr))}
+/* 5 pestañas (con Inventario). Con #tabs para ganarle al estilo de index.html, que se carga después */
+#tabs.tabs{grid-template-columns:repeat(5,minmax(0,1fr))}
+@media (max-width:760px){ #tabs.tabs{grid-template-columns:repeat(3,minmax(0,1fr))} }
 
 /* Dentro de Inventario se esconde todo lo de Logística (menú, filtros, casillas) */
 body.en-inventario .app{grid-template-columns:minmax(0,1fr)}

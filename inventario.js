@@ -235,13 +235,15 @@
   function iniciar(o){
     E.sb = o.sb; E.raiz = o.contenedor; E.salir = o.salir;
     var listo = o.sesion ? Promise.resolve(o.sesion) : rpc('inv_sesion');
-    if(E.iniciado){ E.raiz.hidden = false; return listo; }
+    E.raiz.hidden = false;
+    if(E.iniciado) return listo;
     E.iniciado = true;
     E.raiz.innerHTML = '<div class="inv"><nav class="inv-menu" aria-label="Menú de inventario"></nav><section class="inv-main" aria-live="polite"></section></div>';
     E.raiz.addEventListener('click', alClic);
     return listo.then(function(s){
       E.rol = s.rol; E.bodega = s.bodega || null;
       E.verBodega = E.rol==='bodega' ? E.bodega : null;
+      H.alIniciar.forEach(function(f){ try { f() } catch(e){} });
       ir(puedeEscribir() && E.rol==='bodega' ? 'recibir' : 'contenedores');
     }).catch(function(err){ q('.inv-main', E.raiz).innerHTML = '<p class="inv-error">'+esc(mensaje(err))+'</p>' });
   }
@@ -257,7 +259,7 @@
     abrirLista: abrirLista, pedirTexto: pedirTexto, pedirCantidad: pedirCantidad, confirmar: confirmar, contador: contador, valorContador: valorContador,
     abrirHoja: abrirHoja, cerrarHoja: cerrarHoja, cabHoja: cabHoja, hojaEl: hojaEl,
     nombreBodega: nombreBodega, puedeEscribir: puedeEscribir, fechaLarga: fechaLarga, hoyISO: hoyISO, ICO: ICO, BODEGAS: BODEGAS,
-    DIBUJAR: DIBUJAR, CUENTA: CUENTA};
+    DIBUJAR: DIBUJAR, CUENTA: CUENTA, alIniciar: []};
 
   // Secciones todavía sin pantalla: un aviso amable
   ['recibir','contenedores','inventario','catalogos','cambios'].forEach(function(id){
