@@ -87,6 +87,16 @@ test('validar pieza: dañadas y negativos', () => {
   assert.deepEqual(I.validarPieza({esperadas: 4, llegaron: 4, danadas: 1}), []);
 });
 
+test('resumen de la revisión: suma faltantes, sobrantes, dañadas y lo que falta por revisar', () => {
+  const r = I.resumenRevision([
+    {esperadas: 10, llegaron: 8, danadas: 1, revisada: true},
+    {esperadas: 4, llegaron: 5, danadas: 0, revisada: true},
+    {esperadas: 2, llegaron: 2, danadas: 0, revisada: true},
+    {esperadas: 6, llegaron: null, danadas: 0, revisada: false}
+  ]);
+  assert.deepEqual(r, {faltan: 2, sobran: 1, danadas: 1, pendientes: 1, total: 4});
+});
+
 test('nombre del vehículo en palabras', () => {
   assert.equal(I.nombreVehiculo({modelo_id: 1, opciones: [12, 21], color_id: 2}, CAT), 'MC 150 · Sin hidráulico · Rodado sencillo · Azul');
   assert.equal(I.nombreVehiculo({modelo_id: 1, opciones: [11, 22], color_id: 3}, CAT), 'MC 150 · Con hidráulico · Rodado doble · Rojo');

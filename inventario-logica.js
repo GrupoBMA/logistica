@@ -63,6 +63,17 @@
     return e;
   }
 
+  // Totales de la revisión de piezas: faltan, sobran, dañadas y cuántas faltan por revisar
+  function resumenRevision(piezas){
+    var r = {faltan: 0, sobran: 0, danadas: 0, pendientes: 0, total: (piezas||[]).length};
+    (piezas||[]).forEach(function(p){
+      if(!p.revisada){ r.pendientes++; return; }
+      var d = diferencia(p.esperadas, p.llegaron);
+      r.faltan += d.faltan; r.sobran += d.sobran; r.danadas += p.danadas || 0;
+    });
+    return r;
+  }
+
   // "Con hidráulico", "Sin hidráulico"; las demás: "Rodado sencillo", "Rodado doble"
   function nombreOpcion(caracteristica, opcion){
     if(/^(con|sin)$/i.test(opcion)) return opcion + ' ' + caracteristica.toLowerCase();
@@ -80,7 +91,7 @@
   }
 
   var api = {piezasEsperadas: piezasEsperadas, sinListaDePiezas: sinListaDePiezas, diferencia: diferencia,
-    validarContenedor: validarContenedor, validarPieza: validarPieza, nombreOpcion: nombreOpcion,
+    validarContenedor: validarContenedor, validarPieza: validarPieza, nombreOpcion: nombreOpcion, resumenRevision: resumenRevision,
     nombreVehiculo: nombreVehiculo, porId: porId, normaNumero: normaNumero};
   if(typeof module !== 'undefined' && module.exports) module.exports = api; else raiz.Inventario = api;
 })(this);

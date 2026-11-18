@@ -255,6 +255,7 @@
   // Lo que usan las secciones (Tareas 4-6)
   var H = {E: E, I: I, esc: esc, q: q, rpc: rpc, mensaje: mensaje, ir: ir, dibujarMenu: dibujarMenu, cargarCatalogo: cargarCatalogo,
     abrirLista: abrirLista, pedirTexto: pedirTexto, pedirCantidad: pedirCantidad, confirmar: confirmar, contador: contador, valorContador: valorContador,
+    abrirHoja: abrirHoja, cerrarHoja: cerrarHoja, cabHoja: cabHoja, hojaEl: hojaEl,
     nombreBodega: nombreBodega, puedeEscribir: puedeEscribir, fechaLarga: fechaLarga, hoyISO: hoyISO, ICO: ICO, BODEGAS: BODEGAS,
     DIBUJAR: DIBUJAR, CUENTA: CUENTA};
 
