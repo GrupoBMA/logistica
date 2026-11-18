@@ -166,6 +166,26 @@
     });
   }
 
+  // Pide una cantidad con − / + grandes. -> Promise(número|null)
+  function pedirCantidad(o){
+    return new Promise(function(res){
+      abrirHoja(cabHoja(o.titulo, o.ayuda)+'<form class="hoja-cuerpo" novalidate>'+
+        '<div style="display:flex;justify-content:center;margin:8px 0 4px">'+contador('n', o.valor==null ? 1 : o.valor, o.min==null ? 1 : o.min)+'</div>'+
+        '<p class="inv-error" hidden></p>'+
+        '<div class="acciones"><button type="button" class="btn" data-hoja-cerrar>Cancelar</button>'+
+        '<button type="submit" class="btn prin der">'+esc(o.boton||'Listo')+'</button></div></form>', res);
+      var h = hojaEl(), f = q('form', h), min = o.min==null ? 1 : o.min;
+      h.onclick = function(e){ if(e.target.closest('[data-hoja-cerrar]')) cerrarHoja(null) };
+      f.onsubmit = function(e){
+        e.preventDefault();
+        var v = valorContador(q('.contador', f));
+        if(v < min){ var er = q('.inv-error', f); er.textContent = 'La cantidad debe ser '+min+' o más.'; er.hidden = false; return; }
+        cerrarHoja(v);
+      };
+      setTimeout(function(){ var i = q('.contador input', h); if(i){ i.focus(); i.select(); } }, 60);
+    });
+  }
+
   // Pregunta sí/no con botones grandes. -> Promise(true|false)
   function confirmar(o){
     return new Promise(function(res){
@@ -234,7 +254,7 @@
 
   // Lo que usan las secciones (Tareas 4-6)
   var H = {E: E, I: I, esc: esc, q: q, rpc: rpc, mensaje: mensaje, ir: ir, dibujarMenu: dibujarMenu, cargarCatalogo: cargarCatalogo,
-    abrirLista: abrirLista, pedirTexto: pedirTexto, confirmar: confirmar, contador: contador, valorContador: valorContador,
+    abrirLista: abrirLista, pedirTexto: pedirTexto, pedirCantidad: pedirCantidad, confirmar: confirmar, contador: contador, valorContador: valorContador,
     nombreBodega: nombreBodega, puedeEscribir: puedeEscribir, fechaLarga: fechaLarga, hoyISO: hoyISO, ICO: ICO, BODEGAS: BODEGAS,
     DIBUJAR: DIBUJAR, CUENTA: CUENTA};
 
