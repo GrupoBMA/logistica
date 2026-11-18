@@ -842,7 +842,9 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
     var en = st.tab==='ventas'; $('avisos').hidden = !en; if(!en){ cerrarAvisos(); return; }
     var desde = Date.now() - AVISO_HORAS*36e5;
     var l = CAMBIOS.filter(function(c){ return new Date(c.fecha).getTime() > desde });
-    $('nAv').textContent = l.length ? (l.length>99?'99+':l.length) : '';
+    // El globito rojo cuenta solo los cambios que llegaron después de la última vez que se picó la campana
+    var visto = avisoVisto(), nuevos = l.filter(function(c){ return new Date(c.fecha).getTime() > visto }).length;
+    $('nAv').textContent = nuevos ? (nuevos>99?'99+':nuevos) : '';
     $('avPop').innerHTML = '<h3>Últimas '+AVISO_HORAS+' horas</h3>' + (l.length ? l.map(function(c){
       // Miniatura de la pestaña Cambios: ícono, remisión, tipo de vehículo y el cambio en etiquetas
       var u = unidadDe(c), h = new Date(c.fecha), x = describir(c);
@@ -852,6 +854,14 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
         '<span style="min-width:0"><span class="t"><b>Remisión '+esc(c.remision||'—')+'</b> <span>· '+esc(tipo)+'</span></span><span class="chips">'+chips+'</span></span>' +
         '<small>'+hora(h)+'</small></button>';
     }).join('') : '<p>Sin cambios en las últimas '+AVISO_HORAS+' horas.</p>');
+  }
+  // Hasta qué momento ya se vieron los avisos (se recuerda en este navegador)
+  function avisoVisto(){ try { return +localStorage.getItem('logistica.avisoVisto') || 0 } catch(e){ return 0 } }
+  function marcarAvisosVistos(){
+    var t = Date.now();
+    CAMBIOS.forEach(function(c){ var f = new Date(c.fecha).getTime(); if(f > t) t = f; });
+    try { localStorage.setItem('logistica.avisoVisto', t) } catch(e){}
+    $('nAv').textContent = '';
   }
   function cerrarAvisos(){ $('avPop').hidden = true; $('campana').setAttribute('aria-expanded','false'); }
   // Rutas de entrega: las unidades de Ventas cuyo destino cae en una ruta (logica.js, RUTAS)
@@ -1005,7 +1015,7 @@ button.rpill:hover{box-shadow:inset 0 0 0 1px currentColor}
     var k = +b.dataset.paso; st.paso = st.paso===k ? -1 : k; drawView(); // al picarlo otra vez se quita
   });
   $('q').addEventListener('input', function(e){ st.q=e.target.value; st.tipo=''; st.destino=''; st.vendedor=''; draw(); });
-  $('campana').addEventListener('click', function(e){ e.stopPropagation(); var abierto = $('avPop').hidden; $('avPop').hidden = !abierto; $('campana').setAttribute('aria-expanded', abierto); });
+  $('campana').addEventListener('click', function(e){ e.stopPropagation(); var abierto = $('avPop').hidden; $('avPop').hidden = !abierto; $('campana').setAttribute('aria-expanded', abierto); if(abierto) marcarAvisosVistos(); });
   $('avPop').addEventListener('click', function(e){ e.stopPropagation(); var b=e.target.closest('button[data-i]'); if(b){ cerrarAvisos(); abrir(+b.dataset.i); } });
   document.addEventListener('click', function(){ if(!$('avPop').hidden) cerrarAvisos(); });
   $('modo').addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return; modo=b.dataset.m; try{ localStorage.setItem('logistica.modo', modo) }catch(err){} drawView(); });
