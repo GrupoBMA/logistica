@@ -1,6 +1,6 @@
 -- Pruebas de ventas y producción (actualizadas el 21-nov-2026). Se corren completas con execute_sql de Supabase.
 -- Todo va en una transacción que termina en ROLLBACK: no deja nada guardado.
--- Necesita en bodega1 al menos un modelo y color con 2 o más vehículos en espera de armado, y ninguno plateado.
+-- Necesita en bodega1 al menos un modelo y color con 2 o más vehículos en espera de armado (un contenedor revisado), con la lista de piezas del MC 150, y ningún vehículo plateado. Desde el 21-nov-2026 los datos están en blanco: para correrla, primero recibir y revisar un contenedor de prueba.
 begin;
 create temp table r (n serial, caso text, ok boolean, detalle text);
 grant all on r to authenticated; grant all on sequence r_n_seq to authenticated;

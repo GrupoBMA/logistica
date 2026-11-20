@@ -200,6 +200,13 @@
         el('text', {class: 'ln-falta', x: rx + w/2, y: ry + 1.5}, g).textContent = txtRojo;
       }
       if(rama || id==='espera') el('text', {class: 'ln-sub', x: x0, y: y0+2.1}, g).textContent = id==='espera' ? 'de armado' : 'solo especiales';
+      // Si hay más vehículos de los que caben dibujados, "+N" en la esquina del área
+      var ocultos = id==='espera' ? 0 : n - lugares(id).length;
+      if(ocultos > 0){
+        var tx = '+'+ocultos, ww = tx.length * 1.2 + 2, bx = c.x + c.w - ww - .8, by = lado==='abajo' ? c.y + .8 : c.y + c.h - 3.8;
+        el('rect', {x: bx, y: by, width: ww, height: 3, rx: 1.5, class: 'ln-mas'}, g);
+        el('text', {class: 'ln-mas-t', x: bx + ww/2, y: by + 1.5}, g).textContent = tx;
+      }
     });
     L.svg.querySelectorAll('.ln-area').forEach(function(a){ a.classList.toggle('sel', a.dataset.ln===L.abierta) });
   }

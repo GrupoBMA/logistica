@@ -392,7 +392,11 @@
         p.serie = serie;
         return H.rpc('inv_produccion_entrar', {p: p}).then(function(r){
           refrescarCuentas();
-          H.avisar('Serie '+serie+' entró a producción, en Armado.');
+          H.avisar('Serie '+serie+' entró a producción, en Armado. Sus piezas se descontaron del inventario.');
+          // Entra aunque no alcancen las piezas (llegan con el vehículo), pero se avisa cuáles faltan en el inventario
+          var fal = r.faltan_en_inventario || [];
+          if(fal.length) aviso('Faltan piezas en el inventario', 'Serie '+serie+' entró a producción, pero en el inventario no alcanzaron: '+
+            fal.map(function(x){ return x.faltan+' '+x.pieza }).join(', ')+'. Revisa que se hayan registrado al revisar su contenedor.');
           H.marcarNuevo('produccion');
           if(despues) despues(r.id);
           else if(E.seccion==='ventas' && CACHE.venta) abrirFichaVenta(CACHE.venta.id);
@@ -546,7 +550,7 @@
       var notas = (f.historial||[]).filter(function(x){ return x.accion==='no_paso' });
       if(notas.length) html += '<h3 class="ficha-sub">No pasó la revisión final</h3><ul class="notas">'+notas.map(function(x){
         return '<li>'+esc(H.fechaLarga(String(x.fecha).slice(0, 10)))+': '+esc(x.nota)+'</li>' }).join('')+'</ul>';
-      var hist = (f.historial||[]).filter(function(x){ return x.accion!=='no_paso' });
+      var hist = E.rol==='bodega' ? [] : (f.historial||[]).filter(function(x){ return x.accion!=='no_paso' });   // el historial no lo ven las bodegas
       if(hist.length) html += '<h3 class="ficha-sub">Historial</h3><ul class="historial">'+hist.map(function(x){
         var txt = x.accion==='entro' ? 'Entró a '+etapa(x.etapa).nombre : x.accion==='regreso' ? 'Regresó a '+etapa(x.etapa).nombre
           : x.accion==='faltantes' ? 'Se detuvo: faltan piezas' : 'Se pusieron las piezas que faltaban';

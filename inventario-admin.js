@@ -70,18 +70,20 @@
     H.rpc('inv_inventario', {p_bodega: E.verBodega}).then(function(inv){
       if(E.seccion!=='piezas') return;
       var piezas = inv.piezas || [], danos = inv.danos || [], falt = inv.faltantes || [];
-      var total = piezas.reduce(function(s, x){ return s + (+x.disponibles||0) }, 0);
+      var total = piezas.reduce(function(s, x){ return s + Math.max(0, +x.disponibles||0) }, 0);
       var nDan = piezas.reduce(function(s, x){ return s + (+x.danadas||0) }, 0);
       var nFalt = falt.reduce(function(s, x){ return s + (+x.contenedores||0) + (+x.vehiculos||0) }, 0);
       function fila(ico, nombre, det, n, extra){
         return '<div class="tarjeta"><span class="ico-p">'+ico+'</span><span class="txt"><b>'+esc(nombre)+'</b>'+(det ? '<small>'+det+'</small>' : '')+'</span>'+(extra||'')+'<span class="cant">'+n+'</span></div>';
       }
       function grav(g){ return {leve: 'Leve', media: 'Media', grave: 'Grave'}[g] || '' }
-      vistas(m, 'Piezas', 'Lo que hay de cada pieza, según los contenedores ya revisados.', [
+      vistas(m, 'Piezas', 'Lo que hay de cada pieza: lo que llegó en los contenedores revisados, menos lo dañado y lo que ya se usó al armar.', [
         {id: 'total', nombre: 'Disponibles', n: total, contenido: function(){
           return piezas.length ? '<div class="tarjetas">'+piezas.map(function(x){
-            return fila(H.icoPieza(x.pieza), x.pieza + (x.color ? ' · '+x.color : ''), 'Disponibles', x.disponibles,
-              (+x.danadas ? '<span class="etq rojo chica">'+x.danadas+(+x.danadas===1 ? ' dañada' : ' dañadas')+'</span>' : ''));
+            var det = 'Disponibles' + (+x.usadas ? ' · '+x.usadas+' ya se usaron en vehículos' : '');
+            return fila(H.icoPieza(x.pieza), x.pieza, det, +x.disponibles < 0 ? '<span style="color:var(--neg)">'+x.disponibles+'</span>' : x.disponibles,
+              (+x.danadas ? '<span class="etq rojo chica">'+x.danadas+(+x.danadas===1 ? ' dañada' : ' dañadas')+'</span>' : '')+
+              (+x.disponibles < 0 ? '<span class="etq rojo chica">No alcanzaron</span>' : ''));
           }).join('')+'</div>' : vacio('Todavía no hay piezas: entran al revisar un contenedor') }},
         {id: 'danadas', nombre: 'Dañadas', n: nDan, rojo: true, contenido: function(){
           return danos.length ? '<div class="tarjetas">'+danos.map(function(d){
