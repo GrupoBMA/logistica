@@ -35,12 +35,18 @@
     inventario: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h14M3 10h14M3 14h9"/></svg>',
     catalogos: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3.5h9.5L16 6v10.5H4z"/><path d="M7 8h6M7 11h6M7 14h3"/></svg>',
     cambios: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 2"/></svg>',
+    venta: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7"/><path d="M10 6.5v7M6.5 10h7"/></svg>',
+    ventas: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3.5h10v13l-2.5-1.5L10 16.5 7.5 15 5 16.5z"/><path d="M7.5 7.5h5M7.5 10.5h5"/></svg>',
+    produccion: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 4.5a3 3 0 0 0 3.5 3.8l-7.7 7.7a1.6 1.6 0 0 1-2.3-2.3l7.7-7.7a3 3 0 0 0-1.2-1.5z"/></svg>',
     flecha: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg>'
   };
 
   // ---------------------------------------------------------------- Secciones del menú
   var SECCIONES = [
-    {id: 'recibir',      nombre: 'Recibir contenedor', sub: 'Registrar lo que llegó',        roles: ['admin','bodega']},
+    {id: 'venta',        nombre: 'Nueva venta',        sub: 'La que llegó por WhatsApp',     roles: ['admin','bodega']},
+    {id: 'ventas',       nombre: 'Ventas',             sub: 'Por armar, esperando piezas…',  roles: ['admin','bodega','lectura']},
+    {id: 'produccion',   nombre: 'Producción',         sub: 'Etapas de cada vehículo',       roles: ['admin','bodega','lectura']},
+    {id: 'recibir',     nombre: 'Recibir contenedor', sub: 'Registrar lo que llegó',        roles: ['admin','bodega']},
     {id: 'contenedores', nombre: 'Contenedores',       sub: 'Revisar y consultar',           roles: ['admin','bodega','lectura']},
     {id: 'inventario',   nombre: 'Inventario',         sub: 'Piezas y vehículos en espera',  roles: ['admin','bodega','lectura']},
     {id: 'catalogos',    nombre: 'Catálogos',          sub: 'Modelos, colores, piezas',      roles: ['admin']},
@@ -280,7 +286,7 @@
       E.rol = s.rol; E.bodega = s.bodega || null;
       E.verBodega = E.rol==='bodega' ? E.bodega : null;
       H.alIniciar.forEach(function(f){ try { f() } catch(e){} });
-      ir(puedeEscribir() && E.rol==='bodega' ? 'recibir' : 'contenedores');
+      ir(E.rol==='bodega' ? 'produccion' : 'contenedores');
     }).catch(function(err){ q('.inv-main', E.raiz).innerHTML = '<p class="inv-error">'+esc(mensaje(err))+'</p>' });
   }
   function cerrar(){
