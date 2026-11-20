@@ -25,7 +25,9 @@
   .letrero{position:fixed;z-index:2;transform:translate(-50%,-100%);display:flex;align-items:center;gap:8px;padding:7px 8px 7px 13px;border-radius:14px;
     background:var(--tarjeta);box-shadow:0 6px 20px rgba(0,0,0,.08),0 0 0 1px var(--borde);font-size:15px;font-weight:600;white-space:nowrap;cursor:pointer;
     transition:transform .18s cubic-bezier(.2,.8,.2,1),box-shadow .18s}
-  .letrero:hover,.letrero.sel{transform:translate(-50%,-100%) translateY(-3px);box-shadow:0 10px 26px rgba(0,0,0,.12),0 0 0 2px var(--texto)}
+  .letrero.abajo{transform:translate(-50%,0)}
+  .letrero.abajo:hover,.letrero.abajo.sel{transform:translate(-50%,0) translateY(3px);box-shadow:0 10px 26px rgba(0,0,0,.12),0 0 0 2px var(--texto)}
+  .letrero:not(.abajo):hover,.letrero:not(.abajo).sel{transform:translate(-50%,-100%) translateY(-3px);box-shadow:0 10px 26px rgba(0,0,0,.12),0 0 0 2px var(--texto)}
   .letrero .n{min-width:28px;height:26px;padding:0 8px;border-radius:13px;display:grid;place-items:center;background:#f1f1ee;font-size:14px;font-variant-numeric:tabular-nums}
   .letrero .n.hay{background:var(--texto);color:#fff}
   .letrero .falta{height:26px;padding:0 9px;border-radius:13px;display:grid;place-items:center;background:var(--rojo);color:#fff;font-size:13px}
@@ -94,19 +96,25 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 // ================================================================ Datos de prueba
 const COLORES = {Blanco:'#f4f4f1', Azul:'#3f6fd8', Rojo:'#d9483b', Tinto:'#7d2333', Negro:'#2b2b2e', Verde:'#3e9b6a', Plata:'#b9bcc2'};
 const ETAPAS = [
-  {id:'espera',         nombre:'En espera de armado', color:'#4b63d6', pos:[-16,-4]},
-  {id:'armado',         nombre:'Armado',              color:'#f08a4b', pos:[-9,-4]},
-  {id:'revision1',      nombre:'Revisión 1',          color:'#3fbf9b', pos:[-2,-4]},
-  {id:'herreria',       nombre:'Herrería',            color:'#6c7a91', pos:[-2,-12], especial:true},
-  {id:'forrado',        nombre:'Forrado',             color:'#9a6ee0', pos:[5,-12],  especial:true},
-  {id:'mecanica',       nombre:'Mecánica',            color:'#f2c14e', pos:[9,-4]},
-  {id:'detallado',      nombre:'Detallado y pintura', color:'#ef7f9a', pos:[9,5]},
-  {id:'revision_final', nombre:'Revisión final',      color:'#4fb36d', pos:[2,5]},
-  {id:'listo',          nombre:'Listo',               color:'#8a9099', pos:[-6.5,5]}
+  {id:'espera',         nombre:'En espera de armado', color:'#4b63d6', pos:[-15,-6], lado:'arriba'},
+  {id:'armado',         nombre:'Armado',              color:'#f08a4b', pos:[-5,-6],  lado:'arriba'},
+  {id:'revision1',      nombre:'Revisión 1',          color:'#3fbf9b', pos:[5,-6],   lado:'arriba'},
+  {id:'mecanica',       nombre:'Mecánica',            color:'#f2c14e', pos:[15,-6],  lado:'arriba'},
+  {id:'herreria',       nombre:'Herrería',            color:'#6c7a91', pos:[32,-2.6], lado:'derecha', especial:true},
+  {id:'forrado',        nombre:'Forrado',             color:'#9a6ee0', pos:[32,3.2],  lado:'derecha', especial:true},
+  {id:'detallado',      nombre:'Detallado y pintura', color:'#ef7f9a', pos:[15,6],   lado:'abajo'},
+  {id:'revision_final', nombre:'Revisión final',      color:'#4fb36d', pos:[3,6],    lado:'abajo'},
+  {id:'listo',          nombre:'Listo',               color:'#8a9099', pos:[-9,6],   lado:'abajo'}
 ];
+// Hacia dónde mira cada lado (giro del edificio y de los vehículos estacionados)
+const LADO = {
+  arriba:  {edif:[0,-2.7], piso:[0,3.3],  rotEdif:0,          rotVeh:0},
+  abajo:   {edif:[0,2.7],  piso:[0,-3.3], rotEdif:Math.PI,    rotVeh:Math.PI},
+  derecha: {edif:[2.7,0],  piso:[-3.1,0], rotEdif:-Math.PI/2, rotVeh:-Math.PI/2}
+};
 const E = Object.fromEntries(ETAPAS.map(e => [e.id, e]));
-const SIG = {armado:'revision1', herreria:'forrado', forrado:'mecanica', mecanica:'detallado', detallado:'revision_final', revision_final:'listo'};
-function siguiente(v){ return v.etapa==='revision1' ? (v.especial ? 'herreria' : 'mecanica') : SIG[v.etapa] }
+const SIG = {armado:'revision1', revision1:'mecanica', herreria:'forrado', forrado:'detallado', detallado:'revision_final', revision_final:'listo'};
+function siguiente(v){ return v.etapa==='mecanica' ? (v.especial ? 'herreria' : 'detallado') : SIG[v.etapa] }
 
 let ESPERA = [
   {modelo:'MC 150 · Sin hidráulico · Doble', color:'Blanco', n:31},
@@ -147,14 +155,14 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color('#efeeea');
 
 // Cámara fija, isométrica (sin zoom ni giro)
-const CENTRO = new THREE.Vector3(-3.5, 0, -3.5);
+const CENTRO = new THREE.Vector3(8.5, 0, 0);
 const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200);
-camera.position.set(CENTRO.x + 30, 28, CENTRO.z + 30);
+camera.position.set(CENTRO.x, 42, CENTRO.z + 15);   // desde arriba, ~70° de inclinación, sin giro
 camera.lookAt(CENTRO);
 
 scene.add(new THREE.HemisphereLight('#ffffff', '#c9c6bd', 1.5));
 const sol = new THREE.DirectionalLight('#fff6ea', 2.3);
-sol.position.set(CENTRO.x + 14, 26, CENTRO.z + 6);
+sol.position.set(CENTRO.x - 10, 30, CENTRO.z + 12);
 sol.target.position.copy(CENTRO);
 sol.castShadow = true;
 sol.shadow.mapSize.set(2048, 2048);
@@ -169,28 +177,38 @@ function caja(w, h, d, color, r=0.12, x=0, y=0, z=0, padre=scene){
   m.position.set(x, y + h/2, z); m.castShadow = true; m.receiveShadow = true; padre.add(m); return m;
 }
 
-// Base: losa grande con bordes redondeados, pasto suave alrededor
-caja(40, 0.8, 30, '#f7f6f2', 0.6, CENTRO.x + 0.5, -0.8, CENTRO.z + 0.5);
-caja(38, 0.06, 28, '#ffffff', 0.4, CENTRO.x + 0.5, 0, CENTRO.z + 0.5);
-[[-21,-16,3.2,5],[12.5,-16,4,4],[-21,10,5,3.5],[13,10.5,4,3]].forEach(([x,z,w,d]) => caja(w, 0.08, d, '#dfeee0', 0.3, x, 0.04, z));
+// Base: losa grande con bordes redondeados, pasto suave en las esquinas
+caja(68, 0.8, 32, '#f7f6f2', 0.7, CENTRO.x, -0.8, CENTRO.z);
+caja(66, 0.06, 30, '#ffffff', 0.5, CENTRO.x, 0, CENTRO.z);
+[[-21,-12.5,5,3.5],[38,-12.5,5,3.5],[38,12.5,5,3.5],[-17,12.5,6,3]].forEach(([x,z,w,d]) => caja(w, 0.08, d, '#dfeee0', 0.3, x, 0.04, z));
 
-// Bandas transportadoras (camino entre estaciones) con puntitos naranjas
+// Banda transportadora en U (como el dibujo del usuario) con rayitas blancas
+const P = Object.fromEntries(ETAPAS.map(e => [e.id, e.pos]));
+const C1 = [23,-6], C2 = [23,6], R1 = [32,-6], R2 = [32,6];
 const RUTAS = {
-  'espera>armado':[[-16,-4],[-9,-4]], 'armado>revision1':[[-9,-4],[-2,-4]], 'revision1>mecanica':[[-2,-4],[9,-4]],
-  'revision1>herreria':[[-2,-4],[-2,-12]], 'herreria>forrado':[[-2,-12],[5,-12]], 'forrado>mecanica':[[5,-12],[9,-12],[9,-4]],
-  'mecanica>detallado':[[9,-4],[9,5]], 'detallado>revision_final':[[9,5],[2,5]], 'revision_final>listo':[[2,5],[-6.5,5]]
+  'espera>armado':[P.espera,P.armado], 'armado>revision1':[P.armado,P.revision1], 'revision1>mecanica':[P.revision1,P.mecanica],
+  'mecanica>detallado':[P.mecanica,C1,C2,P.detallado],
+  'mecanica>herreria':[P.mecanica,C1,R1,P.herreria], 'herreria>forrado':[P.herreria,P.forrado], 'forrado>detallado':[P.forrado,R2,C2,P.detallado],
+  'detallado>revision_final':[P.detallado,P.revision_final], 'revision_final>listo':[P.revision_final,P.listo]
 };
-const puntos = new THREE.InstancedMesh(new THREE.SphereGeometry(0.09, 10, 8), mat('#f2894a', 0.6), 400);
+const BANDA = '#2c5f6c';
+function banda(x1, z1, x2, z2){
+  const b = caja(Math.abs(x2-x1)+1.7, 0.16, Math.abs(z2-z1)+1.7, BANDA, 0.5, (x1+x2)/2, 0.06, (z1+z2)/2);
+  b.castShadow = false;
+}
+banda(-20, -6, 23, -6); banda(23, -6, 23, 6); banda(23, 6, -20, 6);
+// Rama de especiales (Herrería y Forrado), por fuera de la U
+banda(23, -6, 32, -6); banda(32, -6, 32, 6); banda(32, 6, 23, 6);
+// Flecha de salida (después de Listo)
+const flecha = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.7, 0.16, 3), mat(BANDA));
+flecha.rotation.y = Math.PI/2; flecha.scale.set(1, 1, 1.25); flecha.position.set(-22.1, 0.14, 6); flecha.receiveShadow = true; scene.add(flecha);
+const rayitas = new THREE.InstancedMesh(new THREE.BoxGeometry(0.34, 0.03, 0.08), mat('#ffffff', 0.5), 300);
 let ip = 0; const dm = new THREE.Object3D();
-Object.values(RUTAS).forEach(r => {
-  for(let i=0; i<r.length-1; i++){
-    const [x1,z1] = r[i], [x2,z2] = r[i+1], lx = x2-x1, lz = z2-z1, L = Math.hypot(lx, lz);
-    const banda = caja(Math.abs(lx)+1.4, 0.14, Math.abs(lz)+1.4, '#d9d8d3', 0.25, (x1+x2)/2, 0.06, (z1+z2)/2);
-    banda.castShadow = false;
-    for(let s=0.8; s<L-0.8; s+=0.55){ dm.position.set(x1 + lx*s/L, 0.25, z1 + lz*s/L); dm.updateMatrix(); puntos.setMatrixAt(ip++, dm.matrix); }
-  }
+[[[-20,-6],[23,-6]], [[23,-6],[23,6]], [[23,6],[-20,6]], [[23.9,-6],[32,-6]], [[32,-6],[32,6]], [[32,6],[23.9,6]]].forEach(([[x1,z1],[x2,z2]]) => {
+  const lx = x2-x1, lz = z2-z1, L = Math.hypot(lx, lz);
+  for(let t=0.4; t<L-0.2; t+=0.75){ dm.position.set(x1 + lx*t/L, 0.235, z1 + lz*t/L); dm.rotation.y = Math.atan2(-lz, lx); dm.updateMatrix(); rayitas.setMatrixAt(ip++, dm.matrix); }
 });
-puntos.count = ip; scene.add(puntos);
+rayitas.count = ip; scene.add(rayitas);
 
 // ---------------------------------------------------------------- Estaciones
 const clicables = [];   // mallas que abren la tarjeta de su estación
@@ -203,7 +221,8 @@ function ventanas(g, w, h, z, filas, cols, color='#dfe8ff'){
   }
 }
 function edificio(e){
-  const [x, z] = e.pos, g = new THREE.Group(); g.position.set(x, 0.06, z - 1.25); scene.add(g);
+  const [x, z] = e.pos, L = LADO[e.lado], g = new THREE.Group();
+  g.position.set(x + L.edif[0], 0.06, z + L.edif[1]); g.rotation.y = L.rotEdif; scene.add(g);
   const base = (w, h, d, color, techo) => {
     caja(w, h, d, '#fbfaf7', 0.1, 0, 0, 0, g);
     caja(w+0.12, 0.22, d+0.12, techo || color, 0.08, 0, h - 0.02, 0, g);
@@ -233,7 +252,6 @@ function edificio(e){
     case 'detallado':
       base(3.2, 2.1, 2.0, e.color); ventanas(g, 3.2, 2.1, 1.02, 2, 3, '#ffe3ea'); break;
     case 'listo':   // estacionamiento con camión de flete
-      g.position.z = z - 1.6;
       caja(2.2, 1.5, 1.6, e.color, 0.1, -2.6, 0, 0, g); caja(2.3, 0.16, 1.7, '#6f757e', 0.06, -2.6, 1.5, 0, g);
       caja(2.6, 1.3, 1.3, '#f3f3f0', 0.12, 1.2, 0, 0, g); caja(1.0, 1.0, 1.25, '#f08a4b', 0.12, 3.0, 0, 0, g);
       [[0.3,-0.65],[2.1,-0.65],[3.1,-0.65],[0.3,0.65],[2.1,0.65],[3.1,0.65]].forEach(([wx,wz]) => {
@@ -242,12 +260,13 @@ function edificio(e){
   }
   marcar(g, e.id);
   // Piso de la estación (donde se forman los vehículos)
-  const w = e.id==='listo' ? 10 : 6, d = 4.4;
-  const piso = caja(w, 0.1, d, '#f1efe9', 0.35, x, 0.06, z + 0.9);
+  const lado = e.lado==='derecha', w = lado ? 3.4 : (e.id==='listo' ? 9 : 6.8), d = lado ? 4.8 : 3.8;
+  const px = x + L.piso[0], pz = z + L.piso[1];
+  const piso = caja(w, 0.1, d, '#f1efe9', 0.35, px, 0.06, pz);
   piso.castShadow = false; marcar(piso, e.id);
-  const borde = caja(w + 0.18, 0.06, d + 0.18, e.color, 0.38, x, 0.04, z + 0.9);
+  const borde = caja(w + 0.2, 0.06, d + 0.2, e.color, 0.38, px, 0.04, pz);
   borde.material = new THREE.MeshStandardMaterial({color:e.color, roughness:.8, transparent:true, opacity:.35}); borde.castShadow = false;
-  e.piso = {x, z: z + 0.9, w, d};
+  e.piso = {x: px, z: pz, w, d}; e.rot = L.rotVeh;
 }
 ETAPAS.forEach(edificio);
 
@@ -257,7 +276,7 @@ function arbol(x, z, s=1, pino=false){
   const c = pino ? new THREE.Mesh(new THREE.ConeGeometry(0.5*s, 1.3*s, 10), mat('#5fb07a')) : new THREE.Mesh(new THREE.SphereGeometry(0.55*s, 18, 14), mat('#86cc90'));
   c.position.set(x, (pino ? 1.2 : 1.05)*s, z); c.castShadow = true; scene.add(c);
 }
-[[-21.5,-17,1],[-20,-14.5,.8,true],[12,-17,1],[14,-14.5,.9,true],[-22,10,1.1],[-19.5,11.5,.8,true],[13.5,10,1],[12,12,.8,true],[-10,-15.5,.8],[14.5,0,.9,true],[-22,-1,.8],[-12,11.5,.9]]
+[[-22,-12.5,1],[-19.5,-13,.8,true],[37,-12.5,1],[39.5,-12,.8,true],[37,12.5,1],[39.5,12.8,.9,true],[-17,13,.9],[-20.5,12.6,.8,true],[4,-13.5,.8],[22,-13.5,.9,true],[10,13.5,.8,true],[27.5,0,.8]]
   .forEach(([x,z,s,p]) => arbol(x, z, s, p));
 
 // ---------------------------------------------------------------- Vehículos (motocarros)
@@ -279,24 +298,26 @@ function aro(){ const a = new THREE.Mesh(aroGeo, new THREE.MeshBasicMaterial({co
 
 const MAX_LUGARES = 6;
 function lugares(etapa){
-  const p = E[etapa].piso, cols = etapa==='listo' ? 5 : 3, filas = 2, res = [];
-  for(let f=0; f<filas; f++) for(let c=0; c<cols; c++) res.push(new THREE.Vector3(p.x - (cols-1)*0.92 + c*1.84, 0.11, p.z - 0.35 + f*1.55));
+  const e = E[etapa], p = e.piso, res = [];
+  if(e.lado==='derecha'){ for(let f=0; f<2; f++) for(let c=0; c<2; c++) res.push(new THREE.Vector3(p.x - 0.8 + c*1.6, 0.11, p.z - 1.1 + f*2.2)); return res; }
+  const cols = etapa==='listo' ? 4 : 3, dz = e.lado==='arriba' ? 1 : -1;
+  for(let f=0; f<2; f++) for(let c=0; c<cols; c++) res.push(new THREE.Vector3(p.x - (cols-1)*1.05 + c*2.1, 0.11, p.z - dz*0.85 + dz*f*1.7));
   return res;
 }
 VEH.forEach(v => crearMalla(v));
 function crearMalla(v){
-  v.malla = motocarro(v.color, v.especial); v.malla.rotation.y = 0; v.malla.scale.setScalar(1.55);
+  v.malla = motocarro(v.color, v.especial); v.malla.rotation.y = 0; v.malla.scale.setScalar(1.75);
   marcar(v.malla, null); v.malla.traverse(o => { if(o.isMesh) o.userData.veh = v; });
   scene.add(v.malla);
 }
 function acomodar(animar=true){
   ETAPAS.forEach(e => {
-    const ls = lugares(e.id), vs = VEH.filter(v => v.etapa===e.id), cupo = e.id==='listo' ? 10 : MAX_LUGARES;
+    const ls = lugares(e.id), vs = VEH.filter(v => v.etapa===e.id), cupo = ls.length;
     vs.forEach((v, i) => {
       const destino = ls[i % ls.length].clone();
       v.malla.visible = i < cupo;
       if(v.anim) return;
-      if(animar){ v.ir = [destino]; } else { v.malla.position.copy(destino); }
+      if(animar){ v.ir = [destino]; } else { v.malla.position.copy(destino); v.malla.rotation.y = e.rot; }
       if(v.faltantes && !v.aro){ v.aro = aro(); v.malla.add(v.aro); }
       if(!v.faltantes && v.aro){ v.malla.remove(v.aro); v.aro = null; }
     });
@@ -308,7 +329,7 @@ acomodar(false);
 function mover(v, a){
   const ruta = RUTAS[v.etapa+'>'+a] || [];
   v.etapa = a; v.dias = 0; v.anim = true;
-  const pts = ruta.map(([x,z]) => new THREE.Vector3(x, 0.32, z));
+  const pts = ruta.map(([x,z]) => new THREE.Vector3(x, 0.24, z));
   const otros = VEH.filter(o => o.etapa===a && o!==v).length;
   const destino = lugares(a)[otros % lugares(a).length].clone();
   v.ir = [...pts.slice(1), destino];
@@ -322,24 +343,24 @@ function paso(dt){
     if(!v.ir || !v.ir.length){ if(v.anim){ v.anim = false; v.malla.position.y = 0.11; } return; }
     const t = v.ir[0], p = v.malla.position, d = t.clone().sub(p); d.y = 0;
     const L = d.length(), vel = 7 * dt;
-    if(L > 0.02){ const ang = Math.atan2(-d.z, d.x); v.malla.rotation.y += (ang - v.malla.rotation.y) * Math.min(1, dt*12); }
-    if(L <= vel){ p.x = t.x; p.z = t.z; v.ir.shift(); if(!v.ir.length && !v.anim) v.malla.rotation.y = 0; }
+    if(L > 0.02){ const ang = Math.atan2(-d.z, d.x); let dif = ang - v.malla.rotation.y; dif = Math.atan2(Math.sin(dif), Math.cos(dif)); v.malla.rotation.y += dif * Math.min(1, dt*12); }
+    if(L <= vel){ p.x = t.x; p.z = t.z; v.ir.shift(); if(!v.ir.length && !v.anim) v.malla.rotation.y = E[v.etapa].rot; }
     else { p.addScaledVector(d.normalize(), vel); }
     p.y = v.anim ? 0.11 + Math.abs(Math.sin(performance.now()/90))*0.03 : 0.11;
-    if(!v.ir.length && v.anim){ v.anim = false; v.malla.rotation.y = 0; acomodar(); }
+    if(!v.ir.length && v.anim){ v.anim = false; v.malla.rotation.y = E[v.etapa].rot; acomodar(); }
     movio = true;
   });
   return movio;
 }
 
 // ---------------------------------------------------------------- Tamaño (siempre se ve toda la línea)
-const LIM = {x0:-23.5, x1:16.5, z0:-18.5, z1:12.5};
+const LIM = {x0:-25, x1:42, z0:-16, z1:16};
 function ajustar(){
   const w = cont.clientWidth, h = cont.clientHeight;
   renderer.setSize(w, h);
   const esquinas = [], vertical = h > w;
   // En pantalla vertical se recorta el borde de la losa para que la línea se vea más grande
-  const L = vertical ? {x0:-19.5, x1:12.5, z0:-15.5, z1:9.5} : LIM;
+  const L = vertical ? {x0:-23.5, x1:40, z0:-11.5, z1:11.5} : LIM;
   for(const x of [L.x0, L.x1]) for(const z of [L.z0, L.z1]) for(const y of [-0.8, 3]) esquinas.push(new THREE.Vector3(x, y, z));
   camera.left = -1; camera.right = 1; camera.top = 1; camera.bottom = -1; camera.zoom = 1; camera.updateProjectionMatrix(); camera.updateMatrixWorld();
   let mnx=Infinity,mxx=-Infinity,mny=Infinity,mxy=-Infinity;
@@ -371,10 +392,12 @@ function dibujar(){
 function posLetreros(){
   const r = renderer.domElement.getBoundingClientRect();
   ETAPAS.forEach(e => {
-    const alto = e.id==='espera' ? 3.1 : e.id==='listo' ? 2.1 : 2.75;
-    const p = new THREE.Vector3(e.pos[0], alto, e.pos[1] - (e.id==='listo' ? 1.6 : 1.25)).project(camera);
+    const L = LADO[e.lado], abajo = e.lado==='abajo';
+    const pt = abajo ? [e.pos[0], 0, e.pos[1] + L.edif[1] + 1.5] : e.lado==='derecha' ? [e.pos[0] + L.edif[0], 2.4, e.pos[1] - 1.6] : [e.pos[0], 2.6, e.pos[1] + L.edif[1] - 1.2];
+    const p = new THREE.Vector3(...pt).project(camera);
     e.pantalla = {x: r.left + (p.x+1)/2*r.width, y: r.top + (1-p.y)/2*r.height};
-    e.letrero.style.left = e.pantalla.x + 'px'; e.letrero.style.top = (e.pantalla.y - 6) + 'px';
+    e.letrero.classList.toggle('abajo', abajo);
+    e.letrero.style.left = e.pantalla.x + 'px'; e.letrero.style.top = (e.pantalla.y + (abajo ? 4 : -4)) + 'px';
   });
 }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
@@ -433,7 +456,7 @@ tarjeta.addEventListener('click', ev => {
     const x = ESPERA[+b.dataset.entrar]; if(!x || !x.n) return;
     x.n--;
     const v = {serie:'LXY'+(siguienteSerie++), modelo:x.modelo.split(' · ')[0], color:x.color, rem:null, etapa:'espera', dias:0};
-    VEH.push(v); crearMalla(v); v.malla.position.set(-16, 0.11, -3.3);
+    VEH.push(v); crearMalla(v); v.malla.position.set(P.espera[0], 0.11, P.espera[1]);
     mover(v, 'armado');
     abrir('espera');
   }
