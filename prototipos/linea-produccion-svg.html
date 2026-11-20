@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Línea de producción · versión sin 3D</title>
+<link rel="icon" href="../icono.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Prototipo (20-nov-2026): la misma línea en U, dibujada solo con SVG (sin three.js ni librerías).
+     Banda transportadora con rodillos en cada estación y un área de color con su nombre. Datos de prueba. -->
+<style>
+  :root{
+    --fondo:#efeeea; --piso:#fbfaf7; --texto:#1d1d1f; --tenue:#77777c; --tarjeta:rgba(255,255,255,.95); --borde:rgba(0,0,0,.06);
+    --banda:#2c5f6c; --rodillo:#ffffff; --rodillo-l:#1f9e93;
+    --rojo:#e5533d; --rojo-bg:#fde9e5; --azul:#2f63c9; --azul-bg:#e4ecfb; --ambar:#b7791f; --ambar-bg:#fbf0dc;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--fondo);color:var(--texto);font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .cab{position:fixed;left:24px;top:20px;z-index:3;pointer-events:none}
+  .cab h1{margin:0;font-size:24px;letter-spacing:-.02em}
+  .cab p{margin:4px 0 0;color:var(--tenue);font-size:15px}
+  .cab .prueba{display:inline-block;margin-top:8px;padding:3px 10px;border-radius:10px;background:var(--ambar-bg);color:var(--ambar);font-size:13px;font-weight:500}
+  svg#linea{position:fixed;inset:0;width:100%;height:100%;display:block}
+  /* Banda que avanza */
+  .flujo{stroke:#ffffff;stroke-opacity:.55;stroke-width:.35;stroke-dasharray:1.4 1.6;fill:none;animation:avanza 1.6s linear infinite}
+  @keyframes avanza{to{stroke-dashoffset:-3}}
+  @media (prefers-reduced-motion:reduce){.flujo{animation:none}}
+  /* Áreas */
+  .area{cursor:pointer}
+  .area .fondo{transition:fill-opacity .18s}
+  .area:hover .fondo,.area.sel .fondo{fill-opacity:.26}
+  .area.sel .orilla{stroke-width:.45;stroke-opacity:1}
+  .nombre{font-size:2.3px;font-weight:600;fill:var(--texto)}
+  .sub{font-size:1.5px;font-weight:500;fill:var(--tenue)}
+  .cuenta{font-size:1.9px;font-weight:700;fill:#fff;text-anchor:middle;dominant-baseline:central}
+  .falta{font-size:1.5px;font-weight:600;fill:#fff;text-anchor:middle;dominant-baseline:central}
+  .veh{cursor:pointer}
+  /* Tarjeta flotante (igual que la versión 3D) */
+  .tarjeta{position:fixed;z-index:4;width:380px;max-height:min(520px,calc(100vh - 40px));display:flex;flex-direction:column;border-radius:22px;background:var(--tarjeta);
+    -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 20px 50px rgba(0,0,0,.14),0 0 0 1px var(--borde);
+    opacity:0;transform:translateY(8px) scale(.98);pointer-events:none;transition:opacity .2s,transform .2s cubic-bezier(.2,.8,.2,1)}
+  .tarjeta.abierta{opacity:1;transform:none;pointer-events:auto}
+  .t-cab{display:flex;align-items:center;gap:14px;padding:20px 20px 14px}
+  .t-ico{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;flex:none}
+  .t-ico i{width:18px;height:18px;border-radius:5px;display:block}
+  .t-cab h2{margin:0;font-size:22px;letter-spacing:-.01em}
+  .t-cab small{display:flex;align-items:center;gap:6px;margin-top:2px;color:var(--tenue);font-size:13px;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+  .t-cab small i{width:7px;height:7px;border-radius:50%;background:var(--rojo)}
+  .t-x{margin-left:auto;align-self:flex-start;width:34px;height:34px;border:0;border-radius:50%;background:#f1f1ee;font-size:16px;cursor:pointer;color:var(--texto)}
+  .t-lista{overflow:auto;padding:0 12px 14px}
+  .t-vacio{padding:18px 10px 8px;color:var(--tenue);font-size:15px}
+  .vh{padding:12px 10px;border-top:1px solid #ececea}
+  .vh:first-child{border-top:0}
+  .vh-1{display:flex;align-items:center;gap:10px}
+  .pt{width:12px;height:12px;border-radius:50%;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
+  .vh b{font-size:16px;font-weight:600}
+  .vh .dias{margin-left:auto;color:var(--tenue);font-size:14px;font-variant-numeric:tabular-nums}
+  .vh .d{margin:2px 0 0 22px;color:var(--tenue);font-size:14px}
+  .etq{display:inline-block;padding:2px 8px;border-radius:8px;font-size:12px;font-weight:600;margin-left:4px}
+  .etq.esp{background:var(--azul-bg);color:var(--azul)}
+  .etq.falta{background:var(--rojo-bg);color:var(--rojo)}
+  .botones{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0 22px}
+  .b{height:40px;padding:0 14px;border-radius:12px;border:1px solid #dcdcd8;background:#fff;color:var(--texto);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+  .b.prin{background:var(--texto);border-color:var(--texto);color:#fff}
+  .b.rojo{color:var(--rojo);border-color:#f2c4bb}
+  .b:disabled{opacity:.4;cursor:default}
+  .espera-r{display:flex;align-items:center;gap:10px;padding:12px 10px 4px}
+  .espera-r .cant{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums}
+  @media (max-width:560px){ .tarjeta{left:10px!important;right:10px;width:auto;top:auto!important;bottom:10px} }
+</style>
+</head>
+<body>
+<svg id="linea" aria-label="Línea de producción"></svg>
+<div class="cab">
+  <h1>Línea de producción</h1>
+  <p>Bodega 2 · pica un área para ver sus vehículos</p>
+  <span class="prueba">Versión sin 3D · datos de prueba</span>
+</div>
+<div class="tarjeta" id="tarjeta" role="dialog" aria-modal="false"></div>
+
+<script>
+// ================================================================ Datos de prueba (los mismos de la versión 3D)
+const COLORES = {Blanco:'#f4f4f1', Azul:'#3f6fd8', Rojo:'#d9483b', Tinto:'#7d2333', Negro:'#2b2b2e', Verde:'#3e9b6a', Plata:'#b9bcc2'};
+// Banda en U: arriba (y=0) de izquierda a derecha, bajada en x=100, abajo (y=40) de derecha a izquierda.
+// Rama de especiales por fuera: x=120, de y=0 a y=40.
+const ETAPAS = [
+  {id:'espera',         nombre:'En espera de armado', corto:'En espera', sub:'de armado', color:'#4b63d6', p:[12,0],  lado:'arriba'},
+  {id:'armado',         nombre:'Armado',              color:'#f08a4b', p:[37,0],  lado:'arriba'},
+  {id:'revision1',      nombre:'Revisión 1',          color:'#26a889', p:[62,0],  lado:'arriba'},
+  {id:'mecanica',       nombre:'Mecánica',            color:'#e0a92c', p:[87,0],  lado:'arriba'},
+  {id:'herreria',       nombre:'Herrería',            color:'#6c7a91', p:[120,11], lado:'rama', especial:true},
+  {id:'forrado',        nombre:'Forrado',             color:'#9a6ee0', p:[120,29], lado:'rama', especial:true},
+  {id:'detallado',      nombre:'Detallado y pintura', color:'#e7698a', p:[87,40], lado:'abajo'},
+  {id:'revision_final', nombre:'Revisión final',      color:'#3f9f5d', p:[62,40], lado:'abajo'},
+  {id:'listo',          nombre:'Listo',               color:'#7d848e', p:[37,40], lado:'abajo'}
+];
+const E = Object.fromEntries(ETAPAS.map(e => [e.id, e]));
+const SIG = {armado:'revision1', revision1:'mecanica', herreria:'forrado', forrado:'detallado', detallado:'revision_final', revision_final:'listo'};
+function siguiente(v){ return v.etapa==='mecanica' ? (v.especial ? 'herreria' : 'detallado') : SIG[v.etapa] }
+const P = Object.fromEntries(ETAPAS.map(e => [e.id, e.p]));
+const RUTAS = {
+  'espera>armado':[P.espera,P.armado], 'armado>revision1':[P.armado,P.revision1], 'revision1>mecanica':[P.revision1,P.mecanica],
+  'mecanica>detallado':[P.mecanica,[100,0],[100,40],P.detallado],
+  'mecanica>herreria':[P.mecanica,[100,0],[120,0],P.herreria], 'herreria>forrado':[P.herreria,P.forrado], 'forrado>detallado':[P.forrado,[120,40],[100,40],P.detallado],
+  'detallado>revision_final':[P.detallado,P.revision_final], 'revision_final>listo':[P.revision_final,P.listo]
+};
+
+let ESPERA = [
+  {modelo:'MC 150 · Sin hidráulico · Doble', color:'Blanco', n:31},
+  {modelo:'MC 150 · Sin hidráulico · Doble', color:'Azul',   n:6},
+  {modelo:'MC 150 · Sin hidráulico · Doble', color:'Rojo',   n:4},
+  {modelo:'MC 200 · Con hidráulico · Doble', color:'Tinto',  n:14}
+];
+let VEH = [
+  {serie:'LXY1201', modelo:'MC 150', color:'Blanco', rem:'153/1', esp:'Garrafonero', etapa:'armado', dias:1},
+  {serie:'LXY1202', modelo:'MC 150', color:'Azul',   rem:'155',   etapa:'armado', dias:2},
+  {serie:'LXY1203', modelo:'MC 200', color:'Tinto',  rem:null,    etapa:'armado', dias:0},
+  {serie:'LXY1188', modelo:'MC 150', color:'Rojo',   rem:'149',   etapa:'revision1', dias:1},
+  {serie:'LXY1190', modelo:'MC 150', color:'Blanco', rem:'150',   etapa:'revision1', dias:3, faltantes:true},
+  {serie:'LXY1160', modelo:'MC 150', color:'Azul',   rem:'137',   etapa:'mecanica', dias:1},
+  {serie:'LXY1161', modelo:'MC 150', color:'Blanco', rem:null,    etapa:'mecanica', dias:2},
+  {serie:'LXY1170', modelo:'MC 200', color:'Tinto',  rem:'141',   esp:'Caja seca', etapa:'herreria', dias:2},
+  {serie:'LXY1165', modelo:'MC 150', color:'Blanco', rem:'139',   esp:'Food truck', etapa:'forrado', dias:4},
+  {serie:'LXY1158', modelo:'MC 200', color:'Tinto',  rem:'135',   etapa:'detallado', dias:1},
+  {serie:'LXY1150', modelo:'MC 150', color:'Rojo',   rem:'131',   etapa:'revision_final', dias:0},
+  {serie:'LXY1140', modelo:'MC 150', color:'Blanco', rem:'128',   etapa:'listo', dias:3},
+  {serie:'LXY1141', modelo:'MC 150', color:'Azul',   rem:null,    etapa:'listo', dias:5}
+];
+VEH.forEach(v => { v.especial = !!v.esp });
+let siguienteSerie = 1204;
+
+// ================================================================ Dibujo (SVG)
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('linea');
+function el(tag, attrs, padre){ const n = document.createElementNS(NS, tag); for(const k in attrs) n.setAttribute(k, attrs[k]); (padre||svg).appendChild(n); return n; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
+
+// Sombras suaves
+const defs = el('defs', {});
+defs.innerHTML = `
+  <filter id="sombra" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy=".35" stdDeviation=".45" flood-color="#000" flood-opacity=".14"/></filter>
+  <filter id="sombraVeh" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="0" dy=".25" stdDeviation=".25" flood-color="#000" flood-opacity=".25"/></filter>`;
+
+// Piso general
+el('rect', {x:-14, y:-21, width:156, height:82, rx:4, fill:'#fbfaf7', filter:'url(#sombra)'});
+
+// ---------------------------------------------------------------- Áreas de cada estación (piso de color con nombre)
+// Cajas de cada área: arriba se extienden hacia adentro de la U; abajo, también hacia adentro; la rama, hacia afuera.
+function cajaArea(e){
+  const [x, y] = e.p;
+  if(e.lado==='arriba') return {x: x-11.5, y: y-9, w: 23, h: 26};
+  if(e.lado==='abajo')  return {x: x-11.5, y: y-17, w: 23, h: 26};
+  return {x: x-6, y: y-8, w: 26, h: 16};
+}
+const capaAreas = el('g', {}), capaBanda = el('g', {}), capaRodillos = el('g', {}), capaVeh = el('g', {}), capaLetreros = el('g', {});
+ETAPAS.forEach(e => {
+  const c = cajaArea(e); e.caja = c;
+  const g = el('g', {class:'area', 'data-etapa':e.id}, capaAreas);
+  el('rect', {class:'fondo', x:c.x, y:c.y, width:c.w, height:c.h, rx:2.2, fill:e.color, 'fill-opacity':.13}, g);
+  el('rect', {class:'orilla', x:c.x, y:c.y, width:c.w, height:c.h, rx:2.2, fill:'none', stroke:e.color, 'stroke-opacity':.45, 'stroke-width':.25, 'stroke-dasharray': e.especial ? '1 .7' : 'none'}, g);
+  e.g = g;
+});
+
+// ---------------------------------------------------------------- Banda transportadora en U (+ rama de especiales)
+const tramoU = 'M -6 0 H 100 V 40 H 3';
+const tramoRama = 'M 100 0 H 120 V 40 H 100';
+el('path', {d:tramoRama, fill:'none', stroke:'var(--banda)', 'stroke-width':4.2, 'stroke-linejoin':'round', 'stroke-linecap':'round', 'stroke-opacity':.85, filter:'url(#sombra)'}, capaBanda);
+el('path', {d:tramoU, fill:'none', stroke:'var(--banda)', 'stroke-width':4.2, 'stroke-linejoin':'round', filter:'url(#sombra)'}, capaBanda);
+el('path', {d:'M 3.2 36.4 L -3.5 40 L 3.2 43.6 Z', fill:'var(--banda)'}, capaBanda);   // flecha de salida
+el('path', {class:'flujo', d:tramoU}, capaBanda);
+el('path', {class:'flujo', d:tramoRama}, capaBanda);
+
+// Rodillos de cada estación (como en el dibujo: un recuadro con rayitas sobre la banda)
+ETAPAS.forEach(e => {
+  const [x, y] = e.p, vertical = e.lado==='rama';
+  const w = vertical ? 7 : 11, h = vertical ? 11 : 7;
+  const g = el('g', {class:'area', 'data-etapa':e.id, filter:'url(#sombra)'}, capaRodillos);
+  el('rect', {x:x-w/2, y:y-h/2, width:w, height:h, rx:1, fill:'var(--rodillo)', stroke:e.color, 'stroke-width':.35}, g);
+  const n = 8;
+  for(let i=1; i<n; i++){
+    if(vertical) el('line', {x1:x-w/2+.7, x2:x+w/2-.7, y1:y-h/2+i*h/n, y2:y-h/2+i*h/n, stroke:e.color, 'stroke-width':.22, 'stroke-opacity':.8}, g);
+    else el('line', {y1:y-h/2+.7, y2:y+h/2-.7, x1:x-w/2+i*w/n, x2:x-w/2+i*w/n, stroke:e.color, 'stroke-width':.22, 'stroke-opacity':.8}, g);
+  }
+});
+
+// ---------------------------------------------------------------- Letreros (nombre + conteo), del lado de afuera de la banda
+function dibujarLetreros(){
+  capaLetreros.innerHTML = '';
+  ETAPAS.forEach(e => {
+    const c = e.caja, g = el('g', {class:'area', 'data-etapa':e.id}, capaLetreros);
+    let n, falta = 0;
+    if(e.id==='espera') n = ESPERA.reduce((s, x) => s + x.n, 0);
+    else { const vs = VEH.filter(v => v.etapa===e.id); n = vs.length; falta = vs.filter(v => v.faltantes).length; }
+    // posición del letrero: arriba del área en la fila de arriba; abajo del área en la fila de abajo; arriba en la rama
+    const rama = e.lado==='rama', x0 = rama ? e.p[0] + 4.6 : c.x + 1.2, y0 = rama ? c.y + 3.4 : e.lado==='abajo' ? c.y + c.h + 3.2 : c.y - 2;
+    const t = el('text', {class:'nombre', x:x0, y:y0}, g); t.textContent = e.corto || e.nombre;
+    const ancho = t.getComputedTextLength();
+    let cx = x0 + ancho + 2.2;
+    el('rect', {x:cx-1.7, y:y0-2.35, width:3.4, height:3, rx:1.5, fill: n ? 'var(--texto)' : '#c9c8c3'}, g);
+    el('text', {class:'cuenta', x:cx, y:y0-.85}, g).textContent = n;
+    if(falta){
+      cx += 2.6;
+      el('rect', {x:cx, y:y0-2.35, width:7.4, height:3, rx:1.5, fill:'var(--rojo)'}, g);
+      el('text', {class:'falta', x:cx+3.7, y:y0-.85}, g).textContent = falta + (falta>1 ? ' faltan' : ' falta');
+    }
+    if(e.especial || e.sub){ const s = el('text', {class:'sub', x:x0, y: y0+2.1}, g); s.textContent = e.sub || 'solo especiales'; }
+    e.ancla = {x: c.x + c.w, y: c.y};
+  });
+}
+
+// ---------------------------------------------------------------- Vehículos (motocarro visto desde arriba)
+function motocarro(v){
+  const g = el('g', {class:'veh', filter:'url(#sombraVeh)'}, capaVeh), color = COLORES[v.color] || '#ccc';
+  // mirando a la derecha (+x); largo 5, ancho 2.4
+  el('rect', {x:-2.5, y:-1.2, width:5, height:2.4, rx:.5, fill:'#3a3a3d'}, g);                          // chasis
+  el('rect', {x:-2.4, y:-1.15, width:2.9, height:2.3, rx:.35, fill: v.especial ? '#f7f7f4' : color, stroke:'rgba(0,0,0,.18)', 'stroke-width':.12}, g); // caja
+  el('rect', {x:.7, y:-1.0, width:1.75, height:2.0, rx:.55, fill:color, stroke:'rgba(0,0,0,.18)', 'stroke-width':.12}, g);      // cabina
+  el('rect', {x:1.95, y:-.75, width:.32, height:1.5, rx:.15, fill:'#cfe4ff'}, g);                         // parabrisas
+  v.aro = el('circle', {r:3.3, fill:'none', stroke:'var(--rojo)', 'stroke-width':.35, 'stroke-dasharray':'1 .6', opacity:0}, g);
+  g.addEventListener('click', ev => { ev.stopPropagation(); abrir(v.etapa); });
+  return g;
+}
+function lugares(id){
+  const e = E[id], [x, y] = e.p, res = [];
+  if(e.lado==='arriba') for(const fy of [7.5, 13.5]) for(const fx of [-6.5, 0, 6.5]) res.push([x+fx, y+fy]);
+  else if(e.lado==='abajo') for(const fy of [-7.5, -13.5]) for(const fx of [-6.5, 0, 6.5]) res.push([x+fx, y+fy]);
+  else for(const fy of [1, 5.2]) for(const fx of [8, 14]) res.push([x+fx, y+fy]);
+  return res;
+}
+const GIRO = {arriba:0, abajo:180, rama:90};
+function poner(v){ v.g.setAttribute('transform', `translate(${v.x} ${v.y}) rotate(${v.r})`); v.aro.setAttribute('opacity', v.faltantes ? 1 : 0); }
+function acomodar(animar=true){
+  ETAPAS.forEach(e => {
+    const ls = lugares(e.id), vs = VEH.filter(v => v.etapa===e.id);
+    vs.forEach((v, i) => {
+      v.g.style.display = i < ls.length ? '' : 'none';
+      if(v.anim) return;
+      const [x, y] = ls[i % ls.length];
+      if(animar) v.ir = [[x, y]]; else { v.x = x; v.y = y; v.r = GIRO[e.lado]; poner(v); }
+    });
+  });
+}
+VEH.forEach(v => { v.g = motocarro(v); });
+acomodar(false);
+
+function mover(v, a){
+  const ruta = RUTAS[v.etapa+'>'+a] || [];
+  v.etapa = a; v.dias = 0; v.anim = true;
+  const otros = VEH.filter(o => o.etapa===a && o!==v).length, ls = lugares(a);
+  v.ir = [...ruta.map(p => p.slice()), ls[otros % ls.length]];
+  v.g.style.display = '';
+  dibujarLetreros(); acomodar(); if(abierta) abrir(abierta);
+}
+let antes = performance.now();
+function ciclo(ahora){
+  const dt = Math.min((ahora - antes)/1000, .05); antes = ahora;
+  VEH.forEach(v => {
+    if(!v.ir || !v.ir.length) return;
+    const [tx, ty] = v.ir[0], dx = tx - v.x, dy = ty - v.y, L = Math.hypot(dx, dy), vel = 38*dt;
+    if(L > .05){ const ang = Math.atan2(dy, dx)*180/Math.PI; let dif = ((ang - v.r + 540) % 360) - 180; v.r += dif*Math.min(1, dt*14); }
+    if(L <= vel){ v.x = tx; v.y = ty; v.ir.shift(); if(!v.ir.length){ v.r = GIRO[E[v.etapa].lado]; if(v.anim){ v.anim = false; acomodar(); } } }
+    else { v.x += dx/L*vel; v.y += dy/L*vel; }
+    poner(v);
+  });
+  requestAnimationFrame(ciclo);
+}
+requestAnimationFrame(ciclo);
+
+// ---------------------------------------------------------------- Encuadre: siempre se ve toda la línea, sin zoom
+function ajustar(){
+  const vertical = innerHeight > innerWidth;
+  svg.setAttribute('viewBox', vertical ? '-16 -40 160 124' : '-16 -36 160 104');
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+}
+ajustar(); addEventListener('resize', () => { ajustar(); if(abierta) colocar(E[abierta]); });
+dibujarLetreros();
+// Los conteos se acomodan junto al nombre: se vuelven a medir cuando ya cargó la letra
+if(document.fonts) document.fonts.ready.then(dibujarLetreros);
+
+// ---------------------------------------------------------------- Tarjeta (la misma de la versión 3D)
+const tarjeta = document.getElementById('tarjeta');
+let abierta = null;
+function abrir(id){
+  abierta = id; const e = E[id];
+  document.querySelectorAll('.area').forEach(a => a.classList.toggle('sel', a.dataset.etapa===id));
+  let html = '<div class="t-cab"><div class="t-ico" style="background:'+e.color+'22"><i style="background:'+e.color+'"></i></div><div><h2>'+esc(e.nombre)+'</h2>';
+  if(id==='espera'){
+    const n = ESPERA.reduce((s, x) => s + x.n, 0);
+    html += '<small><i></i>'+n+' por armar</small></div><button class="t-x" data-cerrar aria-label="Cerrar">✕</button></div><div class="t-lista">'+
+      ESPERA.filter(x => x.n).map((x, i) => '<div class="espera-r"><span class="pt" style="background:'+COLORES[x.color]+'"></span><span>'+esc(x.modelo)+' · '+esc(x.color)+'</span><span class="cant">'+x.n+'</span></div>'+
+        '<div class="botones" style="margin:6px 0 8px 32px"><button class="b" data-entrar="'+i+'">Entrar a producción</button></div>').join('')+'</div>';
+  } else {
+    const vs = VEH.filter(v => v.etapa===id).sort((a, b) => (b.faltantes?1:0) - (a.faltantes?1:0) || b.dias - a.dias);
+    html += '<small><i></i>'+vs.length+(vs.length===1 ? ' vehículo' : ' vehículos')+'</small></div><button class="t-x" data-cerrar aria-label="Cerrar">✕</button></div><div class="t-lista">';
+    if(!vs.length) html += '<div class="t-vacio">No hay vehículos en esta área.</div>';
+    html += vs.map(v => {
+      const i = VEH.indexOf(v), sig = siguiente(v);
+      let bot = '';
+      if(v.faltantes) bot = '<button class="b prin" data-falt="'+i+'">✓ Ya se pusieron las piezas</button>';
+      else if(id==='revision1') bot = '<button class="b prin" data-mover="'+i+'">✓ Todo bien · pasar a '+esc(E[sig].nombre)+'</button><button class="b rojo" data-faltan="'+i+'">Falta una pieza</button>';
+      else if(id==='revision_final') bot = '<button class="b prin" data-mover="'+i+'">✓ Pasa</button><button class="b" disabled>No pasa</button>';
+      else if(sig) bot = '<button class="b prin" data-mover="'+i+'">Pasar a '+esc(E[sig].nombre)+'</button>';
+      return '<div class="vh"><div class="vh-1"><span class="pt" style="background:'+COLORES[v.color]+'"></span><b>'+esc(v.serie)+'</b>'+
+        (v.especial ? '<span class="etq esp">Especial</span>' : '')+(v.faltantes ? '<span class="etq falta">Faltantes</span>' : '')+
+        '<span class="dias">'+(v.dias===0 ? 'hoy' : v.dias+(v.dias===1 ? ' día' : ' días'))+'</span></div>'+
+        '<div class="d">'+esc(v.modelo)+' · '+esc(v.color)+' · '+(v.rem ? 'Venta '+esc(v.rem) : 'Showroom')+(v.esp ? ' · '+esc(v.esp) : '')+'</div>'+
+        (bot ? '<div class="botones">'+bot+'</div>' : '')+'</div>';
+    }).join('') + '</div>';
+  }
+  tarjeta.innerHTML = html; colocar(e); tarjeta.classList.add('abierta');
+}
+function colocar(e){
+  const m = svg.getScreenCTM(), pt = svg.createSVGPoint();
+  pt.x = e.ancla.x; pt.y = e.ancla.y; const s = pt.matrixTransform(m);
+  const W = innerWidth, H = innerHeight, tw = Math.min(380, W-20), th = tarjeta.offsetHeight || 300;
+  let x = s.x + 12, y = s.y;
+  if(x + tw > W - 16){ pt.x = E[abierta].caja.x; const s2 = pt.matrixTransform(m); x = s2.x - tw - 12; }
+  x = Math.max(12, Math.min(x, W - tw - 12)); y = Math.max(12, Math.min(y, H - th - 12));
+  tarjeta.style.left = x+'px'; tarjeta.style.top = y+'px';
+}
+function cerrar(){ abierta = null; tarjeta.classList.remove('abierta'); document.querySelectorAll('.area').forEach(a => a.classList.remove('sel')); }
+svg.addEventListener('click', ev => { const a = ev.target.closest('.area'); if(a) abrir(a.dataset.etapa); else cerrar(); });
+addEventListener('keydown', ev => { if(ev.key==='Escape') cerrar(); });
+tarjeta.addEventListener('click', ev => {
+  const b = ev.target.closest('button'); if(!b) return;
+  if(b.hasAttribute('data-cerrar')){ cerrar(); return; }
+  if(b.dataset.mover){ const v = VEH[+b.dataset.mover]; mover(v, siguiente(v)); return; }
+  if(b.dataset.faltan){ const v = VEH[+b.dataset.faltan]; v.faltantes = true; poner(v); dibujarLetreros(); abrir(abierta); return; }
+  if(b.dataset.falt){ const v = VEH[+b.dataset.falt]; v.faltantes = false; mover(v, siguiente(v)); return; }
+  if(b.dataset.entrar){
+    const x = ESPERA[+b.dataset.entrar]; if(!x || !x.n) return;
+    x.n--;
+    const v = {serie:'LXY'+(siguienteSerie++), modelo:x.modelo.split(' · ')[0], color:x.color, rem:null, etapa:'espera', dias:0, especial:false};
+    VEH.push(v); v.g = motocarro(v); v.x = P.espera[0]; v.y = P.espera[1]; v.r = 0; poner(v);
+    mover(v, 'armado'); abrir('espera');
+  }
+});
+</script>
+</body>
+</html>
