@@ -145,6 +145,41 @@
     });
   }
 
+  // Casillas para escoger una o varias opciones (por ejemplo, los colores de la hoja).
+  // escogerVarios({titulo, ayuda, opciones:[{valor, nombre, color}], elegidos:[valores], boton, falta}) -> Promise([valores]|null)
+  function escogerVarios(o){
+    return new Promise(function(res){
+      var sel = (o.elegidos||[]).slice(), vals = o.opciones.map(function(op){ return op.valor });
+      var filas = o.opciones.map(function(op, i){
+        var on = sel.indexOf(op.valor) > -1;
+        return '<button type="button" class="h-op h-check'+(on ? ' sel' : '')+'" role="checkbox" aria-checked="'+on+'" data-hoja-i="'+i+'">'+
+          '<span class="h-casilla" aria-hidden="true"></span>'+
+          (op.color ? '<span class="h-punto" style="background:'+esc(op.color)+'"></span>' : '')+
+          '<span class="h-nom">'+esc(op.nombre)+'</span></button>';
+      }).join('');
+      abrirHoja(cabHoja(o.titulo, o.ayuda)+'<div class="hoja-lista">'+filas+'</div>'+
+        '<div class="hoja-pie"><p class="inv-error" hidden></p><div class="acciones">'+
+        '<button type="button" class="btn" data-hoja-cerrar>Cancelar</button>'+
+        '<button type="button" class="btn prin der" data-listo></button></div></div>', res);
+      var h = hojaEl();
+      function contar(){ q('[data-listo]', h).textContent = (o.boton||'Listo') + (sel.length ? ' ('+sel.length+')' : '') }
+      contar();
+      h.onclick = function(e){
+        if(e.target.closest('[data-hoja-cerrar]')){ cerrarHoja(null); return; }
+        if(e.target.closest('[data-listo]')){
+          if(!sel.length){ var er = q('.inv-error', h); er.textContent = o.falta || 'Escoge al menos una.'; er.hidden = false; return; }
+          cerrarHoja(vals.filter(function(v){ return sel.indexOf(v) > -1 }));
+          return;
+        }
+        var b = e.target.closest('[data-hoja-i]'); if(!b) return;
+        var v = vals[+b.dataset.hojaI], k = sel.indexOf(v);
+        if(k > -1) sel.splice(k, 1); else sel.push(v);
+        b.classList.toggle('sel', k===-1); b.setAttribute('aria-checked', String(k===-1));
+        q('.inv-error', h).hidden = true; contar();
+      };
+    });
+  }
+
   // Pide un texto (motivo, nombre…) en la misma caja. -> Promise(texto|null)
   function pedirTexto(o){
     return new Promise(function(res){
@@ -256,7 +291,7 @@
 
   // Lo que usan las secciones (Tareas 4-6)
   var H = {E: E, I: I, esc: esc, q: q, rpc: rpc, mensaje: mensaje, ir: ir, dibujarMenu: dibujarMenu, cargarCatalogo: cargarCatalogo,
-    abrirLista: abrirLista, pedirTexto: pedirTexto, pedirCantidad: pedirCantidad, confirmar: confirmar, contador: contador, valorContador: valorContador,
+    abrirLista: abrirLista, escogerVarios: escogerVarios, pedirTexto: pedirTexto, pedirCantidad: pedirCantidad, confirmar: confirmar, contador: contador, valorContador: valorContador,
     abrirHoja: abrirHoja, cerrarHoja: cerrarHoja, cabHoja: cabHoja, hojaEl: hojaEl,
     nombreBodega: nombreBodega, puedeEscribir: puedeEscribir, fechaLarga: fechaLarga, hoyISO: hoyISO, ICO: ICO, BODEGAS: BODEGAS,
     DIBUJAR: DIBUJAR, CUENTA: CUENTA, alIniciar: []};

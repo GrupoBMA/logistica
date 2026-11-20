@@ -37,7 +37,7 @@ begin
   -- 1. La bodega no puede guardar en otra bodega
   perform pg_temp.como('bodega1@logistica.bma');
   j := public.inv_contenedor_guardar(jsonb_build_object('bodega','bodega2','numero',' prueba-x1 ','llegada','2026-11-18',
-        'renglones', jsonb_build_array(jsonb_build_object('modelo_id',m150,'opciones',jsonb_build_array(con_h,sencillo),'color_id',azul,'cantidad',2))));
+        'renglones', jsonb_build_array(jsonb_build_object('modelo_id',m150,'opciones',jsonb_build_array(con_h,sencillo),'colores',jsonb_build_array(azul,rojo),'cantidad',2))));
   c1 := (j->>'id')::bigint;
   perform pg_temp.yo();
   select bodega into v from logistica.inv_contenedores where id = c1;
@@ -46,7 +46,7 @@ begin
   -- 2. La bodega no ve lo de la otra
   perform pg_temp.como('bodega2@logistica.bma');
   j := public.inv_contenedor_guardar(jsonb_build_object('numero','prueba-x2','llegada','2026-11-18',
-        'renglones', jsonb_build_array(jsonb_build_object('modelo_id',m150,'opciones',jsonb_build_array(),'color_id',rojo,'cantidad',1))));
+        'renglones', jsonb_build_array(jsonb_build_object('modelo_id',m150,'opciones',jsonb_build_array(),'colores',jsonb_build_array(rojo),'cantidad',1))));
   c2 := (j->>'id')::bigint;
   perform pg_temp.como('bodega1@logistica.bma');
   j := public.inv_contenedores('bodega2');
@@ -58,7 +58,7 @@ begin
   perform pg_temp.como('bodega2@logistica.bma');
   begin
     perform public.inv_contenedor_guardar(jsonb_build_object('numero','PRUEBA-X1','llegada','2026-11-18',
-        'renglones', jsonb_build_array(jsonb_build_object('modelo_id',m150,'opciones',jsonb_build_array(),'color_id',rojo,'cantidad',1))));
+        'renglones', jsonb_build_array(jsonb_build_object('modelo_id',m150,'opciones',jsonb_build_array(),'colores',jsonb_build_array(rojo),'cantidad',1))));
     perform pg_temp.anota('número repetido se rechaza', false, 'se guardó');
   exception when others then
     perform pg_temp.anota('número repetido se rechaza', sqlerrm = 'Ese contenedor ya está registrado', sqlerrm);
@@ -91,13 +91,13 @@ begin
   -- 6. Editar pide motivo y queda en la bitácora
   begin
     perform public.inv_contenedor_guardar(jsonb_build_object('id',c1,'numero','prueba-x1','llegada','2026-11-17',
-        'renglones', jsonb_build_array(jsonb_build_object('modelo_id',m150,'opciones',jsonb_build_array(con_h,sencillo),'color_id',azul,'cantidad',3))));
+        'renglones', jsonb_build_array(jsonb_build_object('modelo_id',m150,'opciones',jsonb_build_array(con_h,sencillo),'colores',jsonb_build_array(azul,rojo),'cantidad',3))));
     perform pg_temp.anota('editar sin motivo se rechaza', false, 'se guardó');
   exception when others then
     perform pg_temp.anota('editar sin motivo se rechaza', sqlerrm = 'Escribe el motivo del cambio', sqlerrm);
   end;
   perform public.inv_contenedor_guardar(jsonb_build_object('id',c1,'numero','prueba-x1','llegada','2026-11-17',
-      'renglones', jsonb_build_array(jsonb_build_object('modelo_id',m150,'opciones',jsonb_build_array(con_h,sencillo),'color_id',azul,'cantidad',3))),
+      'renglones', jsonb_build_array(jsonb_build_object('modelo_id',m150,'opciones',jsonb_build_array(con_h,sencillo),'colores',jsonb_build_array(azul,rojo),'cantidad',3))),
       'Error al contar');
   perform pg_temp.yo();
   select count(*) into n from logistica.inv_bitacora where tabla = 'contenedores' and registro = c1 and accion = 'edicion' and motivo = 'Error al contar';
@@ -108,7 +108,7 @@ begin
   select id into ren from logistica.inv_renglones where contenedor_id = c1 limit 1;
   perform pg_temp.como('bodega1@logistica.bma');
   begin
-    perform public.inv_revision_guardar(c1, jsonb_build_object('contados', jsonb_build_array(jsonb_build_object('renglon_id',ren,'contados',3)),
+    perform public.inv_revision_guardar(c1, jsonb_build_object('contados', jsonb_build_array(jsonb_build_object('renglon_id',ren,'colores',jsonb_build_array(jsonb_build_object('color_id',azul,'contados',2),jsonb_build_object('color_id',rojo,'contados',1)))),
       'piezas', jsonb_build_array(jsonb_build_object('pieza_id',pz,'color_id',null,'esperadas',6,'llegaron',2,'danadas',3)),
       'defectos', '[]'::jsonb));
     perform pg_temp.anota('dañadas > llegaron se rechaza', false, 'se guardó');
@@ -117,7 +117,7 @@ begin
   end;
 
   -- 8. Revisado cuenta en el inventario; anulado ya no
-  perform public.inv_revision_guardar(c1, jsonb_build_object('contados', jsonb_build_array(jsonb_build_object('renglon_id',ren,'contados',3)),
+  perform public.inv_revision_guardar(c1, jsonb_build_object('contados', jsonb_build_array(jsonb_build_object('renglon_id',ren,'colores',jsonb_build_array(jsonb_build_object('color_id',azul,'contados',2),jsonb_build_object('color_id',rojo,'contados',1)))),
     'piezas', jsonb_build_array(jsonb_build_object('pieza_id',pz,'color_id',null,'esperadas',6,'llegaron',5,'danadas',1)),
     'defectos', '[]'::jsonb));
   j := public.inv_inventario();
@@ -126,6 +126,21 @@ begin
             and (x->>'disponibles')::int = 4 and (x->>'danadas')::int = 1), j->>'piezas');
   perform pg_temp.anota('revisado cuenta en espera de armado',
     (select coalesce(sum((x->>'cantidad')::int),0) from jsonb_array_elements(j->'espera') x where x->>'modelo' = 'MC 150') = 3, j->>'espera');
+
+  perform pg_temp.anota('espera de armado separa por color',
+    exists (select 1 from jsonb_array_elements(j->'espera') x where x->>'color' = 'Azul' and (x->>'cantidad')::int = 2)
+    and exists (select 1 from jsonb_array_elements(j->'espera') x where x->>'color' = 'Rojo' and (x->>'cantidad')::int = 1), j->>'espera');
+  perform pg_temp.yo();
+  select contados into n from logistica.inv_renglones where id = ren;
+  perform pg_temp.anota('el renglón guarda la suma de colores', n = 3, n::text);
+  perform pg_temp.como('bodega1@logistica.bma');
+  begin
+    perform public.inv_contenedor_guardar(jsonb_build_object('numero','prueba-x4','llegada','2026-11-18',
+        'renglones', jsonb_build_array(jsonb_build_object('modelo_id',m150,'opciones',jsonb_build_array(),'colores','[]'::jsonb,'cantidad',1))));
+    perform pg_temp.anota('sin colores se rechaza', false, 'se guardó');
+  exception when others then
+    perform pg_temp.anota('sin colores se rechaza', sqlerrm = 'Escoge al menos un color', sqlerrm);
+  end;
 
   j := public.inv_anulacion_pedir(c1, 'Contenedor de prueba');
   an := (j->>'id')::bigint;
@@ -143,7 +158,7 @@ begin
   perform pg_temp.como('bodega1@logistica.bma');
   begin
     perform public.inv_contenedor_guardar(jsonb_build_object('id',c1,'numero','prueba-x1','llegada','2026-11-17',
-        'renglones', jsonb_build_array(jsonb_build_object('modelo_id',m150,'opciones',jsonb_build_array(),'color_id',azul,'cantidad',1))), 'otra vez');
+        'renglones', jsonb_build_array(jsonb_build_object('modelo_id',m150,'opciones',jsonb_build_array(),'colores',jsonb_build_array(azul),'cantidad',1))), 'otra vez');
     perform pg_temp.anota('anulado no se edita', false, 'se guardó');
   exception when others then
     perform pg_temp.anota('anulado no se edita', sqlerrm = 'Este contenedor está anulado', sqlerrm);

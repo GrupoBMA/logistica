@@ -67,7 +67,7 @@ test('diferencia: faltan o sobran', () => {
 });
 
 test('validar contenedor: número repetido sin importar espacios ni mayúsculas', () => {
-  const datos = {numero: ' abc-1 ', llegada: '2026-11-18', renglones: [{modelo_id: 1, opciones: [], color_id: 2, cantidad: 1}]};
+  const datos = {numero: ' abc-1 ', llegada: '2026-11-18', renglones: [{modelo_id: 1, opciones: [], colores: [2], cantidad: 1}]};
   assert.ok(I.validarContenedor(datos, ['ABC-1']).includes('Ese contenedor ya está registrado'));
   assert.deepEqual(I.validarContenedor(datos, ['ABC-2']), []);
 });
@@ -77,7 +77,7 @@ test('validar contenedor: campos que faltan y cantidades', () => {
   assert.ok(e.includes('Escribe el número de contenedor'));
   assert.ok(e.includes('Escribe la fecha de llegada'));
   assert.ok(e.includes('Agrega al menos un vehículo'));
-  const e2 = I.validarContenedor({numero: 'X', llegada: '2026-11-18', renglones: [{modelo_id: 1, opciones: [], color_id: 2, cantidad: 0}]}, []);
+  const e2 = I.validarContenedor({numero: 'X', llegada: '2026-11-18', renglones: [{modelo_id: 1, opciones: [], colores: [2], cantidad: 0}]}, []);
   assert.ok(e2.includes('La cantidad debe ser 1 o más'));
 });
 
@@ -102,4 +102,30 @@ test('nombre del vehículo en palabras', () => {
   assert.equal(I.nombreVehiculo({modelo_id: 1, opciones: [11, 22], color_id: 3}, CAT), 'MC 150 · Con hidráulico · Rodado doble · Rojo');
   assert.equal(I.nombreOpcion('Hidráulico', 'Con'), 'Con hidráulico');
   assert.equal(I.nombreOpcion('Rodado', 'Doble'), 'Rodado doble');
+});
+
+test('piezas con color: se reparten según lo contado de cada color', () => {
+  const r = I.piezasEsperadas([
+    {modelo_id: 1, opciones: [12, 21], colores: [2, 3], cantidad: 5, conteo: [{color_id: 2, contados: 2}, {color_id: 3, contados: 3}]}
+  ], CAT);
+  assert.equal(buscar(r, 'Carrocería', 'Azul').esperadas, 2);
+  assert.equal(buscar(r, 'Carrocería', 'Rojo').esperadas, 3);
+  assert.equal(buscar(r, 'Chasis').esperadas, 5);
+});
+
+test('piezas con color: un solo color en la hoja y sin conteo, todas de ese color', () => {
+  const r = I.piezasEsperadas([{modelo_id: 1, opciones: [12, 21], colores: [3], cantidad: 4}], CAT);
+  assert.equal(buscar(r, 'Carrocería', 'Rojo').esperadas, 4);
+});
+
+test('validar contenedor: cada vehículo necesita al menos un color', () => {
+  const e = I.validarContenedor({numero: 'X', llegada: '2026-11-18', renglones: [{modelo_id: 1, opciones: [], colores: [], cantidad: 2}]}, []);
+  assert.ok(e.includes('Escoge al menos un color'));
+});
+
+test('nombre con varios colores y suma del conteo', () => {
+  assert.equal(I.nombreVehiculo({modelo_id: 1, opciones: [11, 21], colores: [3, 2]}, CAT), 'MC 150 · Con hidráulico · Rodado sencillo · Azul y Rojo');
+  assert.equal(I.nombreModelo({modelo_id: 1, opciones: [11]}, CAT), 'MC 150 · Con hidráulico');
+  assert.equal(I.nombreColores([2], CAT), 'Azul');
+  assert.equal(I.sumaConteo([{color_id: 2, contados: 2}, {color_id: 3, contados: 4}]), 6);
 });

@@ -9,6 +9,21 @@
   function hexColor(nombre){ return HEX[String(nombre||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')] || null }
   H.hexColor = hexColor;
 
+  // Colores con su punto: "● Azul  ● Rojo"; con conteo: "● Azul 2  ● Rojo 3" (en el orden del catálogo)
+  function coloresHTML(ids, conteo){
+    var n = {}; (conteo||[]).forEach(function(x){ n[x.color_id] = x.contados });
+    return (E.cat.colores||[]).filter(function(c){ return (ids||[]).indexOf(c.id) > -1 }).map(function(c){
+      var hx = hexColor(c.nombre);
+      return '<span class="col-et">'+(hx ? '<span class="pt-col" style="background:'+hx+'"></span>' : '')+esc(c.nombre)+
+        (conteo ? '<b>'+(n[c.id]||0)+'</b>' : '')+'</span>';
+    }).join('');
+  }
+  H.coloresHTML = coloresHTML;
+  // Una tarjeta de vehículos: cantidad, modelo con opciones y, abajo, sus colores
+  function txtVehiculo(r){
+    return '<b>'+esc(I.nombreModelo(r, E.cat))+'</b><small>'+coloresHTML(r.colores)+'</small>';
+  }
+
   function activos(lista){ return (lista||[]).filter(function(x){ return x.activo !== false }) }
   function opcionesDeModelo(modeloId){
     var permitidas = (E.cat.modelo_opciones||[]).filter(function(mo){ return mo.modelo_id===modeloId }).map(function(mo){ return mo.opcion_id });
@@ -17,9 +32,9 @@
     }).filter(function(x){ return x.opciones.length });
   }
   function totalVehiculos(renglones){ return renglones.reduce(function(s, r){ return s + (r.cantidad||0) }, 0) }
+  // Mismo modelo y opciones (los colores se juntan)
   function mismoVehiculo(a, b){
-    return a.modelo_id===b.modelo_id && a.color_id===b.color_id &&
-      (a.opciones||[]).slice().sort().join(',') === (b.opciones||[]).slice().sort().join(',');
+    return a.modelo_id===b.modelo_id && (a.opciones||[]).slice().sort().join(',') === (b.opciones||[]).slice().sort().join(',');
   }
   function etiquetaEstado(c){
     if(c.estado==='anulado') return '<span class="etq anul">Anulado</span>';
@@ -28,9 +43,10 @@
     return '<span class="etq pend">Por revisar</span>';
   }
 
-  // ---------------------------------------------------------------- Escoger un vehículo (modelo → características → color)
+  // ---------------------------------------------------------------- Escoger un vehículo (modelo → características → colores → cantidad)
+  // La hoja solo dice qué colores trae; cuántos de cada color se cuenta en la revisión.
   function escogerVehiculo(previo){
-    var r = {modelo_id: null, opciones: [], color_id: null, cantidad: previo ? previo.cantidad : 1};
+    var r = {modelo_id: null, opciones: [], colores: [], cantidad: previo ? previo.cantidad : 1};
     return H.abrirLista({titulo: 'Modelo', ayuda: 'Como dice la hoja del contenedor',
       grupos: [{opciones: activos(E.cat.modelos).map(function(m){ return {valor: m.id, nombre: m.nombre} })}],
       elegido: previo ? previo.modelo_id : null
@@ -49,12 +65,14 @@
       return siguiente();
     }).then(function(ok){
       if(!ok) return null;
-      return H.abrirLista({titulo: 'Color', grupos: [{opciones: activos(E.cat.colores).map(function(c){
-        return {valor: c.id, nombre: c.nombre, color: hexColor(c.nombre)} })}], elegido: previo ? previo.color_id : null});
+      return H.escogerVarios({titulo: 'Colores', ayuda: 'Marca todos los colores que dice la hoja',
+        opciones: activos(E.cat.colores).map(function(c){ return {valor: c.id, nombre: c.nombre, color: hexColor(c.nombre)} }),
+        elegidos: previo ? previo.colores : [], boton: 'Siguiente', falta: 'Marca al menos un color.'});
     }).then(function(c){
       if(c==null) return null;
-      r.color_id = c;
-      return H.pedirCantidad({titulo: '¿Cuántos?', ayuda: I.nombreVehiculo(r, E.cat), valor: r.cantidad, boton: 'Agregar'});
+      r.colores = c;
+      return H.pedirCantidad({titulo: c.length > 1 ? '¿Cuántos en total?' : '¿Cuántos?', ayuda: I.nombreVehiculo(r, E.cat),
+        valor: r.cantidad, boton: previo ? 'Listo' : 'Agregar'});
     }).then(function(n){
       if(n==null) return null;
       r.cantidad = n; return r;
@@ -88,7 +106,7 @@
         '<button type="button" class="btn prin der" data-r="sig">Siguiente</button></div>';
     } else if(W.paso===2){
       html += '<div class="tarjetas">'+W.renglones.map(function(r, i){
-        return '<div class="tarjeta"><span class="cant">'+r.cantidad+'</span><span class="txt"><b>'+esc(I.nombreVehiculo(r, E.cat))+'</b></span>'+
+        return '<div class="tarjeta"><span class="cant">'+r.cantidad+'</span><span class="txt">'+txtVehiculo(r)+'</span>'+
           '<span class="btns"><button type="button" class="btn" data-r="cambiar" data-i="'+i+'">Cambiar</button>'+
           '<button type="button" class="btn" data-r="quitar" data-i="'+i+'" aria-label="Quitar">Quitar</button></span></div>';
       }).join('')+'</div>'+
@@ -181,10 +199,15 @@
   function agregar(main){
     escogerVehiculo(null).then(function(r){ if(r){ W.renglones.push(r); juntar(); } dibujarRecibir(main); });
   }
-  // Si se agrega dos veces el mismo vehículo, se suman
+  // Si se agrega dos veces el mismo modelo con las mismas opciones, se suman y se juntan sus colores
   function juntar(){
     var res = [];
-    W.renglones.forEach(function(r){ var x = res.filter(function(y){ return mismoVehiculo(y, r) })[0]; if(x) x.cantidad += r.cantidad; else res.push(r); });
+    W.renglones.forEach(function(r){
+      var x = res.filter(function(y){ return mismoVehiculo(y, r) })[0];
+      if(!x){ res.push(r); return; }
+      x.cantidad += r.cantidad;
+      r.colores.forEach(function(c){ if(x.colores.indexOf(c) < 0) x.colores.push(c) });
+    });
     W.renglones = res;
   }
 
@@ -236,9 +259,12 @@
         ' · '+n+(n===1 ? ' vehículo' : ' vehículos')+'</p>'+
         (pend ? '<p class="inv-error">Se pidió anular este contenedor: '+esc(an.motivo)+'. Falta que el administrador lo autorice.</p>' : '')+
         '<div class="tarjetas">'+rs.map(function(r){
-          var cont = c.estado==='revisado' && r.contados!=null && r.contados!==r.cantidad
-            ? '<small style="color:var(--neg)">Se contaron '+r.contados+'</small>' : '';
-          return '<div class="tarjeta"><span class="cant">'+r.cantidad+'</span><span class="txt"><b>'+esc(I.nombreVehiculo(r, E.cat))+'</b>'+cont+'</span></div>';
+          var revisado = c.estado==='revisado' && r.conteo && r.conteo.length;
+          var abajo = revisado
+            ? '<small>Se contaron: '+coloresHTML(r.conteo.map(function(x){ return x.color_id }), r.conteo)+'</small>'+
+              (r.contados!==r.cantidad ? '<small style="color:var(--neg)">La hoja dice '+r.cantidad+', se contaron '+r.contados+'</small>' : '')
+            : '<small>'+coloresHTML(r.colores)+'</small>';
+          return '<div class="tarjeta"><span class="cant">'+r.cantidad+'</span><span class="txt"><b>'+esc(I.nombreModelo(r, E.cat))+'</b>'+abajo+'</span></div>';
         }).join('')+'</div>'+
         (c.observaciones ? '<p style="margin:16px 0 0">Nota: '+esc(c.observaciones)+'</p>' : '');
       if(H.puedeEscribir() && c.estado!=='anulado'){
@@ -269,7 +295,7 @@
       seguir.then(function(ok){
         if(!ok) return;
         W = {paso: 1, id: c.id, numeroOriginal: c.numero, bodega: c.bodega, numero: c.numero, llegada: c.llegada, observaciones: c.observaciones||'',
-          renglones: f.renglones.map(function(r){ return {modelo_id: r.modelo_id, opciones: r.opciones||[], color_id: r.color_id, cantidad: r.cantidad} }), error: ''};
+          renglones: f.renglones.map(function(r){ return {modelo_id: r.modelo_id, opciones: r.opciones||[], colores: r.colores||[], cantidad: r.cantidad} }), error: ''};
         E.seccion = 'recibir'; H.dibujarMenu(); dibujarRecibir(q('.inv-main', E.raiz));
       });
       return;

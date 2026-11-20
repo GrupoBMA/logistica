@@ -16,23 +16,84 @@
     window.scrollTo({top: 0});
     Promise.all([H.rpc('inv_contenedor', {p_id: id}), H.cargarCatalogo()]).then(function(res){
       var f = res[0], c = f.contenedor;
-      var guardadas = {};
-      (f.piezas||[]).forEach(function(p){ guardadas[claveP(p)] = p });
-      var esperadas = I.piezasEsperadas(f.renglones, E.cat).map(function(p){
-        var g = guardadas[claveP(p)];
-        return {pieza_id: p.pieza_id, color_id: p.color_id, nombre: p.nombre, color: p.color, esperadas: p.esperadas,
-          llegaron: g ? g.llegaron : null, danadas: g ? g.danadas : 0, revisada: !!g};
-      });
       R = {id: id, c: c, renglones: f.renglones,
-        contados: f.renglones.map(function(r){ return c.estado==='revisado' ? r.contados : null }),
-        piezas: esperadas, sinLista: I.sinListaDePiezas(f.renglones, E.cat),
+        conteos: f.renglones.map(function(r){ return c.estado==='revisado' && r.conteo && r.conteo.length ? r.conteo.map(function(x){ return {color_id: x.color_id, contados: x.contados} }) : null }),
+        piezas: [], sinLista: I.sinListaDePiezas(f.renglones, E.cat),
         defectos: (f.defectos||[]).map(function(d){ return {pieza_id: d.pieza_id, color_id: d.color_id, defecto_id: d.defecto_id, gravedad: d.gravedad, cantidad: d.cantidad} }),
         editando: c.estado==='revisado', soloVer: !H.puedeEscribir() || c.estado==='anulado',
         paso: (!H.puedeEscribir() || c.estado!=='recibido') ? 3 : 1, error: ''};
+      calcularPiezas(f.piezas);
       dibujar();
     }).catch(function(err){ main.innerHTML = '<p class="inv-error">'+esc(H.mensaje(err))+'</p>' });
   }
   H.abrirRevision = abrirRevision;
+
+  function contados(i){ return R.conteos[i] ? I.sumaConteo(R.conteos[i]) : null }
+
+  // Piezas que deberían venir, con lo contado de cada color. Conserva lo que ya se había revisado
+  // ("previas": lo guardado en Supabase o lo capturado antes en pantalla).
+  function calcularPiezas(previas){
+    var antes = {};
+    (previas || R.piezas.filter(function(p){ return p.revisada })).forEach(function(p){ antes[claveP(p)] = p });
+    var renglones = R.renglones.map(function(r, i){ return Object.assign({}, r, {conteo: R.conteos[i] || []}) });
+    R.piezas = I.piezasEsperadas(renglones, E.cat).map(function(p){
+      var g = antes[claveP(p)];
+      return {pieza_id: p.pieza_id, color_id: p.color_id, nombre: p.nombre, color: p.color, esperadas: p.esperadas,
+        llegaron: g ? g.llegaron : null, danadas: g ? g.danadas : 0, revisada: !!g};
+    });
+  }
+
+  // Caja para contar cuántos llegaron de cada color, con − / + y el total contra la hoja.
+  // Se puede agregar un color que no venía en la hoja. -> Promise([{color_id, contados}]|null)
+  function contarColores(i){
+    var r = R.renglones[i];
+    var st = R.conteos[i] ? R.conteos[i].map(function(x){ return Object.assign({}, x) })
+      : (r.colores||[]).map(function(c){ return {color_id: c, contados: (r.colores.length===1 ? r.cantidad : 0)} });
+    var enLista = false;
+    function nombreColor(id){ var c = I.porId(E.cat.colores, id); return c ? c.nombre : '?' }
+    return new Promise(function(fin){
+      function leer(){
+        var h = H.hojaEl();
+        st.forEach(function(x){ var c = q('[data-contador="c'+x.color_id+'"]', h); if(c) x.contados = H.valorContador(c); });
+      }
+      function total(){ return st.reduce(function(s, x){ return s + x.contados }, 0) }
+      function textoTotal(){
+        var t = total(), d = I.diferencia(r.cantidad, t);
+        return 'Llevas <b>'+t+'</b> de '+r.cantidad+(d.faltan ? ' · faltan '+d.faltan : d.sobran ? ' · sobran '+d.sobran : ' · ✓ coincide');
+      }
+      function abrir(){
+        var libres = (E.cat.colores||[]).filter(function(c){ return c.activo!==false && !st.some(function(x){ return x.color_id===c.id }) });
+        H.abrirHoja(H.cabHoja('¿Cuántos de cada color?', I.nombreModelo(r, E.cat)+' · la hoja dice '+r.cantidad)+'<form class="hoja-cuerpo" novalidate>'+
+          st.map(function(x){
+            var hx = H.hexColor(nombreColor(x.color_id));
+            var fuera = (r.colores||[]).indexOf(x.color_id) < 0;
+            return '<div class="campo cuenta-color"><span>'+(hx ? '<span class="pt-col" style="background:'+hx+'"></span>' : '')+esc(nombreColor(x.color_id))+
+              (fuera ? ' <small>(no venía en la hoja)</small>' : '')+'</span>'+H.contador('c'+x.color_id, x.contados, 0)+'</div>';
+          }).join('')+
+          (libres.length ? '<button type="button" class="btn-link" data-otro-color>+ Llegó otro color</button>' : '')+
+          '<p class="cuenta-total" aria-live="polite">'+textoTotal()+'</p>'+
+          '<div class="acciones"><button type="button" class="btn" data-hoja-cerrar>Cancelar</button><button type="submit" class="btn prin der">Listo</button></div></form>',
+          function(v){ if(!enLista) fin(v); });
+        var h = H.hojaEl(), f = q('form', h);
+        f.oninput = function(){ leer(); q('.cuenta-total', f).innerHTML = textoTotal(); };
+        f.onsubmit = function(e){ e.preventDefault(); leer(); H.cerrarHoja(st); };
+        h.onclick = function(e){
+          if(e.target.closest('[data-hoja-cerrar]')){ H.cerrarHoja(null); return; }
+          if(e.target.closest('[data-otro-color]')){
+            leer(); enLista = true;
+            H.abrirLista({titulo: '¿Qué color llegó?', grupos: [{opciones: libres.map(function(c){ return {valor: c.id, nombre: c.nombre, color: H.hexColor(c.nombre)} })}]})
+              .then(function(c){ if(c!=null) st.push({color_id: c, contados: 1}); enLista = false; abrir(); });
+          }
+        };
+      }
+      abrir();
+    }).then(function(v){
+      if(!v) return null;
+      // Un color que no venía en la hoja y quedó en 0 no se guarda
+      R.conteos[i] = v.filter(function(x){ return x.contados > 0 || (r.colores||[]).indexOf(x.color_id) > -1 });
+      return v;
+    });
+  }
 
   function dibujar(){
     var main = q('.inv-main', E.raiz);
@@ -54,22 +115,29 @@
   }
 
   // ---------------------------------------------------------------- 1. Vehículos
+  // Un solo color en la hoja: "✓ Coincide" o "No coincide". Varios colores: "Contar por color".
+  function unColor(r){ return (r.colores||[]).length===1 }
   function pasoVehiculos(){
-    var faltan = R.contados.filter(function(x){ return x==null }).length;
-    var html = '<p style="margin:0 0 14px">'+(faltan ? 'Cuenta los vehículos de cada tipo. Si coinciden con la hoja, pica <b>✓ Coincide</b>.' : 'Ya contaste todos los vehículos.')+'</p>';
-    if(faltan > 1) html += '<div class="acciones" style="margin:0 0 14px"><button type="button" class="btn" data-v="todos">✓ Todos coinciden</button></div>';
+    var faltan = R.conteos.filter(function(x){ return x==null }).length;
+    var rapidos = R.renglones.filter(function(r, i){ return R.conteos[i]==null && unColor(r) }).length;
+    var html = '<p style="margin:0 0 14px">'+(faltan ? 'Cuenta los vehículos de cada tipo. Si traen varios colores, cuenta cuántos llegaron de cada uno.' : 'Ya contaste todos los vehículos.')+'</p>';
+    if(rapidos > 1 && rapidos===faltan) html += '<div class="acciones" style="margin:0 0 14px"><button type="button" class="btn" data-v="todos">✓ Todos coinciden</button></div>';
     html += '<div class="tarjetas">'+R.renglones.map(function(r, i){
-      var c = R.contados[i], estado;
-      if(c==null){
-        estado = '<span class="btns"><button type="button" class="btn prin" data-v="si" data-i="'+i+'">✓ Coincide</button>'+
-          '<button type="button" class="btn" data-v="no" data-i="'+i+'">No coincide</button></span>';
+      var cs = R.conteos[i], c = contados(i), estado, abajo;
+      if(cs==null){
+        estado = unColor(r)
+          ? '<span class="btns"><button type="button" class="btn prin" data-v="si" data-i="'+i+'">✓ Coincide</button>'+
+            '<button type="button" class="btn" data-v="no" data-i="'+i+'">No coincide</button></span>'
+          : '<span class="btns"><button type="button" class="btn prin" data-v="no" data-i="'+i+'">Contar por color</button></span>';
+        abajo = '<small>'+H.coloresHTML(r.colores)+'</small>';
       } else {
         var d = I.diferencia(r.cantidad, c);
         estado = (d.faltan ? '<span class="etq rojo">Faltan '+d.faltan+'</span>' : d.sobran ? '<span class="etq rojo">Sobran '+d.sobran+'</span>' : '<span class="etq ok">✓ Coincide</span>')+
           '<span class="btns"><button type="button" class="btn" data-v="no" data-i="'+i+'">Cambiar</button></span>';
+        abajo = '<small>'+H.coloresHTML(cs.map(function(x){ return x.color_id }), cs)+'</small>'+
+          (c!==r.cantidad ? '<small>Se contaron '+c+'</small>' : '');
       }
-      return '<div class="tarjeta"><span class="cant">'+r.cantidad+'</span><span class="txt"><b>'+esc(I.nombreVehiculo(r, E.cat))+'</b>'+
-        (c!=null && c!==r.cantidad ? '<small>Se contaron '+c+'</small>' : '<small>Según la hoja</small>')+'</span>'+estado+'</div>';
+      return '<div class="tarjeta"><span class="cant">'+r.cantidad+'</span><span class="txt"><b>'+esc(I.nombreModelo(r, E.cat))+'</b>'+abajo+'</span>'+estado+'</div>';
     }).join('')+'</div>'+
       '<div class="acciones"><button type="button" class="btn" data-ir-ficha="'+R.id+'">Cancelar</button>'+
       '<button type="button" class="btn prin der" data-v="sig">Siguiente</button></div>';
@@ -179,12 +247,16 @@
   // ---------------------------------------------------------------- 3. Resumen y guardar
   function pasoResumen(){
     var s = I.resumenRevision(R.piezas);
-    var vDif = R.renglones.map(function(r, i){ return {r: r, c: R.contados[i]} }).filter(function(x){ return x.c!=null && x.c!==x.r.cantidad });
+    var vDif = R.renglones.map(function(r, i){ return {r: r, c: contados(i)} }).filter(function(x){ return x.c!=null && x.c!==x.r.cantidad });
     var html = '<div class="resumen">';
     html += vDif.length
       ? '<p style="margin:0 0 8px"><b>Vehículos que no coinciden:</b></p><ul style="margin:0 0 12px;padding-left:22px">'+vDif.map(function(x){
-          return '<li>'+esc(I.nombreVehiculo(x.r, E.cat))+': la hoja dice '+x.r.cantidad+', se contaron '+x.c+'</li>' }).join('')+'</ul>'
+          return '<li>'+esc(I.nombreModelo(x.r, E.cat))+': la hoja dice '+x.r.cantidad+', se contaron '+x.c+'</li>' }).join('')+'</ul>'
       : '<p style="margin:0 0 12px">✓ Los vehículos coinciden con la hoja.</p>';
+    html += '<p style="margin:0 0 8px"><b>Por color:</b></p><ul style="margin:0 0 12px;padding-left:22px;list-style:none">'+R.renglones.map(function(r, i){
+      var cs = R.conteos[i] || [];
+      return '<li style="margin-bottom:4px">'+esc(I.nombreModelo(r, E.cat))+'<br>'+H.coloresHTML(cs.map(function(x){ return x.color_id }), cs)+'</li>';
+    }).join('')+'</ul>';
     if(R.piezas.length){
       var faltan = R.piezas.filter(function(p){ return p.revisada && p.llegaron < p.esperadas });
       var sobran = R.piezas.filter(function(p){ return p.revisada && p.llegaron > p.esperadas });
@@ -214,7 +286,7 @@
       if(R.editando && motivo==null) return;
       var b = q('[data-v="guardar"]', E.raiz); if(b){ b.disabled = true; b.textContent = 'Guardando…'; }
       H.rpc('inv_revision_guardar', {p_id: R.id, p: {
-        contados: R.renglones.map(function(r, i){ return {renglon_id: r.id, contados: R.contados[i]} }),
+        contados: R.renglones.map(function(r, i){ return {renglon_id: r.id, colores: R.conteos[i]} }),
         piezas: R.piezas.filter(function(p){ return p.revisada }).map(function(p){ return {pieza_id: p.pieza_id, color_id: p.color_id, esperadas: p.esperadas, llegaron: p.llegaron, danadas: p.danadas||0} }),
         defectos: R.defectos
       }, p_motivo: motivo}).then(function(){
@@ -238,18 +310,18 @@
       return;
     }
     var a = b.dataset.v;
-    if(a==='si'){ R.contados[i] = R.renglones[i].cantidad; dibujar(); }
-    else if(a==='no'){
-      H.pedirCantidad({titulo: '¿Cuántos se contaron?', ayuda: I.nombreVehiculo(R.renglones[i], E.cat)+' · la hoja dice '+R.renglones[i].cantidad,
-        valor: R.contados[i]==null ? R.renglones[i].cantidad : R.contados[i], min: 0}).then(function(n){ if(n!=null) R.contados[i] = n; dibujar(); });
+    if(a==='si'){ var r1 = R.renglones[i]; R.conteos[i] = [{color_id: r1.colores[0], contados: r1.cantidad}]; dibujar(); }
+    else if(a==='no'){ contarColores(i).then(function(){ dibujar() }); }
+    else if(a==='todos'){
+      R.conteos = R.conteos.map(function(c, k){ var rk = R.renglones[k]; return c==null && unColor(rk) ? [{color_id: rk.colores[0], contados: rk.cantidad}] : c });
+      dibujar();
     }
-    else if(a==='todos'){ R.contados = R.contados.map(function(c, k){ return c==null ? R.renglones[k].cantidad : c }); dibujar(); }
     else if(a==='todas'){ R.piezas = R.piezas.map(function(p){ return p.revisada ? p : Object.assign({}, p, {llegaron: p.esperadas, danadas: 0, revisada: true}) }); dibujar(); }
     else if(a==='atras'){ R.paso = Math.max(1, R.paso-1); dibujar(); }
     else if(a==='sig'){
-      if(R.paso===1 && R.contados.some(function(c){ return c==null })){ R.error = 'Falta contar algunos vehículos.'; }
+      if(R.paso===1 && R.conteos.some(function(c){ return c==null })){ R.error = 'Falta contar algunos vehículos.'; }
       else if(R.paso===2 && R.piezas.some(function(p){ return !p.revisada })){ R.error = 'Falta revisar algunas piezas.'; }
-      else R.paso++;
+      else { if(R.paso===1) calcularPiezas(); R.paso++; }
       dibujar(); window.scrollTo({top: 0});
     }
     else if(a==='guardar') guardar();
