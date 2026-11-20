@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Línea de producción · prototipo</title>
+<link rel="icon" href="../icono.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Prototipo de la maqueta de la línea de ensamble (20-nov-2026). Datos de prueba, nada se guarda. -->
+<style>
+  :root{
+    --fondo:#efeeea; --texto:#1d1d1f; --tenue:#77777c; --tarjeta:rgba(255,255,255,.94); --borde:rgba(0,0,0,.06);
+    --rojo:#e5533d; --rojo-bg:#fde9e5; --verde:#2f9e63; --verde-bg:#e3f4ea; --azul:#2f63c9; --azul-bg:#e4ecfb; --ambar:#b7791f; --ambar-bg:#fbf0dc;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--fondo);color:var(--texto);font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  #escena{position:fixed;inset:0}
+  canvas{display:block}
+  .cab{position:fixed;left:24px;top:20px;z-index:3;pointer-events:none}
+  .cab h1{margin:0;font-size:24px;letter-spacing:-.02em}
+  .cab p{margin:4px 0 0;color:var(--tenue);font-size:15px}
+  .cab .prueba{display:inline-block;margin-top:8px;padding:3px 10px;border-radius:10px;background:var(--ambar-bg);color:var(--ambar);font-size:13px;font-weight:500}
+  /* Letreros de cada estación */
+  .letrero{position:fixed;z-index:2;transform:translate(-50%,-100%);display:flex;align-items:center;gap:8px;padding:7px 8px 7px 13px;border-radius:14px;
+    background:var(--tarjeta);box-shadow:0 6px 20px rgba(0,0,0,.08),0 0 0 1px var(--borde);font-size:15px;font-weight:600;white-space:nowrap;cursor:pointer;
+    transition:transform .18s cubic-bezier(.2,.8,.2,1),box-shadow .18s}
+  .letrero:hover,.letrero.sel{transform:translate(-50%,-100%) translateY(-3px);box-shadow:0 10px 26px rgba(0,0,0,.12),0 0 0 2px var(--texto)}
+  .letrero .n{min-width:28px;height:26px;padding:0 8px;border-radius:13px;display:grid;place-items:center;background:#f1f1ee;font-size:14px;font-variant-numeric:tabular-nums}
+  .letrero .n.hay{background:var(--texto);color:#fff}
+  .letrero .falta{height:26px;padding:0 9px;border-radius:13px;display:grid;place-items:center;background:var(--rojo);color:#fff;font-size:13px}
+  .letrero .solo{font-size:11px;font-weight:500;color:var(--tenue);margin-left:-2px}
+  /* Tarjeta flotante */
+  .tarjeta{position:fixed;z-index:4;width:380px;max-height:min(520px,calc(100vh - 40px));display:flex;flex-direction:column;border-radius:22px;background:var(--tarjeta);
+    -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 20px 50px rgba(0,0,0,.14),0 0 0 1px var(--borde);
+    opacity:0;transform:translateY(8px) scale(.98);pointer-events:none;transition:opacity .2s,transform .2s cubic-bezier(.2,.8,.2,1)}
+  .tarjeta.abierta{opacity:1;transform:none;pointer-events:auto}
+  .t-cab{display:flex;align-items:center;gap:14px;padding:20px 20px 14px}
+  .t-ico{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;flex:none}
+  .t-ico i{width:18px;height:18px;border-radius:5px;display:block}
+  .t-cab h2{margin:0;font-size:22px;letter-spacing:-.01em}
+  .t-cab small{display:flex;align-items:center;gap:6px;margin-top:2px;color:var(--tenue);font-size:13px;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+  .t-cab small i{width:7px;height:7px;border-radius:50%;background:var(--rojo)}
+  .t-x{margin-left:auto;align-self:flex-start;width:34px;height:34px;border:0;border-radius:50%;background:#f1f1ee;font-size:16px;cursor:pointer;color:var(--texto)}
+  .t-lista{overflow:auto;padding:0 12px 14px}
+  .t-vacio{padding:18px 10px 8px;color:var(--tenue);font-size:15px}
+  .veh{padding:12px 10px;border-top:1px solid #ececea}
+  .veh:first-child{border-top:0}
+  .veh-1{display:flex;align-items:center;gap:10px}
+  .pt{width:12px;height:12px;border-radius:50%;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
+  .veh b{font-size:16px;font-weight:600}
+  .veh .dias{margin-left:auto;color:var(--tenue);font-size:14px;font-variant-numeric:tabular-nums}
+  .veh .d{margin:2px 0 0 22px;color:var(--tenue);font-size:14px}
+  .etq{display:inline-block;padding:2px 8px;border-radius:8px;font-size:12px;font-weight:600;margin-left:4px}
+  .etq.esp{background:var(--azul-bg);color:var(--azul)}
+  .etq.falta{background:var(--rojo-bg);color:var(--rojo)}
+  .botones{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0 22px}
+  .b{height:40px;padding:0 14px;border-radius:12px;border:1px solid #dcdcd8;background:#fff;color:var(--texto);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+  .b.prin{background:var(--texto);border-color:var(--texto);color:#fff}
+  .b.rojo{color:var(--rojo);border-color:#f2c4bb}
+  .b:disabled{opacity:.4;cursor:default}
+  .espera-r{display:flex;align-items:center;gap:10px;padding:12px 10px;border-top:1px solid #ececea}
+  .espera-r:first-child{border-top:0}
+  .espera-r .cant{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums}
+  @media (orientation:portrait){
+    .letrero{font-size:12px;gap:5px;padding:4px 5px 4px 9px;border-radius:11px}
+    .letrero .n{min-width:22px;height:20px;font-size:12px;padding:0 6px}
+    .letrero .falta{height:20px;font-size:11px;padding:0 6px}
+    .letrero .solo{display:none}
+  }
+  @media (max-width:560px){ .tarjeta{left:10px!important;right:10px;width:auto;top:auto!important;bottom:10px} .cab h1{font-size:20px} }
+</style>
+</head>
+<body>
+<div id="escena"></div>
+<div class="cab">
+  <h1>Línea de producción</h1>
+  <p>Bodega 2 · pica una estación para ver sus vehículos</p>
+  <span class="prueba">Prototipo con datos de prueba</span>
+</div>
+<div id="letreros"></div>
+<div class="tarjeta" id="tarjeta" role="dialog" aria-modal="false"></div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+// ================================================================ Datos de prueba
+const COLORES = {Blanco:'#f4f4f1', Azul:'#3f6fd8', Rojo:'#d9483b', Tinto:'#7d2333', Negro:'#2b2b2e', Verde:'#3e9b6a', Plata:'#b9bcc2'};
+const ETAPAS = [
+  {id:'espera',         nombre:'En espera de armado', color:'#4b63d6', pos:[-16,-4]},
+  {id:'armado',         nombre:'Armado',              color:'#f08a4b', pos:[-9,-4]},
+  {id:'revision1',      nombre:'Revisión 1',          color:'#3fbf9b', pos:[-2,-4]},
+  {id:'herreria',       nombre:'Herrería',            color:'#6c7a91', pos:[-2,-12], especial:true},
+  {id:'forrado',        nombre:'Forrado',             color:'#9a6ee0', pos:[5,-12],  especial:true},
+  {id:'mecanica',       nombre:'Mecánica',            color:'#f2c14e', pos:[9,-4]},
+  {id:'detallado',      nombre:'Detallado y pintura', color:'#ef7f9a', pos:[9,5]},
+  {id:'revision_final', nombre:'Revisión final',      color:'#4fb36d', pos:[2,5]},
+  {id:'listo',          nombre:'Listo',               color:'#8a9099', pos:[-6.5,5]}
+];
+const E = Object.fromEntries(ETAPAS.map(e => [e.id, e]));
+const SIG = {armado:'revision1', herreria:'forrado', forrado:'mecanica', mecanica:'detallado', detallado:'revision_final', revision_final:'listo'};
+function siguiente(v){ return v.etapa==='revision1' ? (v.especial ? 'herreria' : 'mecanica') : SIG[v.etapa] }
+
+let ESPERA = [
+  {modelo:'MC 150 · Sin hidráulico · Doble', color:'Blanco', n:31},
+  {modelo:'MC 150 · Sin hidráulico · Doble', color:'Azul',   n:6},
+  {modelo:'MC 150 · Sin hidráulico · Doble', color:'Rojo',   n:4},
+  {modelo:'MC 200 · Con hidráulico · Doble', color:'Tinto',  n:14}
+];
+let VEH = [
+  {serie:'LXY1201', modelo:'MC 150', color:'Blanco', rem:'153/1', esp:'Garrafonero', etapa:'armado', dias:1},
+  {serie:'LXY1202', modelo:'MC 150', color:'Azul',   rem:'155',   etapa:'armado', dias:2},
+  {serie:'LXY1203', modelo:'MC 200', color:'Tinto',  rem:null,    etapa:'armado', dias:0},
+  {serie:'LXY1188', modelo:'MC 150', color:'Rojo',   rem:'149',   etapa:'revision1', dias:1},
+  {serie:'LXY1190', modelo:'MC 150', color:'Blanco', rem:'150',   etapa:'revision1', dias:3, faltantes:true},
+  {serie:'LXY1170', modelo:'MC 200', color:'Tinto',  rem:'141',   esp:'Caja seca', etapa:'herreria', dias:2},
+  {serie:'LXY1165', modelo:'MC 150', color:'Blanco', rem:'139',   esp:'Food truck', etapa:'forrado', dias:4},
+  {serie:'LXY1160', modelo:'MC 150', color:'Azul',   rem:'137',   etapa:'mecanica', dias:1},
+  {serie:'LXY1161', modelo:'MC 150', color:'Blanco', rem:null,    etapa:'mecanica', dias:2},
+  {serie:'LXY1158', modelo:'MC 200', color:'Tinto',  rem:'135',   etapa:'detallado', dias:1},
+  {serie:'LXY1150', modelo:'MC 150', color:'Rojo',   rem:'131',   etapa:'revision_final', dias:0},
+  {serie:'LXY1140', modelo:'MC 150', color:'Blanco', rem:'128',   etapa:'listo', dias:3},
+  {serie:'LXY1141', modelo:'MC 150', color:'Azul',   rem:null,    etapa:'listo', dias:5}
+];
+VEH.forEach(v => { v.especial = !!v.esp });
+let siguienteSerie = 1204;
+
+// ================================================================ Escena
+const cont = document.getElementById('escena');
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+cont.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#efeeea');
+
+// Cámara fija, isométrica (sin zoom ni giro)
+const CENTRO = new THREE.Vector3(-3.5, 0, -3.5);
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200);
+camera.position.set(CENTRO.x + 30, 28, CENTRO.z + 30);
+camera.lookAt(CENTRO);
+
+scene.add(new THREE.HemisphereLight('#ffffff', '#c9c6bd', 1.5));
+const sol = new THREE.DirectionalLight('#fff6ea', 2.3);
+sol.position.set(CENTRO.x + 14, 26, CENTRO.z + 6);
+sol.target.position.copy(CENTRO);
+sol.castShadow = true;
+sol.shadow.mapSize.set(2048, 2048);
+Object.assign(sol.shadow.camera, {left:-30, right:30, top:30, bottom:-30, near:1, far:90});
+sol.shadow.radius = 4; sol.shadow.bias = -0.0004;
+scene.add(sol, sol.target);
+
+const mats = {};
+function mat(color, rough=0.85){ const k = color+rough; return mats[k] || (mats[k] = new THREE.MeshStandardMaterial({color, roughness:rough, metalness:0})) }
+function caja(w, h, d, color, r=0.12, x=0, y=0, z=0, padre=scene){
+  const m = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 3, Math.min(r, w/2-0.001, h/2-0.001, d/2-0.001)), mat(color));
+  m.position.set(x, y + h/2, z); m.castShadow = true; m.receiveShadow = true; padre.add(m); return m;
+}
+
+// Base: losa grande con bordes redondeados, pasto suave alrededor
+caja(40, 0.8, 30, '#f7f6f2', 0.6, CENTRO.x + 0.5, -0.8, CENTRO.z + 0.5);
+caja(38, 0.06, 28, '#ffffff', 0.4, CENTRO.x + 0.5, 0, CENTRO.z + 0.5);
+[[-21,-16,3.2,5],[12.5,-16,4,4],[-21,10,5,3.5],[13,10.5,4,3]].forEach(([x,z,w,d]) => caja(w, 0.08, d, '#dfeee0', 0.3, x, 0.04, z));
+
+// Bandas transportadoras (camino entre estaciones) con puntitos naranjas
+const RUTAS = {
+  'espera>armado':[[-16,-4],[-9,-4]], 'armado>revision1':[[-9,-4],[-2,-4]], 'revision1>mecanica':[[-2,-4],[9,-4]],
+  'revision1>herreria':[[-2,-4],[-2,-12]], 'herreria>forrado':[[-2,-12],[5,-12]], 'forrado>mecanica':[[5,-12],[9,-12],[9,-4]],
+  'mecanica>detallado':[[9,-4],[9,5]], 'detallado>revision_final':[[9,5],[2,5]], 'revision_final>listo':[[2,5],[-6.5,5]]
+};
+const puntos = new THREE.InstancedMesh(new THREE.SphereGeometry(0.09, 10, 8), mat('#f2894a', 0.6), 400);
+let ip = 0; const dm = new THREE.Object3D();
+Object.values(RUTAS).forEach(r => {
+  for(let i=0; i<r.length-1; i++){
+    const [x1,z1] = r[i], [x2,z2] = r[i+1], lx = x2-x1, lz = z2-z1, L = Math.hypot(lx, lz);
+    const banda = caja(Math.abs(lx)+1.4, 0.14, Math.abs(lz)+1.4, '#d9d8d3', 0.25, (x1+x2)/2, 0.06, (z1+z2)/2);
+    banda.castShadow = false;
+    for(let s=0.8; s<L-0.8; s+=0.55){ dm.position.set(x1 + lx*s/L, 0.25, z1 + lz*s/L); dm.updateMatrix(); puntos.setMatrixAt(ip++, dm.matrix); }
+  }
+});
+puntos.count = ip; scene.add(puntos);
+
+// ---------------------------------------------------------------- Estaciones
+const clicables = [];   // mallas que abren la tarjeta de su estación
+function marcar(obj, etapa){ obj.traverse(o => { if(o.isMesh){ o.userData.etapa = etapa; clicables.push(o); } }) }
+
+function ventanas(g, w, h, z, filas, cols, color='#dfe8ff'){
+  for(let f=0; f<filas; f++) for(let c=0; c<cols; c++){
+    const v = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.3, 0.04), mat(color, 0.3));
+    v.position.set(-w/2 + (c+1)*w/(cols+1), 0.7 + f*0.55, z); g.add(v);
+  }
+}
+function edificio(e){
+  const [x, z] = e.pos, g = new THREE.Group(); g.position.set(x, 0.06, z - 1.25); scene.add(g);
+  const base = (w, h, d, color, techo) => {
+    caja(w, h, d, '#fbfaf7', 0.1, 0, 0, 0, g);
+    caja(w+0.12, 0.22, d+0.12, techo || color, 0.08, 0, h - 0.02, 0, g);
+    caja(w*0.9, 0.24, 0.06, color, 0.03, 0, h*0.55, d/2 + 0.03, g);   // franja de color al frente
+  };
+  switch(e.id){
+    case 'espera':   // bodega azul, como la de la imagen
+      caja(4.2, 2.4, 2.4, e.color, 0.12, 0, 0, 0, g); caja(4.3, 0.18, 2.5, '#e9ecf3', 0.06, 0, 2.4, 0, g);
+      caja(1.4, 1.3, 0.05, '#f1f2f6', 0.03, -0.9, 0, 1.22, g); caja(1.4, 1.3, 0.05, '#f1f2f6', 0.03, 0.9, 0, 1.22, g);
+      [[-1.6,1.9],[-1.0,2.1],[-1.3,2.6],[1.7,2.0]].forEach(([bx,bz]) => caja(0.55, 0.5, 0.55, '#d8b27a', 0.04, bx, 0, bz - 1.25 + 1.25, g));
+      break;
+    case 'armado':
+      base(3.6, 2.0, 2.0, e.color); caja(1.6, 1.4, 0.05, '#fde7d8', 0.03, 0, 0, 1.02, g); break;
+    case 'revision1': case 'revision_final': {
+      base(2.8, 1.7, 1.8, e.color); ventanas(g, 2.8, 1.7, 0.92, 1, 3);
+      const p = caja(0.5, 0.5, 0.12, e.color, 0.2, 0, 2.1, 0.3, g);   // insignia de revisión
+      break; }
+    case 'herreria':
+      base(3.4, 2.0, 2.0, e.color, '#55617a'); caja(0.4, 1.2, 0.4, '#8b94a6', 0.08, 1.1, 2.0, -0.4, g);
+      caja(1.5, 1.3, 0.05, '#dfe3ea', 0.03, -0.4, 0, 1.02, g); break;
+    case 'forrado':
+      base(3.4, 1.9, 2.0, e.color); caja(1.5, 1.3, 0.05, '#efe6fb', 0.03, 0.4, 0, 1.02, g); break;
+    case 'mecanica':
+      base(3.4, 2.0, 2.0, e.color); caja(1.8, 1.4, 0.05, '#fdf3d7', 0.03, -0.3, 0, 1.02, g);
+      for(let i=0;i<4;i++) caja(1.7, 0.04, 0.07, '#e8d9a8', 0.01, -0.3, 0.3 + i*0.3, 1.06, g);
+      break;
+    case 'detallado':
+      base(3.2, 2.1, 2.0, e.color); ventanas(g, 3.2, 2.1, 1.02, 2, 3, '#ffe3ea'); break;
+    case 'listo':   // estacionamiento con camión de flete
+      g.position.z = z - 1.6;
+      caja(2.2, 1.5, 1.6, e.color, 0.1, -2.6, 0, 0, g); caja(2.3, 0.16, 1.7, '#6f757e', 0.06, -2.6, 1.5, 0, g);
+      caja(2.6, 1.3, 1.3, '#f3f3f0', 0.12, 1.2, 0, 0, g); caja(1.0, 1.0, 1.25, '#f08a4b', 0.12, 3.0, 0, 0, g);
+      [[0.3,-0.65],[2.1,-0.65],[3.1,-0.65],[0.3,0.65],[2.1,0.65],[3.1,0.65]].forEach(([wx,wz]) => {
+        const r = new THREE.Mesh(new THREE.CylinderGeometry(0.26,0.26,0.18,18), mat('#2d2d30')); r.rotation.x = Math.PI/2; r.position.set(wx,0.26,wz); r.castShadow = true; g.add(r); });
+      break;
+  }
+  marcar(g, e.id);
+  // Piso de la estación (donde se forman los vehículos)
+  const w = e.id==='listo' ? 10 : 6, d = 4.4;
+  const piso = caja(w, 0.1, d, '#f1efe9', 0.35, x, 0.06, z + 0.9);
+  piso.castShadow = false; marcar(piso, e.id);
+  const borde = caja(w + 0.18, 0.06, d + 0.18, e.color, 0.38, x, 0.04, z + 0.9);
+  borde.material = new THREE.MeshStandardMaterial({color:e.color, roughness:.8, transparent:true, opacity:.35}); borde.castShadow = false;
+  e.piso = {x, z: z + 0.9, w, d};
+}
+ETAPAS.forEach(edificio);
+
+// Árboles y postes
+function arbol(x, z, s=1, pino=false){
+  const t = new THREE.Mesh(new THREE.CylinderGeometry(0.08*s, 0.1*s, 0.6*s, 8), mat('#a88b6a')); t.position.set(x, 0.36*s, z); t.castShadow = true; scene.add(t);
+  const c = pino ? new THREE.Mesh(new THREE.ConeGeometry(0.5*s, 1.3*s, 10), mat('#5fb07a')) : new THREE.Mesh(new THREE.SphereGeometry(0.55*s, 18, 14), mat('#86cc90'));
+  c.position.set(x, (pino ? 1.2 : 1.05)*s, z); c.castShadow = true; scene.add(c);
+}
+[[-21.5,-17,1],[-20,-14.5,.8,true],[12,-17,1],[14,-14.5,.9,true],[-22,10,1.1],[-19.5,11.5,.8,true],[13.5,10,1],[12,12,.8,true],[-10,-15.5,.8],[14.5,0,.9,true],[-22,-1,.8],[-12,11.5,.9]]
+  .forEach(([x,z,s,p]) => arbol(x, z, s, p));
+
+// ---------------------------------------------------------------- Vehículos (motocarros)
+function motocarro(colorNom, especial){
+  const g = new THREE.Group(), color = COLORES[colorNom] || '#ccc';
+  caja(1.15, 0.12, 0.5, '#3a3a3d', 0.04, 0, 0.18, 0, g);                 // chasis
+  caja(0.42, 0.42, 0.46, color, 0.08, 0.38, 0.28, 0, g);                  // cabina
+  caja(0.36, 0.05, 0.5, color, 0.03, 0.4, 0.74, 0, g);                    // techo
+  caja(0.05, 0.2, 0.36, '#cfe4ff', 0.02, 0.6, 0.48, 0, g);                // parabrisas
+  if(especial) caja(0.66, 0.5, 0.56, '#f5f5f2', 0.06, -0.24, 0.3, 0, g);  // caja del especial
+  else { caja(0.66, 0.08, 0.56, color, 0.03, -0.24, 0.3, 0, g); caja(0.66, 0.2, 0.04, color, 0.02, -0.24, 0.38, 0.26, g); caja(0.66, 0.2, 0.04, color, 0.02, -0.24, 0.38, -0.26, g); }
+  [[0.5,0],[-0.38,0.26],[-0.38,-0.26]].forEach(([wx,wz]) => {
+    const r = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,0.1,16), mat('#232326')); r.rotation.x = Math.PI/2; r.position.set(wx,0.15,wz); r.castShadow = true; g.add(r); });
+  return g;
+}
+// Aro rojo de "faltantes" debajo del vehículo
+const aroGeo = new THREE.RingGeometry(0.62, 0.78, 36);
+function aro(){ const a = new THREE.Mesh(aroGeo, new THREE.MeshBasicMaterial({color:'#e5533d', transparent:true, opacity:.85, side:THREE.DoubleSide})); a.rotation.x = -Math.PI/2; a.position.y = 0.13; return a; }
+
+const MAX_LUGARES = 6;
+function lugares(etapa){
+  const p = E[etapa].piso, cols = etapa==='listo' ? 5 : 3, filas = 2, res = [];
+  for(let f=0; f<filas; f++) for(let c=0; c<cols; c++) res.push(new THREE.Vector3(p.x - (cols-1)*0.92 + c*1.84, 0.11, p.z - 0.35 + f*1.55));
+  return res;
+}
+VEH.forEach(v => crearMalla(v));
+function crearMalla(v){
+  v.malla = motocarro(v.color, v.especial); v.malla.rotation.y = 0; v.malla.scale.setScalar(1.55);
+  marcar(v.malla, null); v.malla.traverse(o => { if(o.isMesh) o.userData.veh = v; });
+  scene.add(v.malla);
+}
+function acomodar(animar=true){
+  ETAPAS.forEach(e => {
+    const ls = lugares(e.id), vs = VEH.filter(v => v.etapa===e.id), cupo = e.id==='listo' ? 10 : MAX_LUGARES;
+    vs.forEach((v, i) => {
+      const destino = ls[i % ls.length].clone();
+      v.malla.visible = i < cupo;
+      if(v.anim) return;
+      if(animar){ v.ir = [destino]; } else { v.malla.position.copy(destino); }
+      if(v.faltantes && !v.aro){ v.aro = aro(); v.malla.add(v.aro); }
+      if(!v.faltantes && v.aro){ v.malla.remove(v.aro); v.aro = null; }
+    });
+  });
+}
+acomodar(false);
+
+// ---------------------------------------------------------------- Movimiento
+function mover(v, a){
+  const ruta = RUTAS[v.etapa+'>'+a] || [];
+  v.etapa = a; v.dias = 0; v.anim = true;
+  const pts = ruta.map(([x,z]) => new THREE.Vector3(x, 0.32, z));
+  const otros = VEH.filter(o => o.etapa===a && o!==v).length;
+  const destino = lugares(a)[otros % lugares(a).length].clone();
+  v.ir = [...pts.slice(1), destino];
+  v.malla.visible = true;
+  dibujar(); acomodar(); if(abierta) abrir(abierta);
+}
+const reloj = new THREE.Clock();
+function paso(dt){
+  let movio = false;
+  VEH.forEach(v => {
+    if(!v.ir || !v.ir.length){ if(v.anim){ v.anim = false; v.malla.position.y = 0.11; } return; }
+    const t = v.ir[0], p = v.malla.position, d = t.clone().sub(p); d.y = 0;
+    const L = d.length(), vel = 7 * dt;
+    if(L > 0.02){ const ang = Math.atan2(-d.z, d.x); v.malla.rotation.y += (ang - v.malla.rotation.y) * Math.min(1, dt*12); }
+    if(L <= vel){ p.x = t.x; p.z = t.z; v.ir.shift(); if(!v.ir.length && !v.anim) v.malla.rotation.y = 0; }
+    else { p.addScaledVector(d.normalize(), vel); }
+    p.y = v.anim ? 0.11 + Math.abs(Math.sin(performance.now()/90))*0.03 : 0.11;
+    if(!v.ir.length && v.anim){ v.anim = false; v.malla.rotation.y = 0; acomodar(); }
+    movio = true;
+  });
+  return movio;
+}
+
+// ---------------------------------------------------------------- Tamaño (siempre se ve toda la línea)
+const LIM = {x0:-23.5, x1:16.5, z0:-18.5, z1:12.5};
+function ajustar(){
+  const w = cont.clientWidth, h = cont.clientHeight;
+  renderer.setSize(w, h);
+  const esquinas = [], vertical = h > w;
+  // En pantalla vertical se recorta el borde de la losa para que la línea se vea más grande
+  const L = vertical ? {x0:-19.5, x1:12.5, z0:-15.5, z1:9.5} : LIM;
+  for(const x of [L.x0, L.x1]) for(const z of [L.z0, L.z1]) for(const y of [-0.8, 3]) esquinas.push(new THREE.Vector3(x, y, z));
+  camera.left = -1; camera.right = 1; camera.top = 1; camera.bottom = -1; camera.zoom = 1; camera.updateProjectionMatrix(); camera.updateMatrixWorld();
+  let mnx=Infinity,mxx=-Infinity,mny=Infinity,mxy=-Infinity;
+  esquinas.forEach(p => { const q = p.clone().applyMatrix4(camera.matrixWorldInverse); mnx=Math.min(mnx,q.x); mxx=Math.max(mxx,q.x); mny=Math.min(mny,q.y); mxy=Math.max(mxy,q.y); });
+  const margenArriba = w < 700 ? 0.22 : 0.12;
+  let ancho = mxx - mnx, alto = (mxy - mny) / (1 - margenArriba), cx = (mnx + mxx)/2, cy = (mny + mxy)/2 + (mxy - mny)*margenArriba/2;
+  if(ancho/alto > w/h) alto = ancho * h / w; else ancho = alto * w / h;
+  camera.left = cx - ancho/2; camera.right = cx + ancho/2; camera.top = cy + alto/2; camera.bottom = cy - alto/2;
+  camera.updateProjectionMatrix();
+  posLetreros();
+}
+
+// ---------------------------------------------------------------- Letreros
+const capa = document.getElementById('letreros');
+ETAPAS.forEach(e => {
+  const el = document.createElement('div'); el.className = 'letrero'; el.dataset.etapa = e.id;
+  el.addEventListener('click', ev => { ev.stopPropagation(); abrir(e.id); });
+  capa.appendChild(el); e.letrero = el;
+});
+function dibujar(){
+  ETAPAS.forEach(e => {
+    let n, falta = 0;
+    if(e.id==='espera') n = ESPERA.reduce((s, x) => s + x.n, 0);
+    else { const vs = VEH.filter(v => v.etapa===e.id); n = vs.length; falta = vs.filter(v => v.faltantes).length; }
+    e.letrero.innerHTML = esc(e.nombre) + (e.especial ? '<span class="solo">· especiales</span>' : '') +
+      '<span class="n'+(n ? ' hay' : '')+'">'+n+'</span>' + (falta ? '<span class="falta">'+falta+' falta'+(falta>1?'n':'')+'</span>' : '');
+  });
+}
+function posLetreros(){
+  const r = renderer.domElement.getBoundingClientRect();
+  ETAPAS.forEach(e => {
+    const alto = e.id==='espera' ? 3.1 : e.id==='listo' ? 2.1 : 2.75;
+    const p = new THREE.Vector3(e.pos[0], alto, e.pos[1] - (e.id==='listo' ? 1.6 : 1.25)).project(camera);
+    e.pantalla = {x: r.left + (p.x+1)/2*r.width, y: r.top + (1-p.y)/2*r.height};
+    e.letrero.style.left = e.pantalla.x + 'px'; e.letrero.style.top = (e.pantalla.y - 6) + 'px';
+  });
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
+
+// ---------------------------------------------------------------- Tarjeta de la estación
+const tarjeta = document.getElementById('tarjeta');
+let abierta = null;
+function abrir(id){
+  abierta = id; const e = E[id];
+  document.querySelectorAll('.letrero').forEach(l => l.classList.toggle('sel', l.dataset.etapa===id));
+  let html = '<div class="t-cab"><div class="t-ico" style="background:'+e.color+'22"><i style="background:'+e.color+'"></i></div><div><h2>'+esc(e.nombre)+'</h2>';
+  if(id==='espera'){
+    const n = ESPERA.reduce((s, x) => s + x.n, 0);
+    html += '<small><i></i>'+n+' por armar</small></div><button class="t-x" data-cerrar aria-label="Cerrar">✕</button></div><div class="t-lista">'+
+      ESPERA.filter(x => x.n).map((x, i) => '<div class="espera-r"><span class="pt" style="background:'+COLORES[x.color]+'"></span><span>'+esc(x.modelo)+' · '+esc(x.color)+'</span><span class="cant">'+x.n+'</span></div>'+
+        '<div class="botones" style="margin:0 0 6px 32px"><button class="b" data-entrar="'+i+'">Entrar a producción</button></div>').join('')+'</div>';
+  } else {
+    const vs = VEH.filter(v => v.etapa===id).sort((a, b) => (b.faltantes?1:0) - (a.faltantes?1:0) || b.dias - a.dias);
+    html += '<small><i></i>'+vs.length+(vs.length===1 ? ' vehículo' : ' vehículos')+'</small></div><button class="t-x" data-cerrar aria-label="Cerrar">✕</button></div><div class="t-lista">';
+    if(!vs.length) html += '<div class="t-vacio">No hay vehículos en esta etapa.</div>';
+    html += vs.map(v => {
+      const i = VEH.indexOf(v), sig = siguiente(v);
+      let bot = '';
+      if(v.faltantes) bot = '<button class="b prin" data-falt="'+i+'">✓ Ya se pusieron las piezas</button>';
+      else if(id==='revision1') bot = '<button class="b prin" data-mover="'+i+'">✓ Todo bien · pasar a '+esc(E[sig].nombre)+'</button><button class="b rojo" data-faltan="'+i+'">Falta una pieza</button>';
+      else if(id==='revision_final') bot = '<button class="b prin" data-mover="'+i+'">✓ Pasa</button><button class="b" disabled>No pasa</button>';
+      else if(sig) bot = '<button class="b prin" data-mover="'+i+'">Pasar a '+esc(E[sig].nombre)+'</button>';
+      return '<div class="veh"><div class="veh-1"><span class="pt" style="background:'+COLORES[v.color]+'"></span><b>'+esc(v.serie)+'</b>'+
+        (v.especial ? '<span class="etq esp">Especial</span>' : '')+(v.faltantes ? '<span class="etq falta">Faltantes</span>' : '')+
+        '<span class="dias">'+(v.dias===0 ? 'hoy' : v.dias+(v.dias===1 ? ' día' : ' días'))+'</span></div>'+
+        '<div class="d">'+esc(v.modelo)+' · '+esc(v.color)+' · '+(v.rem ? 'Venta '+esc(v.rem) : 'Showroom')+(v.esp ? ' · '+esc(v.esp) : '')+'</div>'+
+        (bot ? '<div class="botones">'+bot+'</div>' : '')+'</div>';
+    }).join('') + '</div>';
+  }
+  tarjeta.innerHTML = html;
+  colocarTarjeta(e);
+  tarjeta.classList.add('abierta');
+}
+function colocarTarjeta(e){
+  const W = innerWidth, Hh = innerHeight, tw = Math.min(380, W - 20);
+  const th = tarjeta.offsetHeight || 300;
+  let x = e.pantalla.x + 40, y = e.pantalla.y - 30;
+  if(x + tw > W - 16) x = e.pantalla.x - tw - 40;
+  x = Math.max(12, Math.min(x, W - tw - 12));
+  y = Math.max(12, Math.min(y, Hh - th - 12));
+  tarjeta.style.left = x + 'px'; tarjeta.style.top = y + 'px';
+}
+function cerrar(){ abierta = null; tarjeta.classList.remove('abierta'); document.querySelectorAll('.letrero').forEach(l => l.classList.remove('sel')); }
+tarjeta.addEventListener('click', ev => {
+  const b = ev.target.closest('button'); if(!b) return;
+  if(b.hasAttribute('data-cerrar')){ cerrar(); return; }
+  if(b.dataset.mover){ const v = VEH[+b.dataset.mover]; mover(v, siguiente(v)); return; }
+  if(b.dataset.faltan){ const v = VEH[+b.dataset.faltan]; v.faltantes = true; dibujar(); acomodar(); abrir(abierta); return; }
+  if(b.dataset.falt){ const v = VEH[+b.dataset.falt]; v.faltantes = false; mover(v, siguiente(v)); return; }
+  if(b.dataset.entrar){
+    const x = ESPERA[+b.dataset.entrar]; if(!x || !x.n) return;
+    x.n--;
+    const v = {serie:'LXY'+(siguienteSerie++), modelo:x.modelo.split(' · ')[0], color:x.color, rem:null, etapa:'espera', dias:0};
+    VEH.push(v); crearMalla(v); v.malla.position.set(-16, 0.11, -3.3);
+    mover(v, 'armado');
+    abrir('espera');
+  }
+});
+addEventListener('keydown', ev => { if(ev.key==='Escape') cerrar(); });
+
+// ---------------------------------------------------------------- Clic y "hover" en la maqueta
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+function tocado(ev){
+  const r = renderer.domElement.getBoundingClientRect();
+  mouse.set((ev.clientX - r.left)/r.width*2 - 1, -(ev.clientY - r.top)/r.height*2 + 1);
+  ray.setFromCamera(mouse, camera);
+  const hit = ray.intersectObjects(clicables, false)[0];
+  if(!hit) return null;
+  return hit.object.userData.veh ? hit.object.userData.veh.etapa : hit.object.userData.etapa;
+}
+let sobre = null;
+renderer.domElement.addEventListener('pointermove', ev => {
+  const et = tocado(ev);
+  renderer.domElement.style.cursor = et ? 'pointer' : 'default';
+  if(et !== sobre){ sobre = et; document.querySelectorAll('.letrero').forEach(l => l.classList.toggle('sel', l.dataset.etapa===et || l.dataset.etapa===abierta)); }
+});
+renderer.domElement.addEventListener('click', ev => { const et = tocado(ev); if(et) abrir(et); else cerrar(); });
+
+// ---------------------------------------------------------------- Ciclo
+addEventListener('resize', () => { ajustar(); if(abierta) colocarTarjeta(E[abierta]); });
+dibujar(); ajustar();
+let pulso = 0;
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(reloj.getDelta(), 0.05);
+  paso(dt);
+  pulso += dt;
+  VEH.forEach(v => { if(v.aro){ const s = 1 + Math.sin(pulso*4)*0.08; v.aro.scale.set(s, s, s); } });
+  renderer.render(scene, camera);
+});
+</script>
+</body>
+</html>
