@@ -1,6 +1,6 @@
 /* Producción y ventas (20-nov-2026). Diseño: docs/superpowers/specs/2026-11-20-produccion-ventas-design.md
    Nueva venta → Por armar / Esperando piezas → Entrar a producción (venta o showroom, número de serie)
-   → etapas: Armado, Revisión 1, Herrería y Forrado (solo especiales), Mecánica, Detallado y pintura, Revisión final → Listo.
+   → etapas: Armado, Revisión 1, Mecánica, Herrería y Forrado (rama de especiales), Detallado y pintura, Revisión final → Listo.
    Si la Revisión 1 encuentra un "Faltante de pieza", el vehículo queda en Faltantes hasta que se pongan. */
 (function(){
   var H = window.InventarioApp._h, E = H.E, I = H.I, esc = H.esc, q = H.q;
@@ -9,9 +9,9 @@
   var ETAPAS = [
     {id: 'armado', nombre: 'Armado'},
     {id: 'revision1', nombre: 'Revisión 1'},
-    {id: 'herreria', nombre: 'Herrería', especial: true},
-    {id: 'forrado', nombre: 'Forrado', especial: true},
     {id: 'mecanica', nombre: 'Mecánica'},
+    {id: 'herreria', nombre: 'Herrería', especial: true},   // rama de especiales: sale después de Mecánica
+    {id: 'forrado', nombre: 'Forrado', especial: true},     // y vuelve en Detallado y pintura
     {id: 'detallado', nombre: 'Detallado y pintura'},
     {id: 'revision_final', nombre: 'Revisión final'},
     {id: 'listo', nombre: 'Listo'}
@@ -261,7 +261,11 @@
       if(E.seccion!=='produccion') return;
       var enCurso = lista.filter(function(h){ return h.etapa!=='listo' }).length;
       var html = '<header class="inv-cab"><h1>Producción</h1><p>'+(enCurso ? enCurso+(enCurso===1 ? ' vehículo en producción.' : ' vehículos en producción.') : 'Los vehículos que se están armando, por etapa.')+'</p></header>';
-      if(H.puedeEscribir()) html += '<div class="acciones" style="margin:0 0 22px"><button type="button" class="btn prin ancho" data-entrar>+ Entrar a producción</button></div>';
+      var modo = modoProduccion();
+      html += '<div class="prod-barra">'+(H.puedeEscribir() ? '<button type="button" class="btn prin" data-entrar>+ Entrar a producción</button>' : '')+
+        '<div class="vista-sel" role="group" aria-label="Ver como"><button type="button" data-modo-prod="linea" aria-pressed="'+(modo==='linea')+'">Línea</button>'+
+        '<button type="button" data-modo-prod="lista" aria-pressed="'+(modo==='lista')+'">Lista</button></div></div>';
+      if(modo==='linea' && H.linea){ m.innerHTML = html + '<div class="linea-caja"></div>'; H.linea.dibujar(q('.linea-caja', m), lista); return; }
       if(!lista.length) html += '<div class="inv-vacio"><b>Todavía no hay vehículos en producción</b>Cuando empiecen a armar uno, dale "Entrar a producción".</div>';
       var falt = lista.filter(function(h){ return h.faltantes });
       if(falt.length) html += '<h2 class="inv-sub rojo">Faltantes <span>· '+falt.length+'</span></h2><p class="inv-sub-p">No avanzan hasta que se pongan las piezas</p>'+
@@ -275,6 +279,11 @@
     }).catch(function(err){ errorEn(m, err) });
   };
 
+  // Línea (el dibujo) o Lista; en celular siempre Lista. Se recuerda en el navegador.
+  function modoProduccion(){
+    if(innerWidth < 700) return 'lista';
+    try { return localStorage.getItem('logistica.prodModo') || 'linea' } catch(e){ return 'linea' }
+  }
   function tarjetaVeh(h){
     var para = h.venta ? 'Venta '+esc(h.venta.remision) : 'Showroom';
     return '<button type="button" class="tarjeta clic" data-ficha-veh="'+h.id+'"><span class="txt"><b>'+puntoColor(h.color_id)+esc(nombreVeh(h))+'</b>'+
@@ -285,7 +294,7 @@
   }
 
   // ---------------------------------------------------------------- Entrar a producción
-  function entrar(ventaId){
+  function entrar(ventaId, despues){
     var paso = ventaId ? Promise.resolve({venta_id: ventaId}) : H.abrirLista({titulo: '¿Para qué es?', grupos: [{opciones: [
       {valor: 'venta', nombre: 'Para una venta', detalle: 'Ya tiene nota de remisión'},
       {valor: 'showroom', nombre: 'Para showroom', detalle: 'Se queda en bodega y se puede mandar a una sucursal'}]}]}).then(function(para){
@@ -315,7 +324,7 @@
         falta: 'Escribe el número de serie.'}).then(function(serie){
         if(serie==null) return;
         p.serie = serie;
-        return H.rpc('inv_produccion_entrar', {p: p}).then(function(r){ refrescarCuentas(); abrirFichaVeh(r.id); });
+        return H.rpc('inv_produccion_entrar', {p: p}).then(function(r){ refrescarCuentas(); (despues || abrirFichaVeh)(r.id); });
       });
     }).catch(function(err){ aviso('No se pudo', H.mensaje(err)); });
   }
@@ -371,13 +380,13 @@
   }
   function gravNom(g){ return {leve: 'Leve', media: 'Media', grave: 'Grave'}[g] || g }
 
-  function avanzar(id, p){
-    return H.rpc('inv_vehiculo_avanzar', {p_id: id, p: p || {}}).then(function(){ refrescarCuentas(); abrirFichaVeh(id); })
+  function avanzar(id, p, despues){
+    return H.rpc('inv_vehiculo_avanzar', {p_id: id, p: p || {}}).then(function(){ refrescarCuentas(); (despues || abrirFichaVeh)(id); })
       .catch(function(err){ aviso('No se pudo', H.mensaje(err)); });
   }
 
   // Revisión 1: "✓ Todo bien" o anotar faltantes y daños (tipo, gravedad, cantidad)
-  function revision1(id){
+  function revision1(id, despues){
     var danos = [], enLista = false;
     new Promise(function(fin){
       function abrir(){
@@ -408,7 +417,7 @@
         };
       }
       abrir();
-    }).then(function(v){ if(v) avanzar(id, v); });
+    }).then(function(v){ if(v) avanzar(id, v, despues); });
   }
 
   function alClicGeneral(e){
@@ -418,7 +427,8 @@
     if((b = e.target.closest('[data-ficha-venta]'))){ abrirFichaVenta(+b.dataset.fichaVenta); return; }
     if((b = e.target.closest('[data-ficha-veh]'))){ abrirFichaVeh(+b.dataset.fichaVeh); return; }
     if((b = e.target.closest('[data-entrar-venta]'))){ entrar(+b.dataset.entrarVenta); return; }
-    if(e.target.closest('[data-entrar]')){ entrar(null); return; }
+    if(e.target.closest('[data-entrar]')){ entrar(null, H.linea && q('.linea-caja', main()) ? H.linea.refrescar : null); return; }
+    if((b = e.target.closest('[data-modo-prod]'))){ try { localStorage.setItem('logistica.prodModo', b.dataset.modoProd) } catch(er){} H.ir('produccion'); return; }
     if((b = e.target.closest('[data-avanzar]'))){ b.disabled = true; avanzar(+b.dataset.avanzar); return; }
     if((b = e.target.closest('[data-revision1]'))){ revision1(+b.dataset.revision1); return; }
     if((b = e.target.closest('[data-faltantes]'))){
@@ -454,4 +464,6 @@
     }).catch(function(){});
   }
   H.alIniciar.push(refrescarCuentas);
+  H.prod = {ETAPAS: ETAPAS, etapa: etapa, siguiente: siguiente, nombreVeh: nombreVeh, colorHex: colorHex, dias: dias, aviso: aviso,
+    entrar: entrar, avanzar: avanzar, revision1: revision1, abrirFichaVeh: abrirFichaVeh, refrescarCuentas: refrescarCuentas};
 })();
