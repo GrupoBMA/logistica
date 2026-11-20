@@ -19,7 +19,10 @@
       R = {id: id, c: c, renglones: f.renglones,
         conteos: f.renglones.map(function(r){ return c.estado==='revisado' && r.conteo && r.conteo.length ? r.conteo.map(function(x){ return {color_id: x.color_id, contados: x.contados} }) : null }),
         piezas: [], sinLista: I.sinListaDePiezas(f.renglones, E.cat),
-        defectos: (f.defectos||[]).map(function(d){ return {pieza_id: d.pieza_id, color_id: d.color_id, defecto_id: d.defecto_id, gravedad: d.gravedad, cantidad: d.cantidad} }),
+        defectos: (f.defectos||[]).filter(function(d){ return d.pieza_id!=null }).map(function(d){ return {pieza_id: d.pieza_id, color_id: d.color_id, defecto_id: d.defecto_id, gravedad: d.gravedad, cantidad: d.cantidad} }),
+        // Daños del contenedor en general (sin pieza), mientras no haya lista de piezas
+        danos: (f.defectos||[]).filter(function(d){ return d.pieza_id==null }).map(function(d){ return {defecto_id: d.defecto_id, gravedad: d.gravedad, cantidad: d.cantidad} }),
+        sinDanos: c.estado==='revisado',
         editando: c.estado==='revisado', soloVer: !H.puedeEscribir() || c.estado==='anulado',
         paso: (!H.puedeEscribir() || c.estado!=='recibido') ? 3 : 1, error: ''};
       calcularPiezas(f.piezas);
@@ -97,7 +100,7 @@
 
   function dibujar(){
     var main = q('.inv-main', E.raiz);
-    var titulos = ['Vehículos', 'Piezas', R.soloVer ? 'Resumen' : 'Guardar'];
+    var titulos = ['Vehículos', R.piezas.length ? 'Piezas' : 'Daños', R.soloVer ? 'Resumen' : 'Guardar'];
     var html = '<button type="button" class="btn-link" data-ir-ficha="'+R.id+'">‹ Contenedor '+esc(R.c.numero)+'</button>'+
       '<header class="inv-cab"><h1>Revisión del contenedor '+esc(R.c.numero)+'</h1><p>'+
       (R.soloVer ? 'Lo que se encontró al revisarlo.' : 'Cuenta lo que llegó y compáralo con lo que dice la hoja.')+'</p></header>';
@@ -109,7 +112,7 @@
     }
     if(R.error) html += '<p class="inv-error">'+esc(R.error)+'</p>';
     if(R.paso===1) html += pasoVehiculos();
-    else if(R.paso===2) html += pasoPiezas();
+    else if(R.paso===2) html += R.piezas.length ? pasoPiezas() : pasoDanos();
     else html += pasoResumen();
     main.innerHTML = html;
   }
@@ -142,6 +145,63 @@
       '<div class="acciones"><button type="button" class="btn" data-ir-ficha="'+R.id+'">Cancelar</button>'+
       '<button type="button" class="btn prin der" data-v="sig">Siguiente</button></div>';
     return html;
+  }
+
+  // ---------------------------------------------------------------- 2. Daños del contenedor
+  // Mientras no hay lista de piezas, los daños se anotan por contenedor: tipo, gravedad y cuántos.
+  var GRAVEDADES = ['leve', 'media', 'grave'];
+  function totalDanos(){ return R.danos.reduce(function(s, d){ return s + d.cantidad }, 0) }
+  function textoDanos(){
+    var t = totalDanos(); if(!t) return 'Sin daños';
+    var por = GRAVEDADES.map(function(g){
+      var n = R.danos.filter(function(d){ return d.gravedad===g }).reduce(function(s, d){ return s + d.cantidad }, 0);
+      return n ? n+' '+gravedadNombre(g).toLowerCase()+(n===1 ? '' : 's') : '' }).filter(Boolean);
+    return t+(t===1 ? ' daño' : ' daños')+' ('+por.join(', ')+')';
+  }
+  function pasoDanos(){
+    var html = '';
+    if(R.sinLista.length){
+      html += '<p style="margin:0 0 14px;color:var(--muted)">Las piezas se revisarán una por una cuando esté la lista de piezas. Por ahora anota los daños de todo el contenedor.</p>';
+    }
+    var t = totalDanos();
+    html += '<p style="margin:0 0 14px">'+(t ? '<b>'+esc(textoDanos())+'</b> en este contenedor.' : '¿Llegó algo dañado en este contenedor?')+'</p>';
+    if(R.danos.length){
+      html += '<div class="tarjetas">'+R.danos.map(function(d, k){
+        return '<div class="tarjeta"><span class="cant">'+d.cantidad+'</span><span class="txt"><b>'+esc(nombreDefecto(d.defecto_id))+'</b></span>'+
+          '<span class="etq '+(d.gravedad==='leve' ? 'pend' : 'rojo')+'">'+gravedadNombre(d.gravedad)+'</span>'+
+          '<span class="btns"><button type="button" class="btn" data-d="cambiar" data-i="'+k+'">Cambiar</button>'+
+          '<button type="button" class="btn" data-d="quitar" data-i="'+k+'">Quitar</button></span></div>';
+      }).join('')+'</div>';
+    } else if(R.sinDanos){
+      html += '<div class="tarjetas"><div class="tarjeta"><span class="txt"><b>✓ No llegó nada dañado</b></span>'+
+        '<span class="btns"><button type="button" class="btn" data-d="hay">Cambiar</button></span></div></div>';
+    }
+    html += '<div class="acciones" style="margin-top:14px">'+
+      (!R.danos.length && !R.sinDanos ? '<button type="button" class="btn prin" data-d="ninguno">✓ No hay daños</button>' : '')+
+      '<button type="button" class="btn" data-d="agregar">+ Agregar daño</button></div>'+
+      '<div class="acciones"><button type="button" class="btn" data-v="atras">Atrás</button>'+
+      '<button type="button" class="btn prin der" data-v="sig">Siguiente</button></div>';
+    return html;
+  }
+  // Pide tipo, gravedad y cuántos. previo: para cambiar uno. -> Promise({defecto_id, gravedad, cantidad}|null)
+  function pedirDano(previo){
+    var d = {};
+    return H.abrirLista({titulo: 'Tipo de daño', grupos: [{opciones: (E.cat.defectos||[]).filter(function(x){ return x.activo!==false }).map(function(x){ return {valor: x.id, nombre: x.nombre} })}],
+        elegido: previo ? previo.defecto_id : null})
+      .then(function(t){
+        if(t==null) return null; d.defecto_id = t;
+        return H.abrirLista({titulo: '¿Qué tan grave?', grupos: [{opciones: [{valor: 'leve', nombre: 'Leve'}, {valor: 'media', nombre: 'Media'}, {valor: 'grave', nombre: 'Grave'}]}],
+          elegido: previo ? previo.gravedad : null});
+      }).then(function(g){
+        if(g==null) return null; d.gravedad = g;
+        return H.pedirCantidad({titulo: '¿Cuántos con este daño?', ayuda: nombreDefecto(d.defecto_id)+' · '+gravedadNombre(g), valor: previo ? previo.cantidad : 1, boton: previo ? 'Listo' : 'Agregar'});
+      }).then(function(n){ if(n==null) return null; d.cantidad = n; return d; });
+  }
+  // Si ya hay uno del mismo tipo y gravedad, se suman
+  function meterDano(d){
+    var x = R.danos.filter(function(y){ return y.defecto_id===d.defecto_id && y.gravedad===d.gravedad })[0];
+    if(x) x.cantidad += d.cantidad; else R.danos.push(d);
+    R.sinDanos = false;
   }
 
   // ---------------------------------------------------------------- 2. Piezas
@@ -257,6 +317,11 @@
       var cs = R.conteos[i] || [];
       return '<li style="margin-bottom:4px">'+esc(I.nombreModelo(r, E.cat))+'<br>'+H.coloresHTML(cs.map(function(x){ return x.color_id }), cs)+'</li>';
     }).join('')+'</ul>';
+    if(!R.piezas.length){
+      html += '<p style="margin:0 0 8px"><b>Daños:</b> '+esc(textoDanos())+'</p>'+
+        (R.danos.length ? '<ul style="margin:0 0 12px;padding-left:22px">'+R.danos.map(function(d){
+          return '<li>'+d.cantidad+' · '+esc(nombreDefecto(d.defecto_id))+' ('+gravedadNombre(d.gravedad)+')</li>' }).join('')+'</ul>' : '');
+    }
     if(R.piezas.length){
       var faltan = R.piezas.filter(function(p){ return p.revisada && p.llegaron < p.esperadas });
       var sobran = R.piezas.filter(function(p){ return p.revisada && p.llegaron > p.esperadas });
@@ -288,7 +353,7 @@
       H.rpc('inv_revision_guardar', {p_id: R.id, p: {
         contados: R.renglones.map(function(r, i){ return {renglon_id: r.id, colores: R.conteos[i]} }),
         piezas: R.piezas.filter(function(p){ return p.revisada }).map(function(p){ return {pieza_id: p.pieza_id, color_id: p.color_id, esperadas: p.esperadas, llegaron: p.llegaron, danadas: p.danadas||0} }),
-        defectos: R.defectos
+        defectos: R.defectos.concat(R.danos.map(function(d){ return {pieza_id: null, color_id: null, defecto_id: d.defecto_id, gravedad: d.gravedad, cantidad: d.cantidad} }))
       }, p_motivo: motivo}).then(function(){
         if(H.actualizarCuenta) H.actualizarCuenta();
         var main = q('.inv-main', E.raiz), num = R.c.numero, id = R.id;
@@ -301,8 +366,17 @@
 
   document.addEventListener('click', function(e){
     if(!R || !E.raiz || !E.raiz.contains(e.target)) return;
-    var b = e.target.closest('[data-v],[data-p]'); if(!b) return;
+    var b = e.target.closest('[data-v],[data-p],[data-d]'); if(!b) return;
     var i = +b.dataset.i; R.error = '';
+    if(b.dataset.d){
+      var dd = b.dataset.d;
+      if(dd==='ninguno'){ R.danos = []; R.sinDanos = true; dibujar(); }
+      else if(dd==='hay'){ R.sinDanos = false; dibujar(); }
+      else if(dd==='quitar'){ R.danos.splice(i, 1); dibujar(); }
+      else if(dd==='agregar') pedirDano().then(function(d){ if(d) meterDano(d); dibujar(); });
+      else if(dd==='cambiar') pedirDano(R.danos[i]).then(function(d){ if(d){ R.danos.splice(i, 1); meterDano(d); } dibujar(); });
+      return;
+    }
     if(b.dataset.p){
       if(b.dataset.p==='si'){ var p = R.piezas[i]; R.piezas[i] = Object.assign({}, p, {llegaron: p.esperadas, danadas: 0, revisada: true});
         R.defectos = R.defectos.filter(function(x){ return !(x.pieza_id===p.pieza_id && (x.color_id||null)===(p.color_id||null)) }); dibujar(); }
@@ -321,6 +395,7 @@
     else if(a==='sig'){
       if(R.paso===1 && R.conteos.some(function(c){ return c==null })){ R.error = 'Falta contar algunos vehículos.'; }
       else if(R.paso===2 && R.piezas.some(function(p){ return !p.revisada })){ R.error = 'Falta revisar algunas piezas.'; }
+      else if(R.paso===2 && !R.piezas.length && !R.danos.length && !R.sinDanos){ R.error = 'Agrega los daños o marca "No hay daños".'; }
       else { if(R.paso===1) calcularPiezas(); R.paso++; }
       dibujar(); window.scrollTo({top: 0});
     }

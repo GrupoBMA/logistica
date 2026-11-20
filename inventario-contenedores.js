@@ -234,7 +234,8 @@
         html += '<div class="tarjetas">'+lista.map(function(c){
           return '<button type="button" class="tarjeta clic" data-ir-ficha="'+c.id+'"><span class="txt"><b>'+esc(c.numero)+'</b>'+
             '<small>'+esc(H.fechaLarga(c.llegada))+' · '+c.vehiculos+(c.vehiculos===1 ? ' vehículo' : ' vehículos')+
-            (E.rol!=='bodega' && !E.verBodega ? ' · '+esc(H.nombreBodega(c.bodega)) : '')+'</small></span>'+etiquetaEstado(c)+
+            (E.rol!=='bodega' && !E.verBodega ? ' · '+esc(H.nombreBodega(c.bodega)) : '')+'</small></span>'+
+            (+c.danos ? '<span class="etq rojo">'+c.danos+(+c.danos===1 ? ' daño' : ' daños')+'</span>' : '')+etiquetaEstado(c)+
             '<span class="fl" style="color:var(--muted)">'+H.ICO.flecha+'</span></button>';
         }).join('')+'</div>';
       }
@@ -243,6 +244,19 @@
   }
 
   // ---------------------------------------------------------------- Ficha de un contenedor
+  // Daños que se anotaron en la revisión (del contenedor y de piezas)
+  function danosHTML(c, defs){
+    if(c.estado!=='revisado') return '';
+    var t = defs.reduce(function(s, d){ return s + d.cantidad }, 0);
+    if(!t) return '<p style="margin:16px 0 0">✓ No llegó nada dañado.</p>';
+    var grav = {leve: 'Leve', media: 'Media', grave: 'Grave'};
+    return '<h2 style="font-size:18px;margin:24px 0 10px">Daños <span class="etq rojo" style="vertical-align:middle">'+t+'</span></h2>'+
+      '<div class="tarjetas">'+defs.map(function(d){
+        var x = I.porId(E.cat.defectos, d.defecto_id);
+        return '<div class="tarjeta"><span class="cant">'+d.cantidad+'</span><span class="txt"><b>'+esc(x ? x.nombre : '?')+'</b></span>'+
+          '<span class="etq '+(d.gravedad==='leve' ? 'pend' : 'rojo')+'">'+(grav[d.gravedad]||d.gravedad)+'</span></div>';
+      }).join('')+'</div>';
+  }
   function abrirFicha(id){
     H.E.seccion = 'contenedores'; H.dibujarMenu();
     var main = q('.inv-main', E.raiz);
@@ -266,6 +280,7 @@
             : '<small>'+coloresHTML(r.colores)+'</small>';
           return '<div class="tarjeta"><span class="cant">'+r.cantidad+'</span><span class="txt"><b>'+esc(I.nombreModelo(r, E.cat))+'</b>'+abajo+'</span></div>';
         }).join('')+'</div>'+
+        danosHTML(c, f.defectos||[])+
         (c.observaciones ? '<p style="margin:16px 0 0">Nota: '+esc(c.observaciones)+'</p>' : '');
       if(H.puedeEscribir() && c.estado!=='anulado'){
         html += '<div class="acciones">'+

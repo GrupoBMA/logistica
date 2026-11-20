@@ -234,22 +234,23 @@
     });
   }
 
-  // Botón − número + . Regresa HTML; leer con valorContador(el)
+  // Botón − número + . Regresa HTML; leer con valorContador(el).
+  // El 0 se deja en blanco: con un 0 a la vista, al escribir "5" quedaba "05" y confundía.
   function contador(nombre, valor, min){
     return '<span class="contador" data-contador="'+esc(nombre)+'" data-min="'+(min||0)+'">'+
       '<button type="button" data-paso="-1" aria-label="Uno menos">−</button>'+
-      '<input type="text" inputmode="numeric" value="'+(valor||0)+'" aria-label="Cantidad">'+
+      '<input type="text" inputmode="numeric" value="'+(valor ? valor : '')+'" aria-label="Cantidad">'+
       '<button type="button" data-paso="1" aria-label="Uno más">+</button></span>';
   }
   document.addEventListener('click', function(e){
     var b = e.target.closest('.contador [data-paso]'); if(!b) return;
     var c = b.closest('.contador'), inp = q('input', c), min = +c.dataset.min || 0;
     var v = Math.max(min, (parseInt(inp.value, 10) || 0) + (+b.dataset.paso));
-    inp.value = v; inp.dispatchEvent(new Event('input', {bubbles: true}));
+    inp.value = v ? v : ''; inp.dispatchEvent(new Event('input', {bubbles: true}));
   });
   document.addEventListener('input', function(e){
     var inp = e.target; if(!inp.closest || !inp.closest('.contador')) return;
-    var limpio = inp.value.replace(/\D/g, ''); if(limpio !== inp.value) inp.value = limpio;
+    var limpio = inp.value.replace(/\D/g, '').replace(/^0+/, ''); if(limpio !== inp.value) inp.value = limpio;
   });
   function valorContador(c){ return parseInt(q('input', c).value, 10) || 0 }
 

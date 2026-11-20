@@ -22,7 +22,7 @@ $$ insert into r (caso, ok, detalle) values (p_caso, coalesce(p_ok, false), p_de
 do $$
 declare
   m150 bigint; azul bigint; rojo bigint; con_h bigint; sencillo bigint;
-  c1 bigint; c2 bigint; c3 bigint; ren bigint; pz bigint; an bigint;
+  c1 bigint; c2 bigint; c3 bigint; ren bigint; pz bigint; an bigint; df bigint;
   j jsonb; v text; n int;
 begin
   select id into m150 from logistica.inv_modelos where nombre = 'MC 150';
@@ -133,6 +133,24 @@ begin
   perform pg_temp.yo();
   select contados into n from logistica.inv_renglones where id = ren;
   perform pg_temp.anota('el renglón guarda la suma de colores', n = 3, n::text);
+
+  -- 8b. Daños del contenedor (sin pieza): se guardan y la lista los cuenta
+  select id into df from logistica.inv_defectos order by id limit 1;
+  perform pg_temp.como('bodega1@logistica.bma');
+  perform public.inv_revision_guardar(c1, jsonb_build_object('contados', jsonb_build_array(jsonb_build_object('renglon_id',ren,'colores',jsonb_build_array(jsonb_build_object('color_id',azul,'contados',2),jsonb_build_object('color_id',rojo,'contados',1)))),
+    'piezas', '[]'::jsonb,
+    'defectos', jsonb_build_array(jsonb_build_object('pieza_id',null,'color_id',null,'defecto_id',df,'gravedad','grave','cantidad',2),
+                                  jsonb_build_object('pieza_id',null,'color_id',null,'defecto_id',df,'gravedad','leve','cantidad',1))), 'Daños');
+  j := public.inv_contenedores();
+  perform pg_temp.anota('la lista cuenta los daños del contenedor',
+    (select (x->>'danos')::int from jsonb_array_elements(j) x where (x->>'id')::bigint = c1) = 3, j::text);
+  begin
+    perform public.inv_revision_guardar(c1, jsonb_build_object('contados', jsonb_build_array(jsonb_build_object('renglon_id',ren,'colores',jsonb_build_array(jsonb_build_object('color_id',azul,'contados',3)))),
+      'defectos', jsonb_build_array(jsonb_build_object('defecto_id',df,'gravedad','grave','cantidad',0))), 'x');
+    perform pg_temp.anota('daño con cantidad 0 se rechaza', false, 'se guardó');
+  exception when others then
+    perform pg_temp.anota('daño con cantidad 0 se rechaza', sqlerrm = 'La cantidad de cada daño debe ser 1 o más', sqlerrm);
+  end;
   perform pg_temp.como('bodega1@logistica.bma');
   begin
     perform public.inv_contenedor_guardar(jsonb_build_object('numero','prueba-x4','llegada','2026-11-18',
