@@ -37,23 +37,38 @@
     cambios: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 2"/></svg>',
     venta: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7"/><path d="M10 6.5v7M6.5 10h7"/></svg>',
     ventas: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3.5h10v13l-2.5-1.5L10 16.5 7.5 15 5 16.5z"/><path d="M7.5 7.5h5M7.5 10.5h5"/></svg>',
+    vehiculos: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12.5h2l1.5-4h5l2 4H17"/><path d="M3 12.5V15h14v-2.5"/><circle cx="6" cy="15" r="1.6"/><circle cx="14" cy="15" r="1.6"/></svg>',
+    piezas: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="3"/><path d="M10 2.5v2.2M10 15.3v2.2M2.5 10h2.2M15.3 10h2.2M4.7 4.7l1.6 1.6M13.7 13.7l1.6 1.6M4.7 15.3l1.6-1.6M13.7 6.3l1.6-1.6"/></svg>',
     produccion: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 4.5a3 3 0 0 0 3.5 3.8l-7.7 7.7a1.6 1.6 0 0 1-2.3-2.3l7.7-7.7a3 3 0 0 0-1.2-1.5z"/></svg>',
     flecha: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg>'
   };
 
   // ---------------------------------------------------------------- Secciones del menú
+  // Por módulos, en el orden que pidió el usuario (21-nov-2026): Contenedores, Ventas, Inventario; luego Producción y Administración
   var SECCIONES = [
-    {id: 'venta',        nombre: 'Nueva venta',        sub: 'La que llegó por WhatsApp',     roles: ['admin','bodega']},
-    {id: 'ventas',       nombre: 'Ventas',             sub: 'Por armar, esperando piezas…',  roles: ['admin','bodega','lectura']},
-    {id: 'produccion',   nombre: 'Producción',         sub: 'Etapas de cada vehículo',       roles: ['admin','bodega','lectura']},
-    {id: 'recibir',     nombre: 'Recibir contenedor', sub: 'Registrar lo que llegó',        roles: ['admin','bodega']},
-    {id: 'contenedores', nombre: 'Contenedores',       sub: 'Revisar y consultar',           roles: ['admin','bodega','lectura']},
-    {id: 'inventario',   nombre: 'Inventario',         sub: 'Piezas y vehículos en espera',  roles: ['admin','bodega','lectura']},
-    {id: 'catalogos',    nombre: 'Catálogos',          sub: 'Modelos, colores, piezas',      roles: ['admin']},
-    {id: 'cambios',      nombre: 'Cambios',            sub: 'Lo que corrigieron las bodegas', roles: ['admin']}
+    {id: 'recibir',      grupo: 'Contenedores', nombre: 'Recibir contenedor',   sub: 'Registrar lo que llegó',           roles: ['admin','bodega']},
+    {id: 'contenedores', grupo: 'Contenedores', nombre: 'Lista de contenedores', sub: 'Revisar y consultar',             roles: ['admin','bodega','lectura']},
+    {id: 'venta',        grupo: 'Ventas',       nombre: 'Nueva venta',          sub: 'La que llegó por WhatsApp',        roles: ['admin','bodega']},
+    {id: 'ventas',       grupo: 'Ventas',       nombre: 'Lista de ventas',      sub: 'Por armar, esperando piezas…',     roles: ['admin','bodega','lectura']},
+    {id: 'vehiculos',    grupo: 'Inventario',   nombre: 'Vehículos',            sub: 'Listos, en proceso, en espera…',   roles: ['admin','bodega','lectura']},
+    {id: 'piezas',       grupo: 'Inventario',   nombre: 'Piezas',               sub: 'Disponibles, dañadas y faltantes', roles: ['admin','bodega','lectura']},
+    {id: 'produccion',   grupo: 'Producción',   nombre: 'Línea de producción',  sub: 'Pasar vehículos de etapa',         roles: ['admin','bodega','lectura']},
+    {id: 'catalogos',    grupo: 'Administración', nombre: 'Catálogos',          sub: 'Modelos, colores, piezas',         roles: ['admin']},
+    {id: 'cambios',      grupo: 'Administración', nombre: 'Cambios',            sub: 'Lo que corrigieron las bodegas',   roles: ['admin']}
   ];
   var DIBUJAR = {};          // id de sección -> function(main)
   var CUENTA = {};           // id de sección -> número para la burbuja (o '')
+  var NUEVO = {};            // id de sección -> true: entró algo nuevo (punto naranja hasta que se visita)
+  function marcarNuevo(id){ if(E.seccion !== id){ NUEVO[id] = true; dibujarMenu(); } }
+
+  // Letrero que aparece abajo unos segundos ("Se guardó la venta 153"), en lugar de una pantalla de "Listo"
+  var letrero = null, letreroT = null;
+  function avisar(texto){
+    if(!letrero){ letrero = document.createElement('div'); letrero.className = 'inv-letrero'; letrero.setAttribute('role', 'status'); document.body.appendChild(letrero); }
+    letrero.innerHTML = '<span class="ok">✓</span>' + esc(texto);
+    letrero.classList.add('on');
+    clearTimeout(letreroT); letreroT = setTimeout(function(){ letrero.classList.remove('on') }, 3800);
+  }
 
   function secciones(){ return SECCIONES.filter(function(s){ return s.roles.indexOf(E.rol) > -1 }) }
 
@@ -65,18 +80,20 @@
       html += '<button type="button" class="elegir" data-accion="bodega" style="margin:0 0 10px">'+
         '<span><span class="et">Viendo</span><span class="va">'+esc(nombreBodega(E.verBodega))+'</span></span><span class="fl">'+ICO.flecha+'</span></button>';
     }
-    html += secciones().map(function(s){
-      var n = CUENTA[s.id];
-      return '<button class="mi" type="button" data-sec="'+s.id+'" aria-current="'+(E.seccion===s.id)+'">'+
-        '<span class="ic">'+ICO[s.id]+'</span><span><b>'+esc(s.nombre)+'</b><small>'+esc(s.sub)+'</small></span>'+
+    var grupo = null;
+    secciones().forEach(function(s){
+      if(s.grupo !== grupo){ grupo = s.grupo; html += '<div class="inv-grupo">'+esc(grupo)+'</div>'; }
+      var n = CUENTA[s.id], nuevo = NUEVO[s.id] && E.seccion !== s.id;
+      html += '<button class="mi" type="button" data-sec="'+s.id+'" aria-current="'+(E.seccion===s.id)+'">'+
+        '<span class="ic">'+ICO[s.id]+(nuevo ? '<span class="punto-nuevo" title="Entró algo nuevo"></span>' : '')+'</span><span><b>'+esc(s.nombre)+'</b><small>'+esc(s.sub)+'</small></span>'+
         '<span class="c">'+(n ? '<span class="burbuja">'+n+'</span>' : '')+'</span></button>';
-    }).join('');
+    });
     if(E.rol==='bodega') html += '<div class="inv-pie"><button type="button" data-accion="salir">Salir</button></div>';
     m.innerHTML = html;
   }
 
   function ir(id){
-    E.seccion = id; dibujarMenu();
+    E.seccion = id; delete NUEVO[id]; dibujarMenu();
     var main = q('.inv-main', E.raiz);
     main.innerHTML = '<p class="inv-cargando">Cargando…</p>';
     window.scrollTo({top: 0});
@@ -301,10 +318,10 @@
     abrirLista: abrirLista, escogerVarios: escogerVarios, pedirTexto: pedirTexto, pedirCantidad: pedirCantidad, confirmar: confirmar, contador: contador, valorContador: valorContador,
     abrirHoja: abrirHoja, cerrarHoja: cerrarHoja, cabHoja: cabHoja, hojaEl: hojaEl,
     nombreBodega: nombreBodega, puedeEscribir: puedeEscribir, fechaLarga: fechaLarga, hoyISO: hoyISO, ICO: ICO, BODEGAS: BODEGAS,
-    DIBUJAR: DIBUJAR, CUENTA: CUENTA, alIniciar: []};
+    DIBUJAR: DIBUJAR, CUENTA: CUENTA, alIniciar: [], avisar: avisar, marcarNuevo: marcarNuevo};
 
   // Secciones todavía sin pantalla: un aviso amable
-  ['recibir','contenedores','inventario','catalogos','cambios'].forEach(function(id){
+  ['recibir','contenedores','vehiculos','piezas','catalogos','cambios'].forEach(function(id){
     DIBUJAR[id] = function(main){
       var s = SECCIONES.filter(function(x){ return x.id===id })[0];
       main.innerHTML = '<header class="inv-cab"><h1>'+esc(s.nombre)+'</h1><p>'+esc(s.sub)+'</p></header>'+

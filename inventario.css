@@ -209,25 +209,93 @@ svg.linea{display:block;width:100%;height:auto}
 .ln-pill{fill:var(--text)} .ln-pill.cero{fill:var(--control)}
 .ln-cuenta{font-size:1.9px;font-weight:700;fill:var(--surface);text-anchor:middle;dominant-baseline:central}
 .ln-falta{font-size:1.5px;font-weight:600;fill:#fff;text-anchor:middle;dominant-baseline:central}
-.ln-tarjeta{position:fixed;z-index:30;width:400px;max-height:min(540px,calc(100vh - 40px));display:flex;flex-direction:column;border-radius:22px;background:var(--surface);
-  box-shadow:0 20px 50px rgba(0,0,0,.18),0 0 0 1px var(--border);opacity:0;transform:translateY(8px) scale(.98);pointer-events:none;transition:opacity .2s,transform .2s cubic-bezier(.2,.8,.2,1)}
-.ln-tarjeta.abierta{opacity:1;transform:none;pointer-events:auto}
-.ln-tarjeta .t-cab{display:flex;align-items:center;gap:14px;padding:20px 20px 12px}
-.ln-tarjeta .t-ico{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;flex:none}
-.ln-tarjeta .t-ico i{width:18px;height:18px;border-radius:5px;display:block}
-.ln-tarjeta h2{margin:0;font-size:21px}
-.ln-tarjeta .t-cab small{display:block;margin-top:2px;color:var(--muted);font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
-.ln-tarjeta .t-x{margin-left:auto;align-self:flex-start;width:34px;height:34px;border:0;border-radius:50%;background:var(--raised);color:var(--text);font-size:15px;cursor:pointer}
-.ln-tarjeta .t-lista{overflow:auto;padding:0 12px 14px}
-.ln-tarjeta .t-vacio{padding:14px 10px;color:var(--muted)}
-.ln-tarjeta .pt{width:12px;height:12px;border-radius:50%;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.18)}
-.ln-vh{padding:12px 10px;border-top:1px solid var(--border)}
-.ln-vh:first-child{border-top:0}
+/* Menú por módulos (21-nov-2026) */
+.inv-grupo{margin:14px 12px 4px;color:var(--muted);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.inv-grupo:first-of-type{margin-top:6px}
+.inv-menu .mi{min-height:54px}
+.inv-menu .mi .ic{position:relative}
+.punto-nuevo{position:absolute;top:-3px;right:-3px;width:12px;height:12px;border-radius:50%;background:#f08a24;box-shadow:0 0 0 2px var(--surface)}
+/* Letrero que reemplaza las pantallas de "Listo" */
+.inv-letrero{position:fixed;left:50%;bottom:24px;z-index:60;display:flex;align-items:center;gap:10px;max-width:min(560px,calc(100vw - 32px));
+  padding:14px 20px;border-radius:14px;background:var(--text);color:var(--surface);font-size:16px;font-weight:500;box-shadow:0 14px 40px rgba(0,0,0,.25);
+  transform:translate(-50%,20px);opacity:0;pointer-events:none;transition:opacity .2s,transform .25s cubic-bezier(.2,.8,.2,1)}
+.inv-letrero.on{opacity:1;transform:translate(-50%,0)}
+.inv-letrero .ok{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--ok);color:#fff;font-weight:700;flex:none}
+
+/* Panel de arriba de la línea (21-nov-2026): los vehículos del área con sus pasos */
+.ln-panel{margin:0 0 10px;padding:14px 16px;border-radius:14px;background:var(--raised)}
+.ln-pista{margin:0;color:var(--muted)}
+.ln-cab{display:flex;align-items:center;gap:10px;margin:0 0 6px}
+.ln-cab b{font-size:19px}
+.ln-cab small{color:var(--muted);font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.ln-ico{width:14px;height:14px;border-radius:4px;flex:none}
+.ln-panel .t-x{margin-left:auto;width:34px;height:34px;border:0;border-radius:50%;background:var(--surface);color:var(--text);font-size:15px;cursor:pointer}
+.ln-filas{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow:auto}
+.ln-fila{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--surface)}
+.ln-cant{margin-left:auto}
+.pt{width:12px;height:12px;border-radius:50%;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.18)}
+.ln-vh{padding:12px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--border)}
+.ln-vh.atender{border-color:var(--neg);box-shadow:inset 4px 0 0 var(--neg)}
 .ln-vh-1{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ln-vh-1 b{font-size:16px}
+.ln-n{color:var(--muted);font-size:14px}
 .ln-vh .dias{margin-left:auto;color:var(--muted);font-size:14px}
-.ln-vh .d{margin:2px 0 0 20px;color:var(--muted);font-size:14px}
-.ln-tarjeta .botones{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0 20px}
-.ln-tarjeta .botones .btn{height:40px;padding:0 14px;font-size:14px}
-.ln-esp{display:flex;align-items:center;gap:10px;padding:10px}
-.ln-esp b{margin-left:auto}
+.ln-pasos{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin:10px 0 0}
+.ln-sep{color:var(--faint)}
+.ln-paso{height:30px;padding:0 10px;border-radius:15px;border:1px solid transparent;background:var(--raised);color:var(--muted);font:inherit;font-size:13px;font-weight:600}
+.ln-paso.hecho{background:var(--ok-bg);color:var(--ok)}
+.ln-paso.ahora{background:var(--text);color:var(--surface)}
+.ln-paso.ahora.falta{background:var(--neg);color:#fff}
+.ln-paso.accion{cursor:pointer;border-color:var(--control);background:var(--surface);color:var(--text)}
+.ln-paso.accion:hover{border-color:var(--text)}
+.ln-paso.hecho.accion{color:var(--ok);border-color:var(--ok)}
+.ln-paso:disabled{cursor:default}
+.ln-panel .botones,.botones{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0}
+.ln-panel .botones .btn{height:42px;padding:0 14px;font-size:14px}
+/* Lista de ventas: los vehículos de cada remisión */
+.venta-t .unidades{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.venta-t .unidad{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:14px;color:var(--text)}
+/* Ficha del vehículo (#insp de index.html) */
+.insp .state .etq{flex:none}
+.recorrido.chico{gap:4px;margin:0 0 16px}
+.recorrido.chico li{padding:5px 9px;font-size:13px;gap:6px}
+.recorrido.chico li .nn{width:20px;height:20px;font-size:11px}
+.ficha-acciones{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 18px}
+.ficha-acciones .btn{height:44px}
+.ficha-sub{font-size:16px;margin:20px 0 8px}
+.ficha-dano{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.ficha-dano b{display:block;font-weight:600}
+.ficha-dano small{display:block;color:var(--muted)}
+.ficha-dano .etq{margin-left:auto}
+.ico-d{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--raised);color:var(--text);flex:none}
+.historial{list-style:none;margin:0;padding:0}
+.historial li{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:14px}
+.historial small{color:var(--muted);white-space:nowrap}
+/* Íconos en las listas para escoger y en tarjetas */
+.h-ico svg,.ico-p svg{display:block}
+.ico-p{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--raised);color:var(--text);flex:none}
+/* Inventario con vistas y conteos, como el menú de Logística (21-nov-2026) */
+.inv-vistas{display:grid;grid-template-columns:240px minmax(0,1fr);gap:20px;align-items:start}
+.vistas-menu{display:flex;flex-direction:column;gap:4px;position:sticky;top:12px}
+.vista{display:flex;align-items:center;gap:10px;min-height:48px;padding:8px 12px;border-radius:12px;border:0;background:transparent;color:var(--text);font:inherit;font-size:15px;font-weight:500;text-align:left;cursor:pointer}
+.vista:hover{background:var(--raised)}
+.vista.on{background:var(--active)}
+.vista b{margin-left:auto;min-width:30px;height:26px;padding:0 8px;border-radius:13px;display:grid;place-items:center;background:var(--raised);font-size:14px;font-variant-numeric:tabular-nums}
+.vista.on b{background:var(--surface)}
+.vista b.rojo{background:var(--neg);color:#fff}
+.casillas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.casilla{display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:14px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit;text-align:left;cursor:pointer}
+.casilla:hover{border-color:var(--control)}
+.c-arriba{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.c-arriba b{font-size:18px}
+.c-veh{font-size:15px}
+.c-abajo{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:13px}
+.ico-mini{display:inline-grid;vertical-align:-4px;margin-right:4px}
+.ico-mini svg{width:16px;height:16px}
+@media (max-width:1100px){ .casillas{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:900px){
+  .inv-vistas{grid-template-columns:minmax(0,1fr)}
+  .vistas-menu{position:static;flex-direction:row;overflow-x:auto;padding-bottom:4px}
+  .vista{flex:none;min-height:42px}
+}
+@media (max-width:600px){ .casillas{grid-template-columns:minmax(0,1fr)} }

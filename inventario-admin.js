@@ -1,29 +1,100 @@
-/* Inventario: consulta del inventario, Catálogos (solo admin) y Cambios (solo admin). */
+/* Inventario: Vehículos y Piezas (con sus vistas), Catálogos (solo admin) y Cambios (solo admin). */
 (function(){
   var H = window.InventarioApp._h, E = H.E, I = H.I, esc = H.esc, q = H.q;
   function main(){ return q('.inv-main', E.raiz) }
   function errorArriba(err){ main().insertAdjacentHTML('afterbegin', '<p class="inv-error">'+esc(H.mensaje(err))+'</p>') }
   function plural(n, uno, varios){ return n + ' ' + (n===1 ? uno : varios) }
 
-  // ================================================================ Inventario
-  H.DIBUJAR.inventario = function(m){
+  // ================================================================ Inventario (21-nov-2026): Vehículos y Piezas, cada uno con sus vistas y conteos,
+  // como el menú de Logística. Pedido del usuario: ver los listos para venta, los de showroom, los que esperan piezas, los que
+  // les faltan piezas…; y en piezas el total, las dañadas y las faltantes.
+  var VISTA = {vehiculos: null, piezas: null};
+  try { VISTA.vehiculos = localStorage.getItem('logistica.invVeh'); VISTA.piezas = localStorage.getItem('logistica.invPz'); } catch(e){}
+  function vistas(m, titulo, sub, lista, actual, clave){
+    // lista: [{id, nombre, n, rojo, contenido}]
+    var v = lista.filter(function(x){ return x.id===actual })[0] || lista[0];
+    m.innerHTML = '<header class="inv-cab"><h1>'+esc(titulo)+'</h1><p>'+esc(sub)+'</p></header>'+
+      '<div class="inv-vistas"><nav class="vistas-menu" aria-label="Vistas">'+lista.map(function(x){
+        return '<button type="button" class="vista'+(x.id===v.id ? ' on' : '')+'" data-vista="'+clave+':'+x.id+'"><span>'+esc(x.nombre)+'</span>'+
+          '<b class="'+(x.rojo && x.n ? 'rojo' : '')+'">'+x.n+'</b></button>';
+      }).join('')+'</nav><section class="vistas-cont">'+v.contenido()+'</section></div>';
+  }
+  document.addEventListener('click', function(e){
+    var b = e.target.closest('[data-vista]'); if(!b || !E.raiz || !E.raiz.contains(b)) return;
+    var p = b.dataset.vista.split(':');
+    VISTA[p[0]] = p[1];
+    try { localStorage.setItem(p[0]==='vehiculos' ? 'logistica.invVeh' : 'logistica.invPz', p[1]) } catch(er){}
+    H.ir(p[0]);
+  });
+  function vacio(t){ return '<div class="inv-vacio"><b>'+esc(t)+'</b></div>' }
+
+  H.DIBUJAR.vehiculos = function(m){
+    Promise.all([H.rpc('inv_produccion', {p_bodega: E.verBodega}), H.rpc('inv_ventas', {p_bodega: E.verBodega}), H.rpc('inv_inventario', {p_bodega: E.verBodega})]).then(function(r){
+      if(E.seccion!=='vehiculos') return;
+      var P = H.prod, veh = r[0], ventas = r[1], espera = r[2].espera || [];
+      function casilla(h){
+        var est = h.faltantes ? '<span class="etq rojo chica">Faltan piezas</span>' : h.no_paso ? '<span class="etq rojo chica">No pasó la revisión final</span>'
+          : h.etapa==='listo' ? '<span class="etq ok chica">Listo</span>' : '<span class="etq azul chica">'+esc(P.etapa(h.etapa).nombre)+'</span>';
+        return '<button type="button" class="casilla" data-ficha-veh="'+h.id+'"><span class="c-arriba"><b>'+esc(h.serie)+'</b>'+est+'</span>'+
+          '<span class="c-veh">'+P.puntoColor(h.color_id)+esc(P.nombreVeh(h))+'</span>'+
+          '<span class="c-abajo"><span>'+P.paraDe(h)+(h.especial ? ' · Especial' : '')+'</span><span>'+esc(P.dias(h.etapa_desde))+'</span></span></button>';
+      }
+      function casillas(lista, nada){ return lista.length ? '<div class="casillas">'+lista.map(casilla).join('')+'</div>' : vacio(nada) }
+      var listosVenta = veh.filter(function(h){ return h.etapa==='listo' && h.venta && !h.no_paso });
+      var showroom = veh.filter(function(h){ return h.etapa==='listo' && !h.venta });
+      var enProd = veh.filter(function(h){ return h.etapa!=='listo' && !h.faltantes && !h.no_paso });
+      var falt = veh.filter(function(h){ return h.faltantes }), nop = veh.filter(function(h){ return h.no_paso });
+      var esperan = ventas.filter(function(u){ return u.estado_venta==='esperando' });
+      var nEspera = espera.reduce(function(s, x){ return s + (+x.cantidad||0) }, 0);
+      vistas(m, 'Vehículos', 'Dónde está cada vehículo de '+(E.rol==='bodega' ? 'tu bodega' : H.nombreBodega(E.verBodega).toLowerCase())+'.', [
+        {id: 'listos', nombre: 'Listos para venta', n: listosVenta.length, contenido: function(){ return casillas(listosVenta, 'No hay vehículos listos para enviar') }},
+        {id: 'showroom', nombre: 'Showroom', n: showroom.length, contenido: function(){ return casillas(showroom, 'No hay vehículos de showroom listos') }},
+        {id: 'produccion', nombre: 'En producción', n: enProd.length, contenido: function(){ return casillas(enProd, 'No hay vehículos en producción') }},
+        {id: 'faltantes', nombre: 'Les faltan piezas', n: falt.length, rojo: true, contenido: function(){ return casillas(falt, 'A ningún vehículo le faltan piezas') }},
+        {id: 'no_paso', nombre: 'No pasaron la revisión final', n: nop.length, rojo: true, contenido: function(){ return casillas(nop, 'Todos pasaron la revisión final') }},
+        {id: 'esperando', nombre: 'Ventas esperando piezas', n: esperan.length, contenido: function(){
+          return esperan.length ? '<div class="casillas">'+esperan.map(function(u){
+            return '<button type="button" class="casilla" data-ficha-venta="'+u.id+'"><span class="c-arriba"><b>'+esc(P.remisionDe(u))+'</b><span class="etq pend chica">Esperando piezas</span></span>'+
+              '<span class="c-veh">'+P.puntoColor(u.color_id)+esc(P.nombreVeh(u))+'</span>'+
+              '<span class="c-abajo"><span>'+esc(u.vendedor)+' · '+esc(u.destino)+'</span><span>'+esc(P.dias(u.fecha))+'</span></span></button>';
+          }).join('')+'</div>' : vacio('Ninguna venta está esperando piezas') }},
+        {id: 'espera', nombre: 'En espera de armado', n: nEspera, contenido: function(){
+          return espera.length ? '<div class="tarjetas">'+espera.map(function(x){
+            return '<div class="tarjeta"><span class="cant">'+x.cantidad+'</span><span class="txt"><b>'+P.puntoColor(x.color_id)+esc(P.nombreVeh(x))+'</b></span></div>';
+          }).join('')+'</div>' : vacio('No hay vehículos en espera de armado') }}
+      ], VISTA.vehiculos, 'vehiculos');
+    }).catch(function(err){ m.innerHTML = '<p class="inv-error">'+esc(H.mensaje(err))+'</p>' });
+  };
+
+  H.DIBUJAR.piezas = function(m){
     H.rpc('inv_inventario', {p_bodega: E.verBodega}).then(function(inv){
-      if(E.seccion!=='inventario') return;
-      var espera = inv.espera || [], piezas = inv.piezas || [];
-      var totalEspera = espera.reduce(function(s, x){ return s + (+x.cantidad||0) }, 0);
-      var danadas = piezas.reduce(function(s, x){ return s + (+x.danadas||0) }, 0);
-      var html = '<header class="inv-cab"><h1>Inventario</h1><p>Lo que hay hoy en '+esc(E.rol==='bodega' ? 'tu bodega' : H.nombreBodega(E.verBodega).toLowerCase())+
-        ', según los contenedores ya revisados.</p></header>';
-      html += '<h2 style="font-size:20px;margin:0 0 10px">Vehículos en espera de armado <span style="color:var(--muted);font-weight:400">· '+totalEspera+'</span></h2>';
-      html += espera.length ? '<div class="tarjetas">'+espera.map(function(x){
-        return '<div class="tarjeta"><span class="cant">'+x.cantidad+'</span><span class="txt"><b>'+esc(I.nombreVehiculo({modelo_id: x.modelo_id, opciones: x.opciones, color_id: x.color_id}, E.cat))+'</b></span></div>';
-      }).join('')+'</div>' : '<div class="inv-vacio"><b>No hay vehículos en espera</b>Aparecen aquí cuando se revisa un contenedor.</div>';
-      html += '<h2 style="font-size:20px;margin:32px 0 10px">Piezas'+(danadas ? ' <span class="etq rojo" style="vertical-align:middle">'+plural(danadas, 'dañada', 'dañadas')+'</span>' : '')+'</h2>';
-      html += piezas.length ? '<div class="tarjetas">'+piezas.map(function(x){
-        return '<div class="tarjeta"><span class="cant">'+x.disponibles+'</span><span class="txt"><b>'+esc(x.pieza + (x.color ? ' · ' + x.color : ''))+'</b>'+
-          '<small>Disponibles</small></span>'+(+x.danadas ? '<span class="etq rojo">'+plural(+x.danadas, 'dañada', 'dañadas')+'</span>' : '')+'</div>';
-      }).join('')+'</div>' : '<div class="inv-vacio"><b>Todavía no hay piezas</b>Las piezas entran al inventario al revisar un contenedor.</div>';
-      m.innerHTML = html;
+      if(E.seccion!=='piezas') return;
+      var piezas = inv.piezas || [], danos = inv.danos || [], falt = inv.faltantes || [];
+      var total = piezas.reduce(function(s, x){ return s + (+x.disponibles||0) }, 0);
+      var nDan = piezas.reduce(function(s, x){ return s + (+x.danadas||0) }, 0);
+      var nFalt = falt.reduce(function(s, x){ return s + (+x.contenedores||0) + (+x.vehiculos||0) }, 0);
+      function fila(ico, nombre, det, n, extra){
+        return '<div class="tarjeta"><span class="ico-p">'+ico+'</span><span class="txt"><b>'+esc(nombre)+'</b>'+(det ? '<small>'+det+'</small>' : '')+'</span>'+(extra||'')+'<span class="cant">'+n+'</span></div>';
+      }
+      function grav(g){ return {leve: 'Leve', media: 'Media', grave: 'Grave'}[g] || '' }
+      vistas(m, 'Piezas', 'Lo que hay de cada pieza, según los contenedores ya revisados.', [
+        {id: 'total', nombre: 'Disponibles', n: total, contenido: function(){
+          return piezas.length ? '<div class="tarjetas">'+piezas.map(function(x){
+            return fila(H.icoPieza(x.pieza), x.pieza + (x.color ? ' · '+x.color : ''), 'Disponibles', x.disponibles,
+              (+x.danadas ? '<span class="etq rojo chica">'+x.danadas+(+x.danadas===1 ? ' dañada' : ' dañadas')+'</span>' : ''));
+          }).join('')+'</div>' : vacio('Todavía no hay piezas: entran al revisar un contenedor') }},
+        {id: 'danadas', nombre: 'Dañadas', n: nDan, rojo: true, contenido: function(){
+          return danos.length ? '<div class="tarjetas">'+danos.map(function(d){
+            var t = I.porId(E.cat.defectos, d.defecto_id), tn = t ? t.nombre : '?';
+            return '<div class="tarjeta"><span class="ico-p">'+H.icoPieza(d.pieza||'')+'</span><span class="txt"><b>'+esc(d.pieza || 'Del contenedor')+'</b>'+
+              '<small><span class="ico-mini">'+H.icoDano(tn)+'</span>'+esc(tn)+(d.gravedad ? ' · '+grav(d.gravedad) : '')+' · contenedor '+esc(d.contenedor)+'</small></span><span class="cant">'+d.cantidad+'</span></div>';
+          }).join('')+'</div>' : vacio('No hay piezas dañadas') }},
+        {id: 'faltantes', nombre: 'Faltantes', n: nFalt, rojo: true, contenido: function(){
+          return falt.length ? '<div class="tarjetas">'+falt.map(function(x){
+            var det = [+x.contenedores ? x.contenedores+' no llegaron en los contenedores' : '', +x.vehiculos ? x.vehiculos+' le faltan a vehículos en producción' : ''].filter(Boolean).join(' · ');
+            return fila(H.icoPieza(x.pieza), x.pieza, esc(det), (+x.contenedores||0) + (+x.vehiculos||0));
+          }).join('')+'</div>' : vacio('No falta ninguna pieza') }}
+      ], VISTA.piezas, 'piezas');
     }).catch(function(err){ m.innerHTML = '<p class="inv-error">'+esc(H.mensaje(err))+'</p>' });
   };
 

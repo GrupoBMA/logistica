@@ -145,13 +145,12 @@
       var boton = q('[data-r="guardar"]', main); if(boton){ boton.disabled = true; boton.textContent = 'Guardando…'; }
       H.rpc('inv_contenedor_guardar', {p: {id: W.id, bodega: W.bodega, numero: W.numero, llegada: W.llegada, observaciones: W.observaciones,
         renglones: W.renglones}, p_motivo: m}).then(function(r){
+        // Sin pantalla de "Listo" (pedido del usuario): un letrero y el punto naranja en la lista
         var id = r.id, num = W.numero.trim(), eraCorreccion = !!W.id;
         W.terminado = true;
         actualizarCuenta();
-        main.innerHTML = '<header class="inv-cab"><h1>Listo</h1><p>'+(eraCorreccion ? 'Se guardaron los cambios del contenedor ' : 'Se guardó el contenedor ')+'<b>'+esc(num)+'</b>.</p></header>'+
-          '<div class="acciones" style="margin-top:0">'+
-          '<button type="button" class="btn prin" data-ir-ficha="'+id+'">Ver el contenedor</button>'+
-          (eraCorreccion ? '' : '<button type="button" class="btn" data-ir-sec="recibir">Recibir otro</button>')+'</div>';
+        if(eraCorreccion){ H.avisar('Se guardaron los cambios del contenedor '+num+'.'); abrirFicha(id); }
+        else { H.avisar('Se guardó el contenedor '+num+'. Ya está en la lista, esperando su revisión.'); H.marcarNuevo('contenedores'); W = null; dibujarRecibir(main); }
       }).catch(function(err){
         W.error = H.mensaje(err); dibujarRecibir(main);
       });
@@ -253,8 +252,8 @@
     return '<h2 style="font-size:18px;margin:24px 0 10px">Daños <span class="etq rojo" style="vertical-align:middle">'+t+'</span></h2>'+
       '<div class="tarjetas">'+defs.map(function(d){
         var x = I.porId(E.cat.defectos, d.defecto_id);
-        return '<div class="tarjeta"><span class="cant">'+d.cantidad+'</span><span class="txt"><b>'+esc(x ? x.nombre : '?')+'</b></span>'+
-          '<span class="etq '+(d.gravedad==='leve' ? 'pend' : 'rojo')+'">'+(grav[d.gravedad]||d.gravedad)+'</span></div>';
+        return '<div class="tarjeta"><span class="cant">'+d.cantidad+'</span><span class="ico-p">'+H.icoDano(x ? x.nombre : '')+'</span><span class="txt"><b>'+esc(x ? x.nombre : '?')+'</b></span>'+
+          (d.gravedad ? '<span class="etq '+(d.gravedad==='leve' ? 'pend' : 'rojo')+'">'+grav[d.gravedad]+'</span>' : '')+'</div>';
       }).join('')+'</div>';
   }
   function abrirFicha(id){
