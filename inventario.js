@@ -203,6 +203,44 @@
     });
   }
 
+  // Tabla con casillas: un renglón por característica y una casilla por opción (se escoge una por renglón).
+  // escogerTabla({titulo, ayuda, filas:[{nombre, opciones:[{valor, nombre}]}], elegidos:[valores], boton}) -> Promise([valores]|null)
+  function escogerTabla(o){
+    return new Promise(function(res){
+      var sel = o.filas.map(function(f){
+        var e = f.opciones.filter(function(op){ return (o.elegidos||[]).indexOf(op.valor) > -1 })[0];
+        return e ? e.valor : null;
+      });
+      var html = o.filas.map(function(f, i){
+        return '<div class="h-fila" role="radiogroup" aria-label="'+esc(f.nombre)+'"><span class="h-fila-nom">'+esc(f.nombre)+'</span>'+
+          f.opciones.map(function(op, j){
+            var on = sel[i]===op.valor;
+            return '<button type="button" class="h-op h-check h-celda'+(on ? ' sel' : '')+'" role="radio" aria-checked="'+on+'" data-f="'+i+'" data-o="'+j+'">'+
+              '<span class="h-casilla" aria-hidden="true"></span><span class="h-nom">'+esc(op.nombre)+'</span></button>';
+          }).join('')+'</div>';
+      }).join('');
+      abrirHoja(cabHoja(o.titulo, o.ayuda)+'<div class="hoja-lista h-tabla">'+html+'</div>'+
+        '<div class="hoja-pie"><p class="inv-error" hidden></p><div class="acciones">'+
+        '<button type="button" class="btn" data-hoja-cerrar>Cancelar</button>'+
+        '<button type="button" class="btn prin der" data-listo>'+esc(o.boton||'Siguiente')+'</button></div></div>', res);
+      var h = hojaEl();
+      h.onclick = function(e){
+        if(e.target.closest('[data-hoja-cerrar]')){ cerrarHoja(null); return; }
+        if(e.target.closest('[data-listo]')){
+          var faltan = o.filas.filter(function(f, i){ return sel[i]==null }).map(function(f){ return f.nombre });
+          if(faltan.length){ var er = q('.inv-error', h); er.textContent = 'Falta escoger: ' + faltan.join(', ') + '.'; er.hidden = false; return; }
+          cerrarHoja(sel.slice());
+          return;
+        }
+        var b = e.target.closest('[data-f]'); if(!b) return;
+        var i = +b.dataset.f, op = o.filas[i].opciones[+b.dataset.o];
+        sel[i] = op.valor;
+        b.parentNode.querySelectorAll('[data-f]').forEach(function(x){ var on = x===b; x.classList.toggle('sel', on); x.setAttribute('aria-checked', String(on)); });
+        q('.inv-error', h).hidden = true;
+      };
+    });
+  }
+
   // Pide un texto (motivo, nombre…) en la misma caja. -> Promise(texto|null)
   function pedirTexto(o){
     return new Promise(function(res){
@@ -315,7 +353,7 @@
 
   // Lo que usan las secciones (Tareas 4-6)
   var H = {E: E, I: I, esc: esc, q: q, rpc: rpc, mensaje: mensaje, ir: ir, dibujarMenu: dibujarMenu, cargarCatalogo: cargarCatalogo,
-    abrirLista: abrirLista, escogerVarios: escogerVarios, pedirTexto: pedirTexto, pedirCantidad: pedirCantidad, confirmar: confirmar, contador: contador, valorContador: valorContador,
+    abrirLista: abrirLista, escogerVarios: escogerVarios, escogerTabla: escogerTabla, pedirTexto: pedirTexto, pedirCantidad: pedirCantidad, confirmar: confirmar, contador: contador, valorContador: valorContador,
     abrirHoja: abrirHoja, cerrarHoja: cerrarHoja, cabHoja: cabHoja, hojaEl: hojaEl,
     nombreBodega: nombreBodega, puedeEscribir: puedeEscribir, fechaLarga: fechaLarga, hoyISO: hoyISO, ICO: ICO, BODEGAS: BODEGAS,
     DIBUJAR: DIBUJAR, CUENTA: CUENTA, alIniciar: [], avisar: avisar, marcarNuevo: marcarNuevo};

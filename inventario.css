@@ -130,6 +130,12 @@ html.hoja-on,html.hoja-on body{overflow:hidden}
 .h-check.sel .h-casilla{background:var(--work);border-color:var(--work)}
 .h-check.sel .h-casilla::after{content:"";position:absolute;left:7px;top:2px;width:7px;height:13px;border:solid var(--surface);border-width:0 3px 3px 0;transform:rotate(45deg)}
 .h-check.sel .h-nom{color:var(--text);font-weight:600}
+/* Tabla de características: nombre a la izquierda y una casilla por opción */
+.h-tabla{padding:4px 14px 12px}
+.h-fila{display:grid;grid-template-columns:minmax(90px,1fr) minmax(0,1fr) minmax(0,1fr);align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
+.h-fila:last-child{border-bottom:0}
+.h-fila-nom{font-weight:600;font-size:16px}
+.h-celda{min-height:52px;gap:10px;padding:8px 10px}
 .hoja-pie{padding:12px 20px 16px;border-top:1px solid var(--border)}
 .hoja-pie .acciones{margin-top:0}
 .hoja-pie .inv-error{margin:0 0 10px}

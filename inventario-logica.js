@@ -89,18 +89,21 @@
     return r;
   }
 
-  // "Con hidráulico", "Sin hidráulico"; las demás: "Rodado sencillo", "Rodado doble"
+  // Sí/No: "Cabina", "Sin cabina"; Con/Sin: "Con hidráulico"; las demás: "Rodado sencillo", "Rodado doble"
+  function esNo(opcion){ return /^no$/i.test(opcion) }
   function nombreOpcion(caracteristica, opcion){
+    if(/^s[ií]$/i.test(opcion)) return caracteristica;
+    if(esNo(opcion)) return 'Sin ' + caracteristica.toLowerCase();
     if(/^(con|sin)$/i.test(opcion)) return opcion + ' ' + caracteristica.toLowerCase();
     return caracteristica + ' ' + opcion.toLowerCase();
   }
 
-  // "MC 150 · Con hidráulico · Rodado sencillo" (sin colores)
+  // "MC 300 · Cabina · Hidráulico · Rodado doble" (sin colores; lo que va en "No" no se nombra)
   function nombreModelo(r, cat){
     var partes = [], mo = porId(cat.modelos, r.modelo_id);
     partes.push(mo ? mo.nombre : '?');
     (cat.caracteristicas||[]).forEach(function(c){
-      (c.opciones||[]).forEach(function(o){ if((r.opciones||[]).indexOf(o.id) > -1) partes.push(nombreOpcion(c.nombre, o.nombre)); });
+      (c.opciones||[]).forEach(function(o){ if((r.opciones||[]).indexOf(o.id) > -1 && !esNo(o.nombre)) partes.push(nombreOpcion(c.nombre, o.nombre)); });
     });
     return partes.join(' · ');
   }

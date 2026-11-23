@@ -129,3 +129,14 @@ test('nombre con varios colores y suma del conteo', () => {
   assert.equal(I.nombreColores([2], CAT), 'Azul');
   assert.equal(I.sumaConteo([{color_id: 2, contados: 2}, {color_id: 3, contados: 4}]), 6);
 });
+
+test('opciones Sí/No: el Sí se nombra y el No no sale en el vehículo', () => {
+  const cat = {modelos: [{id: 3, nombre: 'MC 300'}], colores: [], caracteristicas: [
+    {id: 5, nombre: 'Cabina', orden: 1, opciones: [{id: 51, nombre: 'Sí'}, {id: 52, nombre: 'No'}]},
+    {id: 6, nombre: 'Plus', orden: 4, opciones: [{id: 61, nombre: 'Sí'}, {id: 62, nombre: 'No'}]},
+    {id: 2, nombre: 'Rodado', orden: 5, opciones: [{id: 21, nombre: 'Sencillo'}, {id: 22, nombre: 'Doble'}]}
+  ]};
+  assert.equal(I.nombreModelo({modelo_id: 3, opciones: [51, 62, 22]}, cat), 'MC 300 · Cabina · Rodado doble');
+  assert.equal(I.nombreOpcion('Pick up', 'No'), 'Sin pick up');
+  assert.equal(I.nombreOpcion('Pick up', 'Sí'), 'Pick up');
+});

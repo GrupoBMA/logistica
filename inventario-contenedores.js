@@ -31,6 +31,16 @@
       return {car: c, opciones: activos(c.opciones).filter(function(o){ return permitidas.indexOf(o.id) > -1 })};
     }).filter(function(x){ return x.opciones.length });
   }
+  // Tabla con casillas de las características del modelo (Cabina, Hidráulico, Pick up, Plus, Rodado). -> Promise([opciones]|null)
+  function tablaOpciones(modeloId, previo){
+    var cars = opcionesDeModelo(modeloId).sort(function(a, b){ return (a.car.orden||0) - (b.car.orden||0) });
+    if(!cars.length) return Promise.resolve([]);
+    var mo = I.porId(E.cat.modelos, modeloId);
+    return H.escogerTabla({titulo: mo ? mo.nombre : 'Características', ayuda: 'Marca una casilla en cada renglón',
+      filas: cars.map(function(x){ return {nombre: x.car.nombre, opciones: x.opciones.map(function(o){ return {valor: o.id, nombre: o.nombre} })} }),
+      elegidos: previo && previo.modelo_id===modeloId ? previo.opciones : []});
+  }
+  H.tablaOpciones = tablaOpciones;
   function totalVehiculos(renglones){ return renglones.reduce(function(s, r){ return s + (r.cantidad||0) }, 0) }
   // Mismo modelo y opciones (los colores se juntan)
   function mismoVehiculo(a, b){
@@ -53,16 +63,7 @@
     }).then(function(m){
       if(m==null) return null;
       r.modelo_id = m;
-      var cars = opcionesDeModelo(m), i = 0;
-      function siguiente(){
-        if(i >= cars.length) return Promise.resolve(true);
-        var x = cars[i++];
-        var antes = previo ? x.opciones.filter(function(o){ return (previo.opciones||[]).indexOf(o.id) > -1 })[0] : null;
-        return H.abrirLista({titulo: x.car.nombre, grupos: [{opciones: x.opciones.map(function(o){
-          return {valor: o.id, nombre: I.nombreOpcion(x.car.nombre, o.nombre)} })}], elegido: antes ? antes.id : null
-        }).then(function(v){ if(v==null) return false; r.opciones.push(v); return siguiente(); });
-      }
-      return siguiente();
+      return H.tablaOpciones(m, previo).then(function(v){ if(v==null) return false; r.opciones = v; return true; });
     }).then(function(ok){
       if(!ok) return null;
       return H.escogerVarios({titulo: 'Colores', ayuda: 'Marca todos los colores que dice la hoja',

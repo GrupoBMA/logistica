@@ -133,18 +133,7 @@
       elegido: previo ? previo.modelo_id : null}).then(function(mo){
       if(mo==null) return null;
       r.modelo_id = mo;
-      var permitidas = (E.cat.modelo_opciones||[]).filter(function(x){ return x.modelo_id===mo }).map(function(x){ return x.opcion_id });
-      var cars = (E.cat.caracteristicas||[]).filter(function(c){ return c.activo!==false }).map(function(c){
-        return {car: c, opciones: (c.opciones||[]).filter(function(o){ return o.activo!==false && permitidas.indexOf(o.id) > -1 })};
-      }).filter(function(x){ return x.opciones.length });
-      var i = 0;
-      function sig(){
-        if(i >= cars.length) return Promise.resolve(true);
-        var x = cars[i++], antes = previo ? x.opciones.filter(function(o){ return (previo.opciones||[]).indexOf(o.id) > -1 })[0] : null;
-        return H.abrirLista({titulo: x.car.nombre, grupos: [{opciones: x.opciones.map(function(o){ return {valor: o.id, nombre: I.nombreOpcion(x.car.nombre, o.nombre)} })}],
-          elegido: antes ? antes.id : null}).then(function(v){ if(v==null) return false; r.opciones.push(v); return sig(); });
-      }
-      return sig();
+      return H.tablaOpciones(mo, previo).then(function(v){ if(v==null) return false; r.opciones = v; return true; });
     }).then(function(ok){
       if(!ok) return null;
       return H.abrirLista({titulo: 'Color', grupos: [{opciones: (E.cat.colores||[]).filter(function(c){ return c.activo!==false }).map(function(c){
