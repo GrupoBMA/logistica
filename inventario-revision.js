@@ -7,7 +7,7 @@
   function gravedadNombre(g){ return {leve: 'Leve', media: 'Media', grave: 'Grave'}[g] || '' }
   // Un faltante de pieza no tiene grado (pedido del usuario, 21-nov-2026)
   function esFaltante(id){ var d = I.porId(E.cat.defectos, id); return !!(d && /^faltante/i.test(d.nombre)) }
-  function opcionesDano(){ return (E.cat.defectos||[]).filter(function(x){ return x.activo!==false }).map(function(x){ return {valor: x.id, nombre: x.nombre, ico: H.icoDano(x.nombre)} }) }
+  function opcionesDano(){ return (E.cat.defectos||[]).filter(function(x){ return x.activo!==false && x.nombre!=='Pieza dañada' }).map(function(x){ return {valor: x.id, nombre: x.nombre, ico: H.icoDano(x.nombre)} }) }
   function textoDano(x){ return x.cantidad+' · '+esc(nombreDefecto(x.defecto_id))+(x.gravedad ? ' ('+gravedadNombre(x.gravedad)+')' : '') }
   function nombreDefecto(id){ var d = I.porId(E.cat.defectos, id); return d ? d.nombre : '?' }
   function nombrePieza(p){ return p.nombre + (p.color ? ' · ' + p.color : '') }
@@ -232,9 +232,7 @@
         if(d.sobran) etq.push('<span class="etq pend">Sobran '+d.sobran+'</span>');
         if(p.danadas) etq.push('<span class="etq rojo">'+p.danadas+(p.danadas===1 ? ' dañada' : ' dañadas')+'</span>');
         if(!etq.length) etq.push('<span class="etq ok">✓ Coincide</span>');
-        var danos = R.defectos.filter(function(x){ return x.pieza_id===p.pieza_id && (x.color_id||null)===(p.color_id||null) });
-        detalle = '<small>Llegaron '+p.llegaron+' de '+p.esperadas+'</small>'+
-          (danos.length ? '<small>'+danos.map(textoDano).join('<br>')+'</small>' : '');
+        detalle = '<small>Llegaron '+p.llegaron+' de '+p.esperadas+'</small>';
         estado = etq.join(' ')+'<span class="btns"><button type="button" class="btn" data-p="no" data-i="'+i+'">Cambiar</button></span>';
       }
       return '<div class="tarjeta"><span class="cant">'+p.esperadas+'</span><span class="ico-p">'+H.icoPieza(p.nombre)+'</span><span class="txt"><b>'+esc(nombrePieza(p))+'</b>'+detalle+'</span>'+estado+'</div>';
@@ -244,65 +242,32 @@
     return html;
   }
 
-  // Caja para una pieza que no coincide: Llegaron y Dañadas con − / +, y los daños.
-  // Para agregar un daño se abren las listas (tipo, gravedad, cantidad) y luego se vuelve a esta caja con lo capturado.
+  // Caja para una pieza que no coincide: Llegaron y Dañadas con − / +.
+  // Sin tipo de daño ni gravedad: ya se sabe qué pieza es (pedido del usuario, 24-nov-2026).
+  // Las dañadas se guardan como "Pieza dañada" para que salgan en Piezas › Dañadas.
+  function idPiezaDanada(){ var d = (E.cat.defectos||[]).filter(function(x){ return x.nombre==='Pieza dañada' })[0]; return d ? d.id : null }
   function corregirPieza(i){
     var base = R.piezas[i];
-    var st = {llegaron: base.llegaron==null ? base.esperadas : base.llegaron, danadas: base.danadas || 0,
-      danos: R.defectos.filter(function(x){ return x.pieza_id===base.pieza_id && (x.color_id||null)===(base.color_id||null) }).map(function(x){ return Object.assign({}, x) })};
-    var enLista = false;
+    var st = {llegaron: base.llegaron==null ? base.esperadas : base.llegaron, danadas: base.danadas || 0};
     return new Promise(function(fin){
-      function leer(){
-        var f = q('.hoja form', document); if(!f) return;
+      H.abrirHoja(H.cabHoja(nombrePieza(base), 'Corrige lo que no coincide')+'<form class="hoja-cuerpo" novalidate>'+
+        '<div class="campo"><span>¿Cuántas llegaron?</span><small>Deben venir '+base.esperadas+'</small>'+H.contador('llegaron', st.llegaron, 0)+'</div>'+
+        '<div class="campo"><span>¿Cuántas vienen dañadas?</span>'+H.contador('danadas', st.danadas, 0)+'</div>'+
+        '<p class="inv-error" hidden></p>'+
+        '<div class="acciones"><button type="button" class="btn" data-hoja-cerrar>Cancelar</button><button type="submit" class="btn prin der">Listo</button></div></form>', fin);
+      var h = H.hojaEl(), f = q('form', h);
+      f.onsubmit = function(e){
+        e.preventDefault();
         st.llegaron = H.valorContador(q('[data-contador="llegaron"]', f)); st.danadas = H.valorContador(q('[data-contador="danadas"]', f));
-      }
-      function abrir(){
-        H.abrirHoja(H.cabHoja(nombrePieza(base), 'Corrige lo que no coincide')+'<form class="hoja-cuerpo" novalidate>'+
-          '<div class="campo"><span>¿Cuántas llegaron?</span><small>Deben venir '+base.esperadas+'</small>'+H.contador('llegaron', st.llegaron, 0)+'</div>'+
-          '<div class="campo"><span>¿Cuántas vienen dañadas?</span>'+H.contador('danadas', st.danadas, 0)+'</div>'+
-          '<div class="campo" style="max-width:none"><span>Daños</span>'+
-          (st.danos.length ? st.danos.map(function(x, k){ return '<div class="tarjeta" style="padding:10px 12px"><span class="ico-p">'+H.icoDano(nombreDefecto(x.defecto_id))+'</span><span class="txt"><b>'+x.cantidad+' · '+esc(nombreDefecto(x.defecto_id))+'</b><small>'+gravedadNombre(x.gravedad)+'</small></span>'+
-            '<span class="btns"><button type="button" class="btn" data-quitar-dano="'+k+'">Quitar</button></span></div>' }).join('') : '<small>Si hay dañadas, agrega qué tienen.</small>')+
-          '<button type="button" class="btn" data-agregar-dano style="margin-top:6px">+ Agregar daño</button></div>'+
-          '<p class="inv-error" hidden></p>'+
-          '<div class="acciones"><button type="button" class="btn" data-hoja-cerrar>Cancelar</button><button type="submit" class="btn prin der">Listo</button></div></form>',
-          function(v){ if(!enLista) fin(v); });
-        var h = H.hojaEl(), f = q('form', h);
-        f.onsubmit = function(e){
-          e.preventDefault(); leer();
-          var errs = I.validarPieza({esperadas: base.esperadas, llegaron: st.llegaron, danadas: st.danadas});
-          if(!errs.length && st.danadas > 0 && !st.danos.length) errs.push('Agrega qué daño tienen las dañadas.');
-          if(!errs.length && st.danadas===0 && st.danos.length) errs.push('No hay dañadas: quita los daños o corrige la cantidad.');
-          if(errs.length){ var er = q('.inv-error', f); er.textContent = errs[0]; er.hidden = false; return; }
-          H.cerrarHoja(st);
-        };
-        h.onclick = function(e){
-          if(e.target.closest('[data-hoja-cerrar]')){ H.cerrarHoja(null); return; }
-          var qd = e.target.closest('[data-quitar-dano]');
-          // Se vuelve a pintar la caja sin terminar la corrección (enLista evita que se tome como "Cancelar")
-          if(qd){ leer(); st.danos.splice(+qd.dataset.quitarDano, 1); enLista = true; abrir(); enLista = false; return; }
-          if(e.target.closest('[data-agregar-dano]')) agregarDano();
-        };
-      }
-      function agregarDano(){
-        leer(); enLista = true;
-        var nuevo = {pieza_id: base.pieza_id, color_id: base.color_id};
-        H.abrirLista({titulo: 'Tipo de daño', grupos: [{opciones: opcionesDano()}]})
-          .then(function(d){
-            if(d==null) return null; nuevo.defecto_id = d;
-            if(esFaltante(d)) return '';
-            return H.abrirLista({titulo: '¿Qué tan grave?', grupos: [{opciones: [{valor: 'leve', nombre: 'Leve'}, {valor: 'media', nombre: 'Media'}, {valor: 'grave', nombre: 'Grave'}]}]});
-          }).then(function(g){
-            if(g==null) return null; nuevo.gravedad = g || null;
-            return H.pedirCantidad({titulo: '¿Cuántas piezas con este daño?', valor: Math.max(1, st.danadas)});
-          }).then(function(n){
-            if(n!=null){ nuevo.cantidad = n; st.danos.push(nuevo); if(st.danadas < 1) st.danadas = n; }
-            enLista = false; abrir();
-          });
-      }
-      abrir();
+        var errs = I.validarPieza({esperadas: base.esperadas, llegaron: st.llegaron, danadas: st.danadas});
+        if(errs.length){ var er = q('.inv-error', f); er.textContent = errs[0]; er.hidden = false; return; }
+        H.cerrarHoja(st);
+      };
+      h.onclick = function(e){ if(e.target.closest('[data-hoja-cerrar]')) H.cerrarHoja(null); };
     }).then(function(v){
       if(!v) return null;
+      var tipo = idPiezaDanada();
+      v.danos = v.danadas > 0 && tipo ? [{pieza_id: base.pieza_id, color_id: base.color_id, defecto_id: tipo, gravedad: null, cantidad: v.danadas}] : [];
       R.defectos = R.defectos.filter(function(x){ return !(x.pieza_id===base.pieza_id && (x.color_id||null)===(base.color_id||null)) }).concat(v.danos);
       R.piezas[i] = Object.assign({}, R.piezas[i], {llegaron: v.llegaron, danadas: v.danadas, revisada: true});
       return v;

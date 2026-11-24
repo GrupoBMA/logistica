@@ -468,23 +468,32 @@
           if(e.target.closest('[data-agregar]')){
             enLista = true;
             var d = {};
-            H.abrirLista({titulo: '¿Qué encontraste?', grupos: [{opciones: (E.cat.defectos||[]).filter(function(x){ return x.activo!==false }).map(function(x){
-                return {valor: x.id, nombre: x.nombre, ico: H.icoDano(x.nombre)} })}]})
+            // Con lista de piezas basta "falta" o "dañada", la pieza y cuántas: sin tipo de daño ni gravedad (pedido del usuario, 24-nov-2026)
+            var tFalta = (E.cat.defectos||[]).filter(function(x){ return /^faltante/i.test(x.nombre) })[0];
+            var tDanada = (E.cat.defectos||[]).filter(function(x){ return x.nombre==='Pieza dañada' })[0];
+            var primero = piezas.length && tFalta && tDanada
+              ? H.abrirLista({titulo: '¿Qué encontraste?', grupos: [{opciones: [
+                  {valor: tFalta.id, nombre: 'Falta una pieza', ico: H.icoDano(tFalta.nombre)},
+                  {valor: tDanada.id, nombre: 'Pieza dañada', ico: H.icoDano(tDanada.nombre)}]}]})
+                .then(function(t){ if(t!=null) d.sinGrado = true; return t; })
+              : H.abrirLista({titulo: '¿Qué encontraste?', grupos: [{opciones: (E.cat.defectos||[]).filter(function(x){ return x.activo!==false && x.nombre!=='Pieza dañada' }).map(function(x){
+                return {valor: x.id, nombre: x.nombre, ico: H.icoDano(x.nombre)} })}]});
+            primero
               .then(function(t){
                 if(t==null) return null; d.defecto_id = t;
-                if(esFaltante(t)) return true;   // un faltante no tiene grado (pedido del usuario)
+                if(esFaltante(t) || d.sinGrado) return true;   // un faltante no tiene grado (pedido del usuario)
                 return H.abrirLista({titulo: '¿Qué tan grave?', grupos: [{opciones: [{valor: 'leve', nombre: 'Leve'}, {valor: 'media', nombre: 'Media'}, {valor: 'grave', nombre: 'Grave'}]}]})
                   .then(function(g){ if(g==null) return null; d.gravedad = g; return true; });
               })
               .then(function(ok){
                 if(!ok) return null;
                 if(!piezas.length) return true;
-                return H.abrirLista({titulo: esFaltante(d.defecto_id) ? '¿Qué pieza falta?' : '¿En qué pieza?', grupos: [{opciones: piezas.map(function(p){
+                return H.abrirLista({titulo: esFaltante(d.defecto_id) ? '¿Qué pieza falta?' : '¿Qué pieza viene dañada?', grupos: [{opciones: piezas.map(function(p){
                     return {valor: p.id, nombre: p.nombre, ico: H.icoPieza(p.nombre)} })}]})
                   .then(function(p){ if(p==null) return null; d.pieza_id = p; return true; });
               })
               .then(function(ok){ if(!ok) return null; return H.pedirCantidad({titulo: '¿Cuántas piezas?', valor: 1, boton: 'Agregar'}); })
-              .then(function(n){ if(n!=null){ d.cantidad = n; danos.push(d); } enLista = false; abrir(); });
+              .then(function(n){ if(n!=null){ d.cantidad = n; delete d.sinGrado; danos.push(d); } enLista = false; abrir(); });
           }
         };
       }
