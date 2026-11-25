@@ -2,7 +2,7 @@
 -- Se les pasa un enlace: consulta.html#k=<clave>. La clave NO está en el repo (es público): en Supabase solo se guarda
 -- su sha256. Sin la clave correcta no se ve nada. Si el enlace se filtra, se desactiva esa clave y se hace otra.
 -- Regresa el estado de una remisión sin costo de flete, fletero ni ETA. Las remisiones se repiten entre vendedores y
--- con el tiempo: se regresan todas las que coinciden (Ventas y Entregados) y la sucursal escoge por su destino.
+-- con el tiempo: se regresan todas las que coinciden en Ventas y la sucursal escoge por su destino.
 
 create table if not exists logistica.consulta_claves (
   id bigint generated always as identity primary key,
@@ -13,8 +13,8 @@ create table if not exists logistica.consulta_claves (
 );
 alter table logistica.consulta_claves enable row level security;
 
--- p_remision vacío = solo revisar la clave (la página lo hace al abrir).
--- "54" encuentra 54, 54/1, 54/2…; "54/2" solo esa parte. Primero Ventas, luego Entregados; de la más reciente a la más antigua.
+-- p_remision vacío = solo revisar la clave (la página lo hace al abrir). Solo busca en Ventas (sin Entregados, 25-nov-2026).
+-- "54" encuentra 54, 54/1, 54/2…; "54/2" solo esa parte. De la venta más reciente a la más antigua.
 create or replace function public.consulta_buscar(p_clave text, p_remision text default '')
 returns jsonb language plpgsql stable security definer set search_path = '' as $$
 declare v text := upper(regexp_replace(coalesce(p_remision, ''), '\s+', '', 'g'));
@@ -40,7 +40,8 @@ begin
                  'color_destino', e.color_destino, 'tipo_destino', e.tipo_destino)) j,
                row_number() over (order by (e.hoja <> 'ventas'), e.fecha desc nulls last, e.id) orden
         from logistica.entregas e
-        where case when position('/' in v) > 0
+        where e.hoja = 'ventas'   -- solo lo que está en Ventas (pedido del usuario: sin entregadas)
+          and case when position('/' in v) > 0
                    then upper(regexp_replace(coalesce(e.remision, ''), '\s+', '', 'g')) = v
                    else split_part(upper(regexp_replace(coalesce(e.remision, ''), '\s+', '', 'g')), '/', 1) = v end
         order by 2 limit 60
