@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Consulta de remisión · Grupo BMA</title>
+<link rel="icon" type="image/svg+xml" href="icono.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Consulta de remisiones para las sucursales (25-nov-2026). Sin sesión: el enlace trae la clave (#k=…).
+   Mismos colores que la app; estilo de app de iPhone: fondo gris, tarjetas blancas sin borde. */
+:root{
+  --ground:#f2f2ef; --surface:#ffffff; --raised:#ebebe6; --active:#e0e0d9; --control:#cdcdc5;
+  --text:#121310; --muted:#5d5f58; --faint:#6b6d66; --logo:#192440;
+  --ok:#1f7a45; --ok-bg:#e1f3e8; --work:#1d5fbf; --work-bg:#e4edfa;
+  --lock:#5b5e8a; --lock-bg:#ecebf7; --warn:#8a4b05; --warn-bg:#fff4d6;
+  --neg:#b3261e; --neg-bg:#fdecea; --xpaso:#e8b400;
+  --font:"Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --ground:#0d0e0c; --surface:#181915; --raised:#24251f; --active:#2c2d29; --control:#3e403a;
+    --text:#f3f4f0; --muted:#b3b5ae; --faint:#979991; --logo:#ffffff;
+    --ok:#5cc184; --ok-bg:#16291d; --work:#7fb0f5; --work-bg:#15233a;
+    --lock:#aeb0e6; --lock-bg:#20213a; --warn:#e9b65a; --warn-bg:#2b2210;
+    --neg:#ec6a5f; --neg-bg:#2e1715; --xpaso:#f2c94c; color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100vh;min-height:100dvh;background:var(--ground);color:var(--text);font:16px/22px var(--font);-webkit-tap-highlight-color:transparent}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+.num{font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.wrap{max-width:560px;margin:0 auto;padding:max(20px,env(safe-area-inset-top)) 16px max(28px,env(safe-area-inset-bottom))}
+
+.brand{display:flex;align-items:center;gap:10px;margin:4px 2px 20px;font-weight:500;color:var(--muted)}
+.brand .logo{height:24px;width:auto;fill:var(--logo)}
+.brand i{width:1px;height:18px;background:var(--control)}
+
+.buscar{display:flex;gap:8px}
+.buscar label{position:relative;flex:1}
+.buscar svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--faint)}
+.buscar input{width:100%;height:54px;padding:0 16px 0 46px;border:0;border-radius:16px;background:var(--surface);font-size:19px;font-weight:500;outline:none;box-shadow:0 0 0 0 transparent;transition:box-shadow .15s ease}
+.buscar input::placeholder{color:var(--faint);font-weight:400}
+.buscar input:focus{box-shadow:0 0 0 2px var(--work)}
+.buscar button{height:54px;padding:0 20px;border:0;border-radius:16px;background:var(--work-bg);color:var(--work);font-weight:700;transition:transform .12s ease}
+.buscar button:active,.op:active,.volver:active{transform:scale(.97)}
+
+.res{margin-top:18px}
+.aviso{padding:22px 18px;border-radius:18px;background:var(--surface);color:var(--muted);text-align:center}
+.aviso b{display:block;color:var(--text);font-size:17px;margin-bottom:4px}
+.cuantas{margin:0 4px 10px;font-size:14px;color:var(--muted)}
+
+/* Varias ventas con el mismo número: una tarjeta por venta, con su destino en grande */
+.ops{display:grid;gap:10px}
+.op{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center;width:100%;padding:14px 16px;border:0;border-radius:18px;background:var(--surface);text-align:left;transition:transform .12s ease}
+.op .dest{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:700;line-height:22px}
+.op .dest span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.op .veh{display:block;color:var(--text);font-size:14px;line-height:19px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.op .meta{display:block;color:var(--muted);font-size:13px;line-height:18px;margin-top:2px}
+.op .est{display:inline-block;margin-top:6px;font-size:13px;font-weight:500;padding:2px 9px;border-radius:999px}
+.d{width:11px;height:11px;border-radius:50%;flex:none;background:var(--control);box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
+
+.ic{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;flex:none}
+.ic svg{width:22px;height:22px}
+.ic.flete,.est.flete{background:var(--ok-bg);color:var(--ok)}
+.ic.fletefalta,.est.fletefalta{background:var(--warn-bg);color:var(--warn)}
+.ic.taller,.est.taller{background:var(--work-bg);color:var(--work)}
+.ic.empezar,.est.empezar{background:var(--raised);color:var(--text)}
+.ic.piezas,.est.piezas{background:var(--lock-bg);color:var(--lock)}
+.ic.entregada,.est.entregada{background:var(--raised);color:var(--text)}
+
+/* Ficha de una venta */
+.volver{display:inline-flex;align-items:center;gap:6px;margin:0 0 12px;padding:8px 12px 8px 8px;border:0;border-radius:999px;background:var(--raised);font-size:15px;font-weight:500;transition:transform .12s ease}
+.card{padding:18px;border-radius:18px;background:var(--surface)}
+.card + .card{margin-top:10px}
+.titulo{font-size:22px;line-height:28px;font-weight:700;letter-spacing:-.01em}
+.titulo small{display:block;font-size:15px;line-height:20px;font-weight:400;color:var(--muted);letter-spacing:0;margin-top:2px}
+.state{display:flex;gap:14px;align-items:center}
+.state b{display:block;font-size:17px}
+.state small{display:block;color:var(--muted);font-size:14px;line-height:19px}
+.st5{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:16px}
+.st5 div{padding:8px 2px;border-radius:12px;background:var(--raised);text-align:center;font-size:11px;line-height:14px;color:var(--muted)}
+.st5 div b{display:block;font-size:17px;line-height:22px;color:var(--text)}
+.st5 div.ok{background:var(--ok-bg);color:var(--ok)} .st5 div.ok b{color:var(--ok)}
+.st5 div.x{background:var(--warn-bg);color:var(--warn)} .st5 div.x b{color:var(--warn)}
+.falta{margin-top:14px;padding:10px 12px;border-radius:12px;background:var(--warn-bg);color:var(--warn);font-size:15px}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 16px;margin:0}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;text-align:right;font-weight:500;overflow-wrap:anywhere}
+.kv dd .dp{display:inline-flex;align-items:center;gap:8px}
+.pie{margin:18px 4px 0;font-size:13px;color:var(--faint);text-align:center}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <path id="lgG" d="M.821 .367C.821 .373 .82 .396 .819 .4H.46V.287H.671C.639 .19 .552 .123 .437 .123 .293 .123 .194 .231 .194 .374 .194 .519 .292 .624 .432 .624 .532 .624 .612 .566 .644 .487H.809C.76 .658 .608 .764 .429 .764 .201 .764 .037 .596 .037 .375 .037 .154 .203-.015 .434-.015 .65-.015 .821 .151 .821 .367Z"/>
+    <path id="lgR" d="M.483 0H.646L.521 .295C.603 .334 .648 .41 .648 .505 .648 .649 .551 .75 .381 .75H.062V0H.217V.266H.374L.483 0M.356 .623C.452 .623 .488 .565 .488 .502 .488 .437 .451 .38 .354 .38H.217V.623H.356Z"/>
+    <path id="lgU" d="M.644 .289V.75H.489V.28C.489 .188 .438 .125 .348 .125 .258 .125 .206 .188 .206 .28V.75H.052V.289C.052 .101 .168-.015 .348-.015 .529-.015 .644 .101 .644 .289Z"/>
+    <path id="lgP" d="M.36 .243C.532 .243 .636 .345 .636 .497 .636 .648 .532 .75 .359 .75H.062V0H.217V.243H.36M.345 .623C.443 .623 .482 .563 .482 .497 .482 .429 .442 .37 .343 .37H.217V.623H.345Z"/>
+    <path id="lgO" d="M.831 .376C.831 .597 .665 .764 .434 .764 .204 .764 .037 .597 .037 .376 .037 .154 .204-.015 .434-.015 .665-.015 .831 .154 .831 .376M.194 .374C.194 .515 .293 .619 .434 .619 .575 .619 .673 .515 .673 .374 .673 .235 .575 .131 .434 .131 .293 .131 .194 .235 .194 .374Z"/>
+    <g id="lgBMA">
+      <path transform="matrix(1,0,0,-1,67.3049,365.7479)" d="M0 0V-41.71H132.787C145.193-41.71 151.265-38.015 151.265-25.871V-16.104C151.265-4.49 145.193 0 132.787 0ZM0 70.746V32.734H128.563C137.538 32.734 144.667 34.052 144.667 49.099V54.645C144.667 70.484 137.538 70.746 128.828 70.746ZM-41.18-73.918V102.953C-41.18 105.592-39.862 106.913-37.22 106.913H134.105C169.216 106.913 185.055 92.13 185.055 59.396V54.645C185.055 37.75 180.569 25.871 167.634 19.534V16.1C183.999 9.767 191.654-1.321 191.654-16.104V-27.192C191.654-59.135 174.759-77.877 135.691-77.877H-37.22C-39.862-77.877-41.18-76.556-41.18-73.918"/>
+      <path transform="matrix(1,0,0,-1,265.4687,439.4005)" d="M0 0V176.341C0 178.983 1.582 180.566 4.221 180.566H52.003C54.645 180.566 139.382 116.66 139.382 116.66H143.081C143.081 116.66 227.821 180.566 230.46 180.566H278.503C281.145 180.566 282.466 178.983 282.466 176.341V0C282.466-2.642 281.145-4.225 278.503-4.225H245.508C242.865-4.225 241.283-2.642 241.283 0V125.656H238.379C238.379 125.656 158.291 69.893 155.486 69.143 148.864 67.371 133.876 67.368 126.977 69.143 124.421 69.8 44.083 125.656 44.083 125.656H41.18V0C41.18-2.642 39.862-4.225 37.22-4.225H4.221C1.582-4.225 0-2.642 0 0"/>
+      <path transform="matrix(1,0,0,-1,707.2703,414.0593)" d="M0 0-22.416 35.111H-79.234L-101.673 0Z"/>
+      <path transform="matrix(1,0,0,-1,814.6678,438.0827)" d="M0 0-112.985 175.023C-114.568 177.666-115.889 179.248-118.792 179.248H-153.639C-156.277 179.248-157.863 177.666-159.446 175.023L-272.431 0C-274.807-3.43-272.959-5.542-270.322-5.542H-231.251C-228.083-5.542-226.762-3.695-224.914-.791L-209.075 24.023H-209.07L-186.632 59.135H-186.638L-137.8 135.426H-134.366L-85.793 59.135-63.356 24.023-47.517-.791C-45.669-3.695-44.083-5.542-41.18-5.542H-2.109C.53-5.542 2.377-3.43 0 0"/>
+    </g>
+    <symbol id="logoGrupo" viewBox="26 160 791 284">
+      <use href="#lgG" transform="matrix(76.9894,0,0,-76.9894,109.4263,219.0162)"/>
+      <use href="#lgR" transform="matrix(76.9894,0,0,-76.9894,252.31864,219.0162)"/>
+      <use href="#lgU" transform="matrix(76.9894,0,0,-76.9894,381.35289,219.0162)"/>
+      <use href="#lgP" transform="matrix(76.9894,0,0,-76.9894,511.9269,219.0162)"/>
+      <use href="#lgO" transform="matrix(76.9894,0,0,-76.9894,640.0373,219.0162)"/>
+      <use href="#lgBMA"/>
+    </symbol>
+    <symbol id="logoBMA" viewBox="26 258.8 791 185"><use href="#lgBMA"/></symbol>
+  </defs>
+</svg>
+<div class="wrap">
+  <div class="brand"><svg class="logo" viewBox="0 0 791 284" role="img" aria-label="Grupo BMA"><use href="#logoGrupo"/></svg><i></i><span>Logística</span></div>
+  <h1 class="sr">Consulta de remisión</h1>
+  <form class="buscar" id="f" autocomplete="off" hidden>
+    <label><span class="sr">Número de remisión</span>
+      <svg width="18" height="18" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="6" r="4.8"/><path d="m9.6 9.6 3.4 3.4"/></svg>
+      <input id="q" inputmode="text" enterkeyhint="search" placeholder="Número de remisión" maxlength="20" autocapitalize="none" spellcheck="false"></label>
+    <button type="submit">Buscar</button>
+  </form>
+  <div class="res" id="res" aria-live="polite"></div>
+  <p class="pie num" id="pie"></p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="logica.js?v=20261112-bodega1"></script>
+<script>
+(function(){
+  var L = window.Logistica, esc = L.esc, $ = function(id){ return document.getElementById(id) };
+  var sb = window.supabase.createClient('https://jlfendrdwptwmttrahre.supabase.co', 'sb_publishable_RNnR7jV42dGEGLFWdRVfvQ_cP1xSwuO', {auth:{persistSession:false, autoRefreshToken:false}});
+  var GUARDA = 'logistica.consultaClave';
+
+  // La clave viene en el enlace (#k=…; lo que va después de # no se manda a ningún servidor). Se recuerda en el navegador.
+  var m = /[#&]k=([A-Za-z0-9_-]{10,100})/.exec(location.hash), CLAVE = m ? m[1] : null;
+  try { if(CLAVE) localStorage.setItem(GUARDA, CLAVE); else CLAVE = localStorage.getItem(GUARDA) } catch(e){}
+
+  var ICON = {
+    flete:'<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3.5 9.5l3.5 3.5 7.5-8"/></svg>',
+    taller:'<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.5 2.5a3.5 3.5 0 0 0-3.2 4.9L3 12.7 5.3 15l5.3-5.3a3.5 3.5 0 0 0 4.9-3.2l-2 2-2.3-.6-.6-2.3z"/></svg>',
+    empezar:'<svg viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><path d="M6 4.5v9l7-4.5z"/></svg>',
+    piezas:'<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3.5" y="8" width="11" height="7.5" rx="1.5"/><path d="M6 8V6a3 3 0 0 1 6 0v2"/></svg>',
+    entregada:'<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 4.5h9v8h-9zM10.5 7.5h3.5l2.5 2.5v2.5h-6z"/><circle cx="5" cy="13.5" r="1.6" fill="currentColor"/><circle cx="13" cy="13.5" r="1.6" fill="currentColor"/></svg>'
+  };
+  ICON.fletefalta = ICON.flete;
+
+  function color(u){ return u.estado==='flete' && u.faltante ? 'fletefalta' : u.estado }
+  function nombreEstado(u){
+    return {flete:'Listo para enviar', fletefalta:'Completo con faltante', taller:'En proceso', empezar:'No iniciado', piezas:'Esperando piezas', entregada:'Entregada'}[color(u)] || '';
+  }
+  function explica(u){
+    if(u.estado==='entregada') return 'Ya se entregó.';
+    if(color(u)==='fletefalta') return 'Tiene los 5 pasos en OK, pero le falta algo antes de salir.';
+    if(u.estado==='flete') return 'Tiene los 5 pasos en OK. Falta mandar el flete.';
+    if(u.estado==='taller') return u.ok+' de 5 pasos · sigue en '+L.PASOS[Math.max(0,u.pasos.findIndex(function(x){return x!=='ok'}))][1].toLowerCase()+'.';
+    if(u.estado==='piezas') return 'Está esperando que llegue el vehículo o sus piezas.';
+    return 'Todavía no empieza el armado.';
+  }
+  function fecha(u){ return u.f ? L.fecha(u.f) : (u.fecha_txt || '—') }
+  function punto(u){ return '<span class="d"'+(u.color_destino?' style="background:'+esc(u.color_destino)+'"':'')+'></span>' }
+
+  function deTabla(e){
+    return {hoja:e.hoja||'ventas', vendedor:e.vendedor||'', vehiculo:e.vehiculo||'', pasos:[e.armado||'',e.herreria||'',e.forrado||'',e.pintura||'',e.revision||''],
+      fecha:e.fecha||null, fecha_txt:e.fecha_txt||'', remision:e.remision||'', destino:e.destino||'', zona:e.zona||'sin',
+      activacion:e.activacion||'', faltante:e.faltante||'', color_vehiculo:e.color_vehiculo||null, color_destino:e.color_destino||null,
+      tipo_destino:e.tipo_destino||''};
+  }
+  function hoyISO(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0') }
+
+  var UNID = [], BUSCADA = '';
+  function pie(subido){
+    if(!subido){ $('pie').textContent=''; return; }
+    var d = new Date(subido);
+    $('pie').textContent = 'Datos al '+L.fecha(d)+', '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  }
+  function noValido(){
+    try { localStorage.removeItem(GUARDA) } catch(e){}
+    $('f').hidden = true;
+    $('res').innerHTML = '<div class="aviso"><b>Este enlace no es válido</b>Pide el enlace nuevo de la consulta.</div>';
+  }
+
+  function buscar(txt){
+    txt = (txt||'').trim(); BUSCADA = txt;
+    if(!txt){ $('res').innerHTML=''; return; }
+    sb.rpc('consulta_buscar', {p_clave: CLAVE, p_remision: txt}).then(function(r){
+      if(txt !== BUSCADA) return; // ya buscaron otra
+      if(r.error){ if(r.error.code==='42501') return noValido(); $('res').innerHTML='<div class="aviso"><b>No se pudo buscar</b>Revisa tu internet e intenta de nuevo.</div>'; return; }
+      pie(r.data.subido);
+      UNID = L.cargar((r.data.filas||[]).map(deTabla), hoyISO(), []).unidades;
+      if(!UNID.length){ $('res').innerHTML = '<div class="aviso"><b>No encontramos la remisión '+esc(txt)+'</b>Revisa el número e intenta de nuevo.</div>'; return; }
+      if(UNID.length===1) ficha(0, false); else lista();
+    });
+  }
+
+  function lista(){
+    $('res').innerHTML = '<p class="cuantas">Hay '+UNID.length+' ventas con la remisión '+esc(BUSCADA)+'. Escoge la tuya:</p><div class="ops">' +
+      UNID.map(function(u,i){
+        return '<button class="op" type="button" data-i="'+i+'"><span class="ic '+color(u)+'">'+ICON[color(u)]+'</span><span style="min-width:0">' +
+          '<span class="dest">'+punto(u)+'<span>'+esc(L.lugar(u))+'</span></span>' +
+          '<span class="veh">'+esc(u.modelo)+(u.cant>1?' × '+u.cant:'')+(u.detalle?' · '+esc(u.detalle):'')+'</span>' +
+          '<span class="meta num">Remisión '+esc(u.remision)+' · '+esc(u.vendedor||'Sin vendedor')+' · '+esc(fecha(u))+'</span>' +
+          '<span class="est '+color(u)+'">'+nombreEstado(u)+'</span></span></button>';
+      }).join('') + '</div>';
+  }
+
+  function ficha(i, conVolver){
+    var u = UNID[i];
+    var kv = [['Remisión', esc(u.remision||'—')], ['Destino', '<span class="dp">'+punto(u)+esc(L.lugar(u))+'</span>'],
+      ['Fecha de venta', esc(fecha(u))+(u.estado!=='entregada' && u.dias!=null ? ' · hace '+u.dias+' días' : '')],
+      ['Vendedor', esc(u.vendedor||'—')], ['Bodega', u.bodega==='b2'?'Bodega 2':'Bodega 1 · Granja']];
+    $('res').innerHTML = (conVolver ? '<button class="volver" type="button" id="volver"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4 6 9l5 5"/></svg>Otras ventas</button>' : '') +
+      '<div class="card"><div class="titulo">'+esc(u.modelo)+(u.cant>1?' × '+u.cant:'')+(u.detalle?'<small>'+esc(u.detalle)+'</small>':'')+'</div></div>' +
+      '<div class="card"><div class="state"><span class="ic '+color(u)+'">'+ICON[color(u)]+'</span><span><b>'+nombreEstado(u)+'</b><small>'+esc(explica(u))+'</small></span></div>' +
+        (u.estado!=='entregada' ? '<div class="st5">'+L.PASOS.map(function(p,k){ return '<div class="'+u.pasos[k]+'"><b>'+p[0]+'</b>'+p[1]+'</div>' }).join('')+'</div>' : '') +
+        (u.faltante ? '<div class="falta">Falta: '+esc(u.faltante)+'</div>' : '') + '</div>' +
+      '<div class="card"><dl class="kv">'+kv.map(function(x){ return '<dt>'+x[0]+'</dt><dd>'+x[1]+'</dd>' }).join('')+'</dl></div>';
+  }
+
+  // "Atrás" del navegador: de la ficha regresa a la lista de opciones
+  $('res').addEventListener('click', function(e){
+    var b = e.target.closest('.op'); if(b){ history.pushState({ficha:+b.dataset.i}, ''); ficha(+b.dataset.i, true); scrollTo({top:0}); return; }
+    if(e.target.closest('#volver')) history.back();
+  });
+  window.addEventListener('popstate', function(){ if(UNID.length>1) lista(); });
+
+  var t = null;
+  $('q').addEventListener('input', function(e){ clearTimeout(t); var v = e.target.value; t = setTimeout(function(){ buscar(v) }, 350); });
+  $('f').addEventListener('submit', function(e){ e.preventDefault(); clearTimeout(t); $('q').blur(); buscar($('q').value); });
+
+  // Al abrir: revisar la clave y mostrar el buscador
+  if(!CLAVE) return noValido();
+  sb.rpc('consulta_buscar', {p_clave: CLAVE, p_remision: ''}).then(function(r){
+    if(r.error){ if(r.error.code==='42501') return noValido(); $('res').innerHTML='<div class="aviso"><b>No se pudo abrir la consulta</b>Revisa tu internet y vuelve a abrir el enlace.</div>'; return; }
+    pie(r.data.subido);
+    $('f').hidden = false; $('q').focus();
+  });
+})();
+</script>
+</body>
+</html>
