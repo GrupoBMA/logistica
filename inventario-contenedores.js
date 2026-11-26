@@ -31,16 +31,7 @@
       return {car: c, opciones: activos(c.opciones).filter(function(o){ return permitidas.indexOf(o.id) > -1 })};
     }).filter(function(x){ return x.opciones.length });
   }
-  // Tabla con casillas de las características del modelo (Cabina, Hidráulico, Pick up, Plus, Rodado). -> Promise([opciones]|null)
-  function tablaOpciones(modeloId, previo){
-    var cars = opcionesDeModelo(modeloId).sort(function(a, b){ return (a.car.orden||0) - (b.car.orden||0) });
-    if(!cars.length) return Promise.resolve([]);
-    var mo = I.porId(E.cat.modelos, modeloId);
-    return H.escogerTabla({titulo: mo ? mo.nombre : 'Características', ayuda: 'Marca una casilla en cada renglón',
-      filas: cars.map(function(x){ return {nombre: x.car.nombre, opciones: x.opciones.map(function(o){ return {valor: o.id, nombre: o.nombre} })} }),
-      elegidos: previo && previo.modelo_id===modeloId ? previo.opciones : []});
-  }
-  H.tablaOpciones = tablaOpciones;
+  // Características del modelo en su orden (Cabina, Hidráulico, Pick up, Plus, Rodado), para los formularios de vehículo
   H.opcionesDeModelo = function(m){ return opcionesDeModelo(m).sort(function(a, b){ return (a.car.orden||0) - (b.car.orden||0) }) };
   function totalVehiculos(renglones){ return renglones.reduce(function(s, r){ return s + (r.cantidad||0) }, 0) }
   // Mismo modelo y opciones (los colores se juntan)
@@ -54,31 +45,75 @@
     return '<span class="etq pend">Por revisar</span>';
   }
 
-  // ---------------------------------------------------------------- Escoger un vehículo (modelo → características → colores → cantidad)
-  // La hoja solo dice qué colores trae; cuántos de cada color se cuenta en la revisión.
-  function escogerVehiculo(previo){
-    var r = {modelo_id: null, opciones: [], colores: [], cantidad: previo ? previo.cantidad : 1};
-    return H.abrirLista({titulo: 'Modelo', ayuda: 'Como dice la hoja del contenedor',
-      grupos: [{opciones: activos(E.cat.modelos).map(function(m){ return {valor: m.id, nombre: m.nombre} })}],
-      elegido: previo ? previo.modelo_id : null
-    }).then(function(m){
-      if(m==null) return null;
-      r.modelo_id = m;
-      return H.tablaOpciones(m, previo).then(function(v){ if(v==null) return false; r.opciones = v; return true; });
-    }).then(function(ok){
-      if(!ok) return null;
-      return H.escogerVarios({titulo: 'Colores', ayuda: 'Marca todos los colores que dice la hoja',
-        opciones: activos(E.cat.colores).map(function(c){ return {valor: c.id, nombre: c.nombre, color: hexColor(c.nombre)} }),
-        elegidos: previo ? previo.colores : [], boton: 'Siguiente', falta: 'Marca al menos un color.'});
-    }).then(function(c){
-      if(c==null) return null;
-      r.colores = c;
-      return H.pedirCantidad({titulo: c.length > 1 ? '¿Cuántos en total?' : '¿Cuántos?', ayuda: I.nombreVehiculo(r, E.cat),
-        valor: r.cantidad, boton: previo ? 'Listo' : 'Agregar'});
-    }).then(function(n){
-      if(n==null) return null;
-      r.cantidad = n; return r;
+  // ---------------------------------------------------------------- Formulario de un vehículo (una sola pantalla)
+  // 1. Modelo · 2. Características · 3. Colores (todos los que dice la hoja) · 4. ¿Cuántos en total?
+  // Como en Nueva venta (pedido del usuario, 26-nov-2026). La hoja solo dice qué colores trae;
+  // cuántos de cada color se cuenta en la revisión. Nada viene escogido de antemano (candado).
+  function nuevoForm(i){
+    var p = i==null ? null : W.renglones[i];
+    var f = {i: i, modelo_id: p ? p.modelo_id : null, sel: {}, colores: p ? p.colores.slice() : [], cantidad: p ? p.cantidad : 1, error: ''};
+    if(p) H.opcionesDeModelo(p.modelo_id).forEach(function(x){
+      var o = x.opciones.filter(function(o){ return (p.opciones||[]).indexOf(o.id) > -1 })[0]; if(o) f.sel[x.car.id] = o.id;
     });
+    return f;
+  }
+  function pild(attrs, on, contenido){
+    return '<button type="button" class="pild'+(on ? ' sel' : '')+'" aria-pressed="'+on+'" data-r="vf" '+attrs+'>'+contenido+'</button>';
+  }
+  function formVehiculo(){
+    var f = W.form, n = 0, html = '<div class="vf">';
+    html += '<h2 class="vf-tit">'+(f.i==null ? 'Agregar vehículos' : 'Cambiar vehículos')+'</h2>';
+    if(f.error) html += '<p class="inv-error">'+esc(f.error)+'</p>';
+    html += '<section class="vf-sec"><h3>'+(++n)+'. Modelo</h3><div class="pilds">'+
+      activos(E.cat.modelos).map(function(x){ return pild('data-k="modelo" data-val="'+x.id+'"', f.modelo_id===x.id, esc(x.nombre)) }).join('')+'</div></section>';
+    if(f.modelo_id!=null){
+      var cars = H.opcionesDeModelo(f.modelo_id);
+      if(cars.length){
+        html += '<section class="vf-sec"><h3>'+(++n)+'. Características</h3><div class="vf-tabla">'+cars.map(function(x){
+          return '<div class="vf-fila"><span class="vf-nom">'+esc(x.car.nombre)+'</span><div class="pilds">'+x.opciones.map(function(o){
+            return pild('data-k="op" data-car="'+x.car.id+'" data-val="'+o.id+'"', f.sel[x.car.id]===o.id, esc(o.nombre)) }).join('')+'</div></div>';
+        }).join('')+'</div></section>';
+      }
+      html += '<section class="vf-sec"><h3>'+(++n)+'. Colores <small class="vf-ayuda">· todos los que dice la hoja</small></h3><div class="pilds">'+
+        activos(E.cat.colores).map(function(c){
+          var hx = hexColor(c.nombre), on = f.colores.indexOf(c.id) > -1;
+          return pild('data-k="color" data-val="'+c.id+'"', on, (hx ? '<span class="pt-col" style="background:'+hx+'"></span>' : '')+esc(c.nombre)) }).join('')+'</div></section>';
+      html += '<section class="vf-sec"><h3>'+(++n)+'. '+(f.colores.length > 1 ? '¿Cuántos en total?' : '¿Cuántos?')+'</h3>'+H.contador('vfCant', f.cantidad, 1)+'</section>';
+    }
+    html += '<div class="acciones">'+(W.renglones.length || f.i!=null ? '<button type="button" class="btn" data-r="vf" data-k="cancelar">Cancelar</button>'
+                                                                      : '<button type="button" class="btn" data-r="atras">Atrás</button>')+
+      '<button type="button" class="btn prin der" data-r="vf" data-k="listo">'+(f.i==null ? 'Agregar' : 'Listo')+'</button></div></div>';
+    return html;
+  }
+  function leerForm(main){
+    var f = W.form; if(!f) return;
+    var c = q('[data-contador="vfCant"]', main); if(c) f.cantidad = H.valorContador(c);
+  }
+  function clicForm(b, main){
+    var f = W.form, k = b.dataset.k, val = +b.dataset.val;
+    leerForm(main); f.error = '';
+    if(k==='modelo'){ if(f.modelo_id!==val){ f.modelo_id = val; f.sel = {}; } }
+    else if(k==='op') f.sel[+b.dataset.car] = val;
+    else if(k==='color'){ var j = f.colores.indexOf(val); if(j > -1) f.colores.splice(j, 1); else f.colores.push(val); }
+    else if(k==='cancelar') W.form = null;
+    else if(k==='listo'){
+      var cars = f.modelo_id==null ? [] : H.opcionesDeModelo(f.modelo_id), faltan = [];
+      if(f.modelo_id==null) faltan.push('el modelo');
+      cars.forEach(function(x){ if(f.sel[x.car.id]==null) faltan.push(x.car.nombre) });
+      if(f.modelo_id!=null && !f.colores.length) faltan.push('al menos un color');
+      if(faltan.length) f.error = 'Falta escoger: '+faltan.join(', ')+'.';
+      else if(!(f.cantidad >= 1)) f.error = 'La cantidad debe ser 1 o más.';
+      else {
+        var orden = activos(E.cat.colores).map(function(c){ return c.id });
+        var r = {modelo_id: f.modelo_id, opciones: cars.map(function(x){ return f.sel[x.car.id] }),
+          colores: f.colores.slice().sort(function(a, b){ return orden.indexOf(a) - orden.indexOf(b) }), cantidad: f.cantidad};
+        if(f.i==null) W.renglones.push(r); else W.renglones[f.i] = r;
+        juntar(); W.form = null;
+      }
+    }
+    var arriba = window.scrollY;
+    dibujarRecibir(main);
+    window.scrollTo({top: W.form && !f.error ? arriba : 0});
   }
 
   // ---------------------------------------------------------------- Recibir contenedor (y corregir)
@@ -106,6 +141,8 @@
         '<label class="campo"><span>Fecha en que llegó</span><input id="rFecha" type="date" value="'+esc(W.llegada)+'"></label>'+
         '<div class="acciones">'+(corrigiendo ? '<button type="button" class="btn" data-r="cancelar">Cancelar</button>' : '')+
         '<button type="button" class="btn prin der" data-r="sig">Siguiente</button></div>';
+    } else if(W.paso===2 && W.form){
+      html += formVehiculo();
     } else if(W.paso===2){
       html += '<div class="tarjetas">'+W.renglones.map(function(r, i){
         return '<div class="tarjeta"><span class="cant">'+r.cantidad+'</span><span class="txt">'+txtVehiculo(r)+'</span>'+
@@ -165,6 +202,7 @@
     var b = e.target.closest('[data-r]'); if(!b) return;
     var a = b.dataset.r;
     W.error = '';
+    if(a==='vf'){ clicForm(b, main); return; }
     if(a==='bodega'){
       leerPaso1(main);
       H.abrirLista({titulo: 'Bodega', grupos: [{opciones: H.BODEGAS}], elegido: W.bodega}).then(function(v){ if(v){ W.bodega = v; } dibujarRecibir(main); });
@@ -174,17 +212,16 @@
         if(E.rol==='admin' && !W.bodega){ W.error = 'Escoge la bodega'; }
         else if(!W.numero.trim()){ W.error = 'Escribe el número de contenedor'; }
         else if(!W.llegada){ W.error = 'Escribe la fecha de llegada'; }
-        else { W.paso = 2; if(!W.renglones.length){ dibujarRecibir(main); return agregar(main); } }
+        else { W.paso = 2; if(!W.renglones.length) W.form = nuevoForm(null); }
       } else if(W.paso===2){
         if(!W.renglones.length) W.error = 'Agrega al menos un vehículo';
         else W.paso = 3;
       }
       dibujarRecibir(main);
-    } else if(a==='atras'){ W.paso = Math.max(1, W.paso-1); dibujarRecibir(main); }
+    } else if(a==='atras'){ W.form = null; W.paso = Math.max(1, W.paso-1); dibujarRecibir(main); }
     else if(a==='agregar'){ agregar(main); }
     else if(a==='cambiar'){
-      var i = +b.dataset.i;
-      escogerVehiculo(W.renglones[i]).then(function(r){ if(r){ W.renglones[i] = r; juntar(); } dibujarRecibir(main); });
+      W.form = nuevoForm(+b.dataset.i); dibujarRecibir(main); window.scrollTo({top: 0});
     } else if(a==='quitar'){ W.renglones.splice(+b.dataset.i, 1); dibujarRecibir(main); }
     else if(a==='nota'){
       H.pedirTexto({titulo: 'Nota del contenedor', ayuda: 'Algo que valga la pena recordar (opcional)', etiqueta: 'Nota', largo: true, valor: W.observaciones,
@@ -197,9 +234,7 @@
       }).catch(function(){ guardarContenedor(main, []); });
     }
   }
-  function agregar(main){
-    escogerVehiculo(null).then(function(r){ if(r){ W.renglones.push(r); juntar(); } dibujarRecibir(main); });
-  }
+  function agregar(main){ W.form = nuevoForm(null); dibujarRecibir(main); window.scrollTo({top: 0}); }
   // Si se agrega dos veces el mismo modelo con las mismas opciones, se suman y se juntan sus colores
   function juntar(){
     var res = [];

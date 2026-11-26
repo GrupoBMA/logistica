@@ -332,3 +332,4 @@ svg.linea{display:block;width:100%;height:auto}
 .vf-nom{min-width:110px;font-size:16px}
 .vf .contador{display:inline-flex}
 @media (prefers-reduced-motion: reduce){ .pild{transition:none} }
+.vf-ayuda{font-size:14px;font-weight:400;color:var(--muted)}
