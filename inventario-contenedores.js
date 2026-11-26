@@ -41,6 +41,7 @@
       elegidos: previo && previo.modelo_id===modeloId ? previo.opciones : []});
   }
   H.tablaOpciones = tablaOpciones;
+  H.opcionesDeModelo = function(m){ return opcionesDeModelo(m).sort(function(a, b){ return (a.car.orden||0) - (b.car.orden||0) }) };
   function totalVehiculos(renglones){ return renglones.reduce(function(s, r){ return s + (r.cantidad||0) }, 0) }
   // Mismo modelo y opciones (los colores se juntan)
   function mismoVehiculo(a, b){

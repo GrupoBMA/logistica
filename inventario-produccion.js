@@ -88,6 +88,11 @@
       html += '<label class="campo"><span>Remisión</span><input id="vRem" autocomplete="off" value="'+esc(V.remision)+'" placeholder="Por ejemplo 153"></label>'+
         '<label class="campo"><span>Fecha de compra</span><input id="vFecha" type="date" value="'+esc(V.fecha)+'"></label>'+
         '<label class="campo"><span>Vendedor</span><input id="vVend" autocomplete="off" value="'+esc(V.vendedor)+'"></label>';
+    } else if(V.paso===2 && V.form){
+      // El vehículo se captura en una sola pantalla, con secciones numeradas (como Registrar de GVF; pedido del usuario, 26-nov-2026)
+      m.innerHTML = html + formVehiculo();
+      var qe = q('#vfQue', m); if(qe && V.form.especial===true && !V.form.especial_que) qe.focus();
+      return;
     } else if(V.paso===2){
       if(V.conProduccion){
         html += '<div class="inv-vacio" style="text-align:left;margin-bottom:14px"><b>Ya hay vehículos de esta venta en producción</b>Los vehículos ya no se pueden cambiar; solo los datos de la venta.</div>';
@@ -131,35 +136,86 @@
     if((x = q('#vCP', m))) V.cp = x.value.replace(/\s/g, '');
   }
 
-  // Modelo → opciones → color → ¿especial? (y qué lleva) → cuántos
-  function escogerVehiculo(previo){
-    var r = {modelo_id: null, opciones: [], color_id: null, especial: false, especial_que: '', cantidad: previo ? previo.cantidad : 1};
-    return H.abrirLista({titulo: 'Modelo', grupos: [{opciones: (E.cat.modelos||[]).filter(function(x){ return x.activo!==false }).map(function(x){ return {valor: x.id, nombre: x.nombre} })}],
-      elegido: previo ? previo.modelo_id : null}).then(function(mo){
-      if(mo==null) return null;
-      r.modelo_id = mo;
-      return H.tablaOpciones(mo, previo).then(function(v){ if(v==null) return false; r.opciones = v; return true; });
-    }).then(function(ok){
-      if(!ok) return null;
-      return H.abrirLista({titulo: 'Color', grupos: [{opciones: (E.cat.colores||[]).filter(function(c){ return c.activo!==false }).map(function(c){
-        return {valor: c.id, nombre: c.nombre, color: H.hexColor(c.nombre)} })}], elegido: previo ? previo.color_id : null});
-    }).then(function(c){
-      if(c==null) return null;
-      r.color_id = c;
-      return H.abrirLista({titulo: '¿Es especial?', ayuda: 'Los especiales pasan por herrería y forrado',
-        grupos: [{opciones: [{valor: 'no', nombre: 'No, es normal'}, {valor: 'si', nombre: 'Sí, es especial', detalle: 'Garrafonero, caja seca…'}]}],
-        elegido: previo ? (previo.especial ? 'si' : 'no') : null});
-    }).then(function(e){
-      if(e==null) return null;
-      r.especial = e==='si';
-      if(!r.especial) return true;
-      return H.pedirTexto({titulo: '¿Qué lleva el especial?', etiqueta: 'Qué lleva', valor: previo ? previo.especial_que : '', boton: 'Siguiente',
-        falta: 'Escribe qué lleva (garrafonero, caja seca…).'}).then(function(t){ if(t==null) return null; r.especial_que = t; return true; });
-    }).then(function(ok){
-      if(!ok) return null;
-      return H.pedirCantidad({titulo: '¿Cuántos de este?', ayuda: nombreVeh(r)+(r.especial ? ' · '+r.especial_que : ''), valor: r.cantidad, boton: previo ? 'Listo' : 'Agregar'});
-    }).then(function(n){ if(n==null) return null; r.cantidad = n; return r; });
+  // ---------------------------------------------------------------- Formulario de un vehículo (una sola pantalla)
+  // 1. Modelo · 2. Características (una fila por característica) · 3. Color · 4. ¿Es especial? · 5. ¿Cuántos?
+  // Las secciones aparecen cuando ya se escogió el modelo. Nada viene escogido de antemano (candado).
+  function nuevoForm(i){
+    var p = i==null ? null : V.vehiculos[i];
+    var f = {i: i, modelo_id: p ? p.modelo_id : null, sel: {}, color_id: p ? p.color_id : null,
+      especial: p ? !!p.especial : null, especial_que: p ? (p.especial_que||'') : '', cantidad: p ? p.cantidad : 1, error: ''};
+    if(p) H.opcionesDeModelo(p.modelo_id).forEach(function(x){
+      var o = x.opciones.filter(function(o){ return (p.opciones||[]).indexOf(o.id) > -1 })[0]; if(o) f.sel[x.car.id] = o.id;
+    });
+    return f;
   }
+  function pild(attrs, on, contenido){
+    return '<button type="button" class="pild'+(on ? ' sel' : '')+'" aria-pressed="'+on+'" data-nv="vf" '+attrs+'>'+contenido+'</button>';
+  }
+  function formVehiculo(){
+    var f = V.form, n = 0, html = '<div class="vf">';
+    html += '<h2 class="vf-tit">'+(f.i==null ? 'Agregar vehículo' : 'Cambiar vehículo')+'</h2>';
+    if(f.error) html += '<p class="inv-error">'+esc(f.error)+'</p>';
+    html += '<section class="vf-sec"><h3>'+(++n)+'. Modelo</h3><div class="pilds">'+
+      (E.cat.modelos||[]).filter(function(x){ return x.activo!==false }).map(function(x){
+        return pild('data-k="modelo" data-val="'+x.id+'"', f.modelo_id===x.id, esc(x.nombre)) }).join('')+'</div></section>';
+    if(f.modelo_id!=null){
+      var cars = H.opcionesDeModelo(f.modelo_id);
+      if(cars.length){
+        html += '<section class="vf-sec"><h3>'+(++n)+'. Características</h3><div class="vf-tabla">'+cars.map(function(x){
+          return '<div class="vf-fila"><span class="vf-nom">'+esc(x.car.nombre)+'</span><div class="pilds">'+x.opciones.map(function(o){
+            return pild('data-k="op" data-car="'+x.car.id+'" data-val="'+o.id+'"', f.sel[x.car.id]===o.id, esc(o.nombre)) }).join('')+'</div></div>';
+        }).join('')+'</div></section>';
+      }
+      html += '<section class="vf-sec"><h3>'+(++n)+'. Color</h3><div class="pilds">'+
+        (E.cat.colores||[]).filter(function(c){ return c.activo!==false }).map(function(c){
+          var hx = H.hexColor(c.nombre);
+          return pild('data-k="color" data-val="'+c.id+'"', f.color_id===c.id, (hx ? '<span class="pt-col" style="background:'+hx+'"></span>' : '')+esc(c.nombre)) }).join('')+'</div></section>';
+      html += '<section class="vf-sec"><h3>'+(++n)+'. ¿Es especial?</h3><div class="pilds">'+
+        pild('data-k="esp" data-val="no"', f.especial===false, 'No, es normal')+pild('data-k="esp" data-val="si"', f.especial===true, 'Sí, es especial')+'</div>'+
+        (f.especial ? '<label class="campo" style="margin-top:12px"><span>¿Qué lleva?</span><input id="vfQue" autocomplete="off" value="'+esc(f.especial_que)+'" placeholder="Garrafonero, caja seca…"></label>' : '')+
+        '</section>';
+      html += '<section class="vf-sec"><h3>'+(++n)+'. ¿Cuántos?</h3>'+H.contador('vfCant', f.cantidad, 1)+'</section>';
+    }
+    html += '<div class="acciones">'+(V.vehiculos.length || f.i!=null ? '<button type="button" class="btn" data-nv="vf" data-k="cancelar">Cancelar</button>'
+                                                                      : '<button type="button" class="btn" data-nv="atras">Atrás</button>')+
+      '<button type="button" class="btn prin der" data-nv="vf" data-k="listo">'+(f.i==null ? 'Agregar' : 'Listo')+'</button></div></div>';
+    return html;
+  }
+  function leerForm(m){
+    var f = V.form; if(!f) return;
+    var x = q('#vfQue', m); if(x) f.especial_que = x.value.trim();
+    var c = q('[data-contador="vfCant"]', m); if(c) f.cantidad = H.valorContador(c);
+  }
+  function clicForm(b, m){
+    var f = V.form, k = b.dataset.k, val = b.dataset.val;
+    f.error = '';
+    if(k==='modelo'){ if(f.modelo_id!==+val){ f.modelo_id = +val; f.sel = {}; } }
+    else if(k==='op') f.sel[+b.dataset.car] = +val;
+    else if(k==='color') f.color_id = +val;
+    else if(k==='esp') f.especial = val==='si';
+    else if(k==='cancelar'){ V.form = null; }
+    else if(k==='listo'){
+      var cars = f.modelo_id==null ? [] : H.opcionesDeModelo(f.modelo_id), faltan = [];
+      if(f.modelo_id==null) faltan.push('el modelo');
+      cars.forEach(function(x){ if(f.sel[x.car.id]==null) faltan.push(x.car.nombre) });
+      if(f.modelo_id!=null && f.color_id==null) faltan.push('el color');
+      if(f.modelo_id!=null && f.especial==null) faltan.push('si es especial');
+      if(faltan.length) f.error = 'Falta escoger: '+faltan.join(', ')+'.';
+      else if(f.especial && !f.especial_que) f.error = 'Escribe qué lleva el especial (garrafonero, caja seca…).';
+      else if(!(f.cantidad >= 1)) f.error = 'La cantidad debe ser 1 o más.';
+      else {
+        var r = {modelo_id: f.modelo_id, opciones: cars.map(function(x){ return f.sel[x.car.id] }), color_id: f.color_id,
+          especial: f.especial, especial_que: f.especial ? f.especial_que : '', cantidad: f.cantidad};
+        if(f.i==null) V.vehiculos.push(r); else V.vehiculos[f.i] = r;
+        juntar(); V.form = null;
+      }
+    }
+    var arriba = window.scrollY;
+    dibujarVenta(m);
+    if(V.form && !f.error) window.scrollTo({top: arriba});
+    else window.scrollTo({top: 0});
+  }
+
   // Mismo modelo, opciones, color y especial: se suman
   function juntar(){
     var res = [];
@@ -197,14 +253,14 @@
 
   function alClicVenta(e, m){
     var b = e.target.closest('[data-nv]'); if(!b) return;
-    var a = b.dataset.nv; V.error = ''; leerVenta(m);
+    var a = b.dataset.nv; V.error = ''; leerVenta(m); leerForm(m);
+    if(a==='vf'){ clicForm(b, m); return; }
     if(a==='bodega'){
       H.abrirLista({titulo: 'Bodega', grupos: [{opciones: H.BODEGAS}], elegido: V.bodega}).then(function(v){ if(v) V.bodega = v; dibujarVenta(m); });
     } else if(a==='agregar'){
-      escogerVehiculo(null).then(function(r){ if(r){ V.vehiculos.push(r); juntar(); } dibujarVenta(m); });
+      V.form = nuevoForm(null); dibujarVenta(m); window.scrollTo({top: 0});
     } else if(a==='cambiar'){
-      var i = +b.dataset.i;
-      escogerVehiculo(V.vehiculos[i]).then(function(r){ if(r){ V.vehiculos[i] = r; juntar(); } dibujarVenta(m); });
+      V.form = nuevoForm(+b.dataset.i); dibujarVenta(m); window.scrollTo({top: 0});
     } else if(a==='quitar'){ V.vehiculos.splice(+b.dataset.i, 1); dibujarVenta(m); }
     else if(a==='tipo'){
       H.abrirLista({titulo: 'Tipo de destino', grupos: [{opciones: TIPOS_DESTINO.map(function(t){ return {valor: t, nombre: t} })}], elegido: V.tipo_destino})
@@ -226,8 +282,9 @@
         else V.paso = 4;
       }
       dibujarVenta(m);
-      if(V.paso===2 && !V.vehiculos.length && !V.error) setTimeout(function(){ var x = q('[data-nv="agregar"]', m); if(x) x.click(); }, 50);
-    } else if(a==='atras'){ V.paso = Math.max(1, V.paso-1); dibujarVenta(m); }
+      // Al entrar a Vehículos sin ninguno, se abre de una vez el formulario
+      if(V.paso===2 && !V.vehiculos.length && !V.error && !V.conProduccion){ V.form = nuevoForm(null); dibujarVenta(m); }
+    } else if(a==='atras'){ V.form = null; V.paso = Math.max(1, V.paso-1); dibujarVenta(m); }
     else if(a==='cancelar'){ var id = V.id; V = null; abrirFichaVenta(id); }
     else if(a==='guardar') guardarVenta(m);
   }

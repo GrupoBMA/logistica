@@ -315,3 +315,20 @@ svg.linea{display:block;width:100%;height:auto}
   background:var(--raised);scrollbar-gutter:stable}
 .lista-desliza:focus-visible{outline:2px solid var(--work);outline-offset:2px}
 .tarjeta .etqs{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+
+/* Nueva venta: el vehículo en una sola pantalla, con secciones numeradas y botones para escoger (26-nov-2026) */
+.vf{max-width:760px}
+.vf-tit{font-size:20px;margin:0 0 6px}
+.vf-sec{padding:16px 0;border-bottom:1px solid var(--border)}
+.vf-sec h3{margin:0 0 10px;font-size:16px;font-weight:600}
+.pilds{display:flex;flex-wrap:wrap;gap:8px}
+.pild{min-height:48px;padding:0 18px;border-radius:999px;border:1px solid transparent;background:var(--raised);color:var(--text);
+  font-size:16px;font-weight:500;display:inline-flex;align-items:center;gap:2px;cursor:pointer;transition:transform .12s ease}
+.pild:active{transform:scale(.97)}
+.pild.sel{background:var(--work-bg);border-color:var(--work);color:var(--work);font-weight:600}
+@media (hover:hover){ .pild:not(.sel):hover{background:var(--active)} }
+.vf-tabla{display:flex;flex-direction:column;gap:10px}
+.vf-fila{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.vf-nom{min-width:110px;font-size:16px}
+.vf .contador{display:inline-flex}
+@media (prefers-reduced-motion: reduce){ .pild{transition:none} }
