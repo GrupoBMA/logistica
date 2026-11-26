@@ -171,7 +171,7 @@ Las sucursales ven el estado de una remisión **sin usuario ni sesión** (decisi
 
 ## Regla estricta: nada con datos reales en el repo
 
-El repo es **público** (GitHub Pages en el plan gratis). Ventas, clientes, remisiones, costos y teléfonos de fleteros **nunca** se suben: `datos/`, los Excel y los CSV están en `.gitignore`. Revisar `git status` antes de cada commit.
+El repo es **público** (GitHub Pages en el plan gratis). Ventas, clientes, remisiones, costos, teléfonos de fleteros y **nombres de vendedores o empleados** **nunca** se suben (el 26-nov-2026 se subieron por error nombres de pila de vendedores en un commit y se quitaron en el siguiente; siguen en el historial de git): `datos/`, los Excel y los CSV están en `.gitignore`. Revisar `git status` antes de cada commit.
 
 ## Repositorio y despliegue
 
