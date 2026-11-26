@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Bodega · propuesta de pantalla principal</title>
+<link rel="icon" href="../icono.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Propuesta (26-nov-2026), aparte de la app y SOLO con datos de prueba (nada se guarda).
+     La bodega vista desde arriba, con el estilo de la línea de producción (SVG, sin librerías):
+     afuera el camión en la puerta (recibir contenedor), adentro los contenedores por contar, el inventario,
+     la línea de producción y el mostrador (ventas). Al picar un área se abre su menú ENCIMA del mapa, sin salir. -->
+<style>
+  :root{
+    --fondo:#e9e8e3; --patio:#d9d8d2; --piso:#fbfaf7; --muro:#3b3d42; --texto:#1d1d1f; --tenue:#77777c;
+    --hoja:#ffffff; --pista:#ecebe7; --campo:#f2f1ed; --borde:rgba(0,0,0,.07);
+    --rojo:#e5533d; --rojo-bg:#fde9e5; --azul:#2f63c9; --azul-bg:#e4ecfb; --ambar:#b7791f; --ambar-bg:#fbf0dc; --verde:#2f8f5b; --verde-bg:#e2f3e8;
+    --banda:#2c5f6c;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --fondo:#0d0e0c; --patio:#1a1b18; --piso:#1f201d; --muro:#9a9ca2; --texto:#f2f2ee; --tenue:#9b9b96;
+      --hoja:#1d1e1b; --pista:#2a2b27; --campo:#2a2b27; --borde:rgba(255,255,255,.08);
+      --rojo:#ff7a63; --rojo-bg:#3a1f1a; --azul:#7ea3ff; --azul-bg:#1d2a45; --ambar:#f0b553; --ambar-bg:#3a2d16; --verde:#5fd08f; --verde-bg:#16301f;
+      --banda:#3d8293;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--fondo);color:var(--texto);font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  button{font:inherit;color:inherit}
+  .cab{position:fixed;left:22px;top:16px;z-index:3;display:flex;align-items:center;gap:12px;pointer-events:none}
+  .cab b{font-size:20px;letter-spacing:-.01em}
+  .cab span{padding:3px 10px;border-radius:10px;background:var(--ambar-bg);color:var(--ambar);font-size:13px;font-weight:500}
+  svg#mapa{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:manipulation}
+
+  /* Áreas que se pueden picar */
+  .zona{cursor:pointer;outline:none}
+  .zona .fondo{transition:fill-opacity .18s}
+  @media (hover:hover){ .zona:hover .fondo{fill-opacity:.24} .zona:hover .orilla{stroke-opacity:.9} }
+  .zona:focus-visible .orilla{stroke-width:.6;stroke-opacity:1}
+  .zona.sel .fondo{fill-opacity:.28}
+  .zona.sel .orilla{stroke-opacity:1;stroke-width:.5}
+  .nombre{font-size:3px;font-weight:600;fill:var(--texto)}
+  .cuenta{font-size:2.2px;font-weight:700;fill:#fff;text-anchor:middle;dominant-baseline:central}
+  .num{font-size:1.9px;font-weight:700;fill:#fff;text-anchor:middle;dominant-baseline:central;letter-spacing:.02em}
+  .chico{font-size:1.8px;font-weight:500;fill:var(--tenue)}
+  .flujo{stroke:#fff;stroke-opacity:.55;stroke-width:.3;stroke-dasharray:1.2 1.4;fill:none;animation:avanza 1.6s linear infinite}
+  @keyframes avanza{to{stroke-dashoffset:-2.6}}
+  .respira{animation:respira 2.4s ease-in-out infinite}
+  @keyframes respira{50%{opacity:.45}}
+  @media (prefers-reduced-motion:reduce){ .flujo,.respira{animation:none} }
+
+  /* Menú encima del mapa (no saca de la pantalla) */
+  .velo{position:fixed;inset:0;z-index:5;background:rgba(10,10,10,.28);opacity:0;pointer-events:none;transition:opacity .2s}
+  .velo.on{opacity:1;pointer-events:auto}
+  .hoja{position:fixed;z-index:6;right:20px;top:20px;bottom:20px;width:min(460px,calc(100vw - 40px));display:flex;flex-direction:column;
+    border-radius:22px;background:var(--hoja);box-shadow:0 24px 60px rgba(0,0,0,.22),0 0 0 1px var(--borde);
+    opacity:0;transform:translateX(16px);pointer-events:none;transition:opacity .2s,transform .24s cubic-bezier(.2,.8,.2,1)}
+  .hoja.on{opacity:1;transform:none;pointer-events:auto}
+  .h-cab{display:flex;align-items:center;gap:14px;padding:20px 20px 12px}
+  .h-ico{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;flex:none}
+  .h-ico svg{width:24px;height:24px}
+  .h-cab h2{margin:0;font-size:22px;letter-spacing:-.01em}
+  .h-x{margin-left:auto;width:36px;height:36px;border:0;border-radius:50%;background:var(--pista);font-size:16px;cursor:pointer}
+  .pestanas{display:flex;gap:4px;margin:4px 20px 12px;padding:4px;border-radius:14px;background:var(--pista)}
+  .pestanas button{flex:1;min-height:44px;border:0;border-radius:11px;background:transparent;font-size:15px;font-weight:600;color:var(--tenue);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:6px}
+  .pestanas button.sel{background:var(--hoja);color:var(--texto);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .pestanas button i{font-style:normal;font-size:13px;color:var(--tenue);font-variant-numeric:tabular-nums}
+  .h-cuerpo{overflow:auto;padding:0 20px 20px;flex:1}
+  .fila{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:16px;background:var(--campo);margin-bottom:8px}
+  .fila.clic{cursor:pointer;width:100%;border:0;text-align:left}
+  .fila b{font-size:16px;font-weight:600;display:block}
+  .fila small{display:block;color:var(--tenue);font-size:14px;margin-top:1px}
+  .fila .n{margin-left:auto;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+  .fila .bola{width:12px;height:12px;border-radius:50%;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
+  .etq{display:inline-block;padding:2px 9px;border-radius:8px;font-size:12px;font-weight:600}
+  .etq.rojo{background:var(--rojo-bg);color:var(--rojo)} .etq.ambar{background:var(--ambar-bg);color:var(--ambar)}
+  .etq.verde{background:var(--verde-bg);color:var(--verde)} .etq.azul{background:var(--azul-bg);color:var(--azul)}
+  .grupo{margin:16px 0 8px;font-size:13px;font-weight:600;color:var(--tenue)}
+  .campo{display:block;margin-bottom:14px}
+  .campo span{display:block;font-size:15px;font-weight:500;margin-bottom:6px}
+  .campo input{width:100%;min-height:50px;padding:0 16px;border:0;border-radius:14px;background:var(--campo);font-size:16px;color:var(--texto)}
+  .btn{min-height:52px;padding:0 22px;border-radius:14px;border:0;background:var(--pista);font-size:16px;font-weight:600;cursor:pointer;transition:transform .12s}
+  .btn:active{transform:scale(.97)}
+  .btn.prin{background:var(--texto);color:var(--hoja)}
+  .btn.ancho{width:100%}
+  .acciones{display:flex;gap:10px;margin-top:8px}
+  .err{color:var(--rojo);font-size:14px;margin:0 0 10px}
+  .vacio{padding:28px 10px;text-align:center;color:var(--tenue)}
+  .letrero{position:fixed;left:50%;bottom:24px;z-index:7;transform:translate(-50%,20px);opacity:0;padding:12px 18px;border-radius:14px;
+    background:var(--texto);color:var(--hoja);font-size:15px;font-weight:500;transition:opacity .2s,transform .2s;pointer-events:none}
+  .letrero.on{opacity:1;transform:translate(-50%,0)}
+  @media (max-width:640px){
+    .hoja{left:0;right:0;top:auto;bottom:0;width:auto;max-height:86vh;border-radius:22px 22px 0 0;transform:translateY(100%)}
+    .hoja.on{transform:none}
+    .campo input{font-size:16px}
+  }
+  @media (prefers-reduced-motion:reduce){ .hoja,.velo,.letrero{transition:none} }
+</style>
+</head>
+<body>
+<svg id="mapa" viewBox="0 0 200 112" preserveAspectRatio="xMidYMid meet" aria-label="Mapa de la bodega"></svg>
+<div class="cab"><b>Bodega 1</b><span>Propuesta · datos de prueba</span></div>
+<div class="velo" id="velo"></div>
+<div class="hoja" id="hoja" role="dialog" aria-modal="true" aria-labelledby="hTitulo"></div>
+<div class="letrero" id="letrero" role="status" aria-live="polite"></div>
+
+<script>
+// ================================================================ Datos de prueba
+const COLORES = {Blanco:'#f4f4f1', Azul:'#3f6fd8', Rojo:'#d9483b', Tinto:'#7d2333', Negro:'#2b2b2e', Verde:'#3e9b6a', Plata:'#b9bcc2'};
+const ZONAS = {
+  recibir:     {nombre:'Recibir contenedor', color:'#e0a92c'},
+  contenedores:{nombre:'Contenedores por contar', color:'#4b63d6'},
+  inventario:  {nombre:'Inventario', color:'#26a889'},
+  linea:       {nombre:'Línea de producción', color:'#f08a4b'},
+  mostrador:   {nombre:'Ventas', color:'#e7698a'}
+};
+let PORCONTAR = [
+  {numero:'MSKU 401233', llegada:'24 nov', trae:'12 · MC 150 · Rodado doble', color:'#4b63d6'},
+  {numero:'TGHU 883012', llegada:'25 nov', trae:'8 · MC 200 · Hidráulico', color:'#e0793c'}
+];
+let ESPERA = [
+  {modelo:'MC 150 · Rodado doble', color:'Blanco', n:14},
+  {modelo:'MC 150 · Rodado doble', color:'Azul', n:6},
+  {modelo:'MC 200 · Hidráulico', color:'Tinto', n:5},
+  {modelo:'MC 300 · Cabina', color:'Rojo', n:3}
+];
+const VEHICULOS = [
+  {id:'venta', nombre:'Listos para venta', n:4}, {id:'showroom', nombre:'Showroom', n:2}, {id:'prod', nombre:'En producción', n:9},
+  {id:'faltan', nombre:'Les faltan piezas', n:1, rojo:true}, {id:'nopaso', nombre:'No pasaron la revisión final', n:0, rojo:true},
+  {id:'ventasesp', nombre:'Ventas esperando piezas', n:2, ambar:true}
+];
+let PIEZAS = [
+  {nombre:'Llanta 4.00-12', n:96}, {nombre:'Espejo retrovisor', n:44, danadas:2}, {nombre:'Faro delantero', n:21},
+  {nombre:'Batería 12V', n:18}, {nombre:'Claxon', n:22, faltan:3}, {nombre:'Asiento corrido', n:20, danadas:1}
+];
+let VENTAS = [
+  {rem:'153', vendedor:'Ana', destino:'Zapopan', veh:'MC 150 · Blanco', estado:'Por armar', etq:'azul'},
+  {rem:'155', vendedor:'Luis', destino:'Tepic', veh:'MC 200 · Tinto', estado:'En producción', etq:'ambar'},
+  {rem:'149', vendedor:'Ana', destino:'Tlaquepaque', veh:'MC 150 · Rojo', estado:'Lista para enviar', etq:'verde'}
+];
+const LINEA = [
+  {nombre:'Armado', n:3}, {nombre:'Revisión 1', n:2, falta:1}, {nombre:'Herrería', n:1}, {nombre:'Forrado', n:1},
+  {nombre:'Mecánica', n:2}, {nombre:'Detallado y pintura', n:1}, {nombre:'Revisión final', n:1}, {nombre:'Listo', n:2}
+];
+
+// ================================================================ Dibujo
+const NS = 'http://www.w3.org/2000/svg', svg = document.getElementById('mapa');
+function el(tag, attrs, padre){ const n = document.createElementNS(NS, tag); for(const k in attrs) n.setAttribute(k, attrs[k]); (padre||svg).appendChild(n); return n; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
+const menosMov = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+el('defs', {}).innerHTML = `
+  <filter id="sombra" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy=".4" stdDeviation=".5" flood-color="#000" flood-opacity=".16"/></filter>
+  <filter id="sombraC" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="0" dy=".25" stdDeviation=".25" flood-color="#000" flood-opacity=".28"/></filter>
+  <pattern id="rayas" width="2" height="2" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="1" height="2" fill="#e0a92c" fill-opacity=".35"/></pattern>`;
+
+// Patio de afuera, con su camino
+el('rect', {x:0, y:0, width:200, height:112, fill:'var(--patio)'});
+el('rect', {x:0, y:14, width:33, height:30, fill:'#000', 'fill-opacity':.06});
+for(let x = 2; x < 32; x += 6) el('rect', {x, y:28.7, width:3, height:.5, fill:'#fff', 'fill-opacity':.5});
+
+// Bodega: piso y muros
+const B = {x:36, y:4, w:160, h:104};
+el('rect', {x:B.x, y:B.y, width:B.w, height:B.h, rx:2, fill:'var(--piso)', filter:'url(#sombra)'});
+// muros con puerta del andén (izquierda, y 18–40) y puerta de clientes (abajo, x 158–176)
+const muros = `M ${B.x} 18 V ${B.y} H ${B.x+B.w} V ${B.y+B.h} H 176 M 158 ${B.y+B.h} H ${B.x} V 40`;
+el('path', {d:muros, fill:'none', stroke:'var(--muro)', 'stroke-width':1.1, 'stroke-linecap':'round', 'stroke-linejoin':'round'});
+// cortina del andén (abierta: rayitas) y puerta de clientes
+for(let y = 18.6; y < 40; y += 1.4) el('line', {x1:B.x-.5, x2:B.x+.5, y1:y, y2:y, stroke:'var(--muro)', 'stroke-width':.25, 'stroke-opacity':.6});
+el('path', {d:`M 158 ${B.y+B.h} A 9 9 0 0 1 167 ${B.y+B.h-9}`, fill:'none', stroke:'var(--muro)', 'stroke-width':.25, 'stroke-dasharray':'.6 .6'});
+el('line', {x1:167, y1:B.y+B.h, x2:167, y2:B.y+B.h-9, stroke:'var(--muro)', 'stroke-width':.5});
+el('path', {d:`M 176 ${B.y+B.h} A 9 9 0 0 0 167 ${B.y+B.h-9}`, fill:'none', stroke:'var(--muro)', 'stroke-width':.25, 'stroke-dasharray':'.6 .6'});
+
+// ---------------------------------------------------------------- Zonas (piso de color, nombre y conteo)
+const CAJAS = {
+  recibir:     {x:38, y:7, w:24, h:44},
+  contenedores:{x:64, y:7, w:50, h:44},
+  inventario:  {x:116, y:7, w:78, h:44},
+  linea:       {x:38, y:55, w:96, h:50},
+  mostrador:   {x:136, y:55, w:58, h:50}
+};
+const capaZonas = el('g', {}), capaCosas = el('g', {}), capaMov = el('g', {}), capaLetreros = el('g', {});
+Object.keys(CAJAS).forEach(id => {
+  const c = CAJAS[id], z = ZONAS[id];
+  const g = el('g', {class:'zona', 'data-zona':id, tabindex:0, role:'button', 'aria-label':z.nombre}, capaZonas);
+  el('rect', {class:'fondo', x:c.x, y:c.y, width:c.w, height:c.h, rx:2.4, fill: id==='recibir' ? 'url(#rayas)' : z.color, 'fill-opacity': id==='recibir' ? 1 : .12}, g);
+  if(id==='recibir') el('rect', {class:'fondo', x:c.x, y:c.y, width:c.w, height:c.h, rx:2.4, fill:z.color, 'fill-opacity':.06}, g);
+  el('rect', {class:'orilla', x:c.x, y:c.y, width:c.w, height:c.h, rx:2.4, fill:'none', stroke:z.color, 'stroke-opacity':.45, 'stroke-width':.3}, g);
+  z.g = g;
+});
+
+// ---- Camión (visto desde arriba), con la caja pegada a la puerta del andén
+const camion = el('g', {class:'zona', 'data-zona':'recibir', filter:'url(#sombra)'}, capaMov);
+function dibujarCamion(conCaja){
+  camion.innerHTML = '';
+  el('rect', {x:2.5, y:22.8, width:7, height:12.4, rx:1.6, fill:'#e8e6df', stroke:'rgba(0,0,0,.2)', 'stroke-width':.15}, camion);   // cabina
+  el('rect', {x:3.2, y:23.8, width:1.8, height:10.4, rx:.6, fill:'#9cc3e6'}, camion);                                               // parabrisas
+  el('rect', {x:9.8, y:27.6, width:1.2, height:2.8, fill:'#55575c'}, camion);                                                         // enganche
+  if(conCaja){
+    el('rect', {x:11, y:21.2, width:24, height:15.6, rx:.6, fill:'#c4512f', stroke:'rgba(0,0,0,.25)', 'stroke-width':.15}, camion);   // contenedor
+    for(let x = 12.5; x < 34.5; x += 1.6) el('line', {x1:x, x2:x, y1:21.6, y2:36.4, stroke:'#000', 'stroke-opacity':.13, 'stroke-width':.25}, camion);
+  } else {
+    el('rect', {x:11, y:22.5, width:24, height:13, rx:.6, fill:'#6d7077', 'fill-opacity':.9}, camion);                                 // plataforma vacía
+  }
+}
+dibujarCamion(true);
+
+// ---- Andén: patín (montacargas) que va de la puerta a los contenedores
+const patin = el('g', {filter:'url(#sombraC)'}, capaMov);
+el('rect', {x:-2, y:-1.4, width:3.4, height:2.8, rx:.5, fill:'#f2b53a'}, patin);
+el('rect', {x:1.4, y:-1.1, width:2.4, height:.5, fill:'#55575c'}, patin);
+el('rect', {x:1.4, y:.6, width:2.4, height:.5, fill:'#55575c'}, patin);
+el('circle', {cx:-.4, cy:0, r:.8, fill:'#3a3a3d'}, patin);
+patin.setAttribute('transform', 'translate(50 44)');
+
+// ---- Contenedores por contar (rejilla de 2 × 3)
+const capaCont = el('g', {}, capaCosas);
+function slot(i){ return {x: 67 + (i % 2) * 23.5, y: 15 + Math.floor(i / 2) * 11} }
+function contenedor(c, i, padre){
+  const p = slot(i), g = el('g', {class:'zona', 'data-zona':'contenedores', filter:'url(#sombraC)'}, padre || capaCont);
+  el('rect', {x:p.x, y:p.y, width:21, height:8.6, rx:.5, fill:c.color, stroke:'rgba(0,0,0,.22)', 'stroke-width':.15}, g);
+  for(let x = p.x + 1.2; x < p.x + 20.5; x += 1.3) el('line', {x1:x, x2:x, y1:p.y+.4, y2:p.y+8.2, stroke:'#000', 'stroke-opacity':.12, 'stroke-width':.22}, g);
+  el('rect', {x:p.x+4.5, y:p.y+2.9, width:12, height:2.8, rx:1.4, fill:'rgba(0,0,0,.35)'}, g);
+  el('text', {class:'num', x:p.x+10.5, y:p.y+4.35}, g).textContent = c.numero;
+  return g;
+}
+function dibujarContenedores(){
+  capaCont.innerHTML = '';
+  PORCONTAR.slice(0, 6).forEach((c, i) => contenedor(c, i));
+  if(!PORCONTAR.length){ const t = el('text', {class:'chico', x:89, y:31, 'text-anchor':'middle'}, capaCont); t.textContent = 'Nada por contar'; }
+}
+
+// ---- Inventario: anaqueles con cajas (piezas) y motocarros en espera de armado
+const capaInv = el('g', {}, capaCosas);
+function motocarro(x, y, color, padre, giro){
+  const g = el('g', {filter:'url(#sombraC)', transform:`translate(${x} ${y}) rotate(${giro||0})`}, padre);
+  el('rect', {x:-2.5, y:-1.2, width:5, height:2.4, rx:.5, fill:'#3a3a3d'}, g);
+  el('rect', {x:-2.4, y:-1.15, width:2.9, height:2.3, rx:.35, fill:color, stroke:'rgba(0,0,0,.18)', 'stroke-width':.12}, g);
+  el('rect', {x:.7, y:-1, width:1.75, height:2, rx:.55, fill:color, stroke:'rgba(0,0,0,.18)', 'stroke-width':.12}, g);
+  el('rect', {x:1.95, y:-.75, width:.32, height:1.5, rx:.15, fill:'#cfe4ff'}, g);
+  return g;
+}
+function dibujarInventario(){
+  capaInv.innerHTML = '';
+  const g = el('g', {class:'zona', 'data-zona':'inventario'}, capaInv);
+  // dos anaqueles; cada caja es una pieza del inventario
+  const tonos = ['#c9a36b', '#b98d55', '#d6b47e'];
+  [14.5, 23.5].forEach((y, r) => {
+    el('rect', {x:119, y, width:72, height:5.6, rx:.6, fill:'#8a8d93', 'fill-opacity':.35, stroke:'#8a8d93', 'stroke-opacity':.6, 'stroke-width':.2}, g);
+    PIEZAS.forEach((p, i) => {
+      const n = Math.min(3, Math.ceil(p.n / 30));
+      for(let k = 0; k < n; k++) el('rect', {x:120 + i*11.6 + k*3.5, y:y+.8, width:3.1, height:4, rx:.3, fill:tonos[(i+k) % 3], filter:'url(#sombraC)'}, g);
+      if(p.danadas || p.faltan) el('circle', {class:'respira', cx:120 + i*11.6 + 10.4, cy:y+1, r:.7, fill:'var(--rojo)'}, g);
+    });
+  });
+  // motocarros en espera de armado, del color de cada uno
+  let i = 0;
+  const total = ESPERA.reduce((s, x) => s + x.n, 0);
+  ESPERA.forEach(e => { for(let k = 0; k < Math.min(e.n, 4) && i < 16; k++, i++) motocarro(122 + (i % 8) * 8.6, 36 + Math.floor(i / 8) * 6, COLORES[e.color], g); });
+  if(total > i){ const t = el('text', {class:'chico', x:191, y:49, 'text-anchor':'end'}, g); t.textContent = '+' + (total - i) + ' más'; }
+}
+
+// ---- Línea de producción en U (chiquita, como la de Producción)
+(function(){
+  const g = el('g', {class:'zona', 'data-zona':'linea'}, capaCosas);
+  const U = 'M 44 68 H 124 V 96 H 48';
+  el('path', {d:U, fill:'none', stroke:'var(--banda)', 'stroke-width':3.4, 'stroke-linejoin':'round', filter:'url(#sombra)'}, g);
+  el('path', {d:'M 48.5 93.2 L 43.5 96 L 48.5 98.8 Z', fill:'var(--banda)'}, g);
+  el('path', {class:'flujo', d:U}, g);
+  const est = [[56,68],[76,68],[96,68],[116,68],[116,96],[96,96],[76,96],[56,96]];
+  const col = ['#f08a4b','#26a889','#6c7a91','#9a6ee0','#e0a92c','#e7698a','#3f9f5d','#7d848e'];
+  est.forEach((p, i) => {
+    el('rect', {x:p[0]-4.5, y:p[1]-2.6, width:9, height:5.2, rx:.8, fill:'#fff', stroke:col[i], 'stroke-width':.35}, g);
+    for(let k = 1; k < 7; k++) el('line', {x1:p[0]-4.5+k*9/7, x2:p[0]-4.5+k*9/7, y1:p[1]-2, y2:p[1]+2, stroke:col[i], 'stroke-width':.18, 'stroke-opacity':.8}, g);
+    const t = el('text', {class:'chico', x:p[0], y: p[1] < 80 ? p[1]+5.4 : p[1]-4, 'text-anchor':'middle'}, g);
+    t.textContent = LINEA[i].nombre.replace(' y pintura', '');
+  });
+  // motocarros que recorren la banda
+  if(!menosMov){
+    [['Blanco',0],['Azul',-4],['Tinto',-8],['Rojo',-12]].forEach(([c, d]) => {
+      const m = motocarro(0, 0, COLORES[c], g);
+      const a = el('animateMotion', {dur:'16s', begin: d + 's', repeatCount:'indefinite', rotate:'auto', path:U}, m);
+    });
+  }
+})();
+
+// ---- Mostrador (ventas): barra en L, caja, vendedor, cliente y dos motocarros de exhibición
+(function(){
+  const g = el('g', {class:'zona', 'data-zona':'mostrador'}, capaCosas);
+  el('path', {d:'M 150 72 H 186 V 92', fill:'none', stroke:'#b07a55', 'stroke-width':4, 'stroke-linejoin':'round', filter:'url(#sombra)'}, g);
+  el('path', {d:'M 150 72 H 186 V 92', fill:'none', stroke:'#fff', 'stroke-opacity':.25, 'stroke-width':.3}, g);
+  el('rect', {x:172, y:70.6, width:5, height:2.8, rx:.4, fill:'#3a3a3d'}, g);         // caja registradora
+  el('rect', {x:173, y:71.1, width:3, height:1.4, rx:.2, fill:'#7fd3a8'}, g);
+  el('rect', {x:158, y:70.6, width:6.5, height:2.8, rx:.3, fill:'#f4f4f1', stroke:'rgba(0,0,0,.15)', 'stroke-width':.12}, g); // remisión
+  for(let k = 0; k < 3; k++) el('line', {x1:159, x2:163.5, y1:71.3+k*.7, y2:71.3+k*.7, stroke:'#999', 'stroke-width':.15}, g);
+  el('circle', {cx:176, cy:66.5, r:1.8, fill:'#4b63d6', filter:'url(#sombraC)'}, g);   // vendedor
+  el('circle', {cx:176, cy:66.5, r:.9, fill:'#f0c8a0'}, g);
+  el('circle', {cx:167, cy:80, r:1.8, fill:'#e7698a', filter:'url(#sombraC)'}, g);    // cliente
+  el('circle', {cx:167, cy:80, r:.9, fill:'#d8a77f'}, g);
+  motocarro(144, 82, COLORES.Rojo, g, -90); motocarro(144, 94, COLORES.Azul, g, -90); // exhibición
+})();
+
+// ---------------------------------------------------------------- Letreros con conteo (como los globitos del menú)
+function contar(id){
+  if(id==='recibir') return {n: 0};
+  if(id==='contenedores') return {n: PORCONTAR.length};
+  if(id==='inventario') return {n: ESPERA.reduce((s, x) => s + x.n, 0), alerta: PIEZAS.filter(p => p.danadas || p.faltan).length};
+  if(id==='linea') return {n: LINEA.reduce((s, x) => s + x.n, 0), alerta: LINEA.reduce((s, x) => s + (x.falta||0), 0)};
+  if(id==='mostrador') return {n: VENTAS.length};
+}
+function dibujarLetreros(){
+  capaLetreros.innerHTML = '';
+  Object.keys(CAJAS).forEach(id => {
+    const c = CAJAS[id], g = el('g', {class:'zona', 'data-zona':id}, capaLetreros);
+    const x0 = c.x + 2, y0 = c.y + 5;
+    const t = el('text', {class:'nombre', x:x0, y:y0}, g); t.textContent = id==='recibir' ? 'Recibir' : ZONAS[id].nombre;
+    const k = contar(id);
+    if(id==='recibir'){ const s = el('text', {class:'chico', x:x0, y:y0+2.8}, g); s.textContent = 'contenedor'; return; }
+    let cx = x0 + t.getComputedTextLength() + 2.8;
+    const ancho = String(k.n).length > 1 ? 4.6 : 3.6;
+    el('rect', {x:cx-ancho/2, y:y0-2.8, width:ancho, height:3.4, rx:1.7, fill: k.n ? 'var(--texto)' : '#b9b8b3'}, g);
+    el('text', {class:'cuenta', x:cx, y:y0-1.1, fill:'var(--piso)', style:'fill:var(--piso)'}, g).textContent = k.n;
+    if(k.alerta){ el('circle', {class:'respira', cx:cx+ancho/2+1.6, cy:y0-1.1, r:1, fill:'var(--rojo)'}, g); }
+  });
+}
+
+dibujarContenedores(); dibujarInventario(); dibujarLetreros();
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(dibujarLetreros);
+
+// ================================================================ Menú encima del mapa
+const hoja = document.getElementById('hoja'), velo = document.getElementById('velo');
+const ICO = {
+  recibir:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="7" cy="17.5" r="1.6" fill="currentColor"/><circle cx="17" cy="17.5" r="1.6" fill="currentColor"/>',
+  contenedores:'<rect x="3" y="6" width="18" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 8v8M11 8v8M15 8v8" stroke="currentColor" stroke-width="1.5"/>',
+  inventario:'<path d="M4 20V5h16v15M4 11h16M4 16h16" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="7" y="7" width="3" height="3" fill="currentColor"/><rect x="13" y="12" width="3" height="3" fill="currentColor"/>',
+  linea:'<path d="M4 7h14v10H6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M8 14l-3 3 3 3" fill="none" stroke="currentColor" stroke-width="1.8"/>',
+  mostrador:'<path d="M3 11h18v8H3zM6 11V6h12v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 8h6" stroke="currentColor" stroke-width="1.5"/>'
+};
+let abierta = null, pestana = {};
+
+function abrir(id, sinHistoria){
+  abierta = id;
+  document.querySelectorAll('.zona').forEach(z => z.classList.toggle('sel', z.dataset.zona===id));
+  dibujarHoja();
+  hoja.classList.add('on'); velo.classList.add('on');
+  if(!sinHistoria) history.pushState({zona:id}, '');
+  setTimeout(() => { const f = hoja.querySelector('input'); if(f) f.focus(); else hoja.querySelector('.h-x').focus(); }, 60);
+}
+function cerrar(){
+  abierta = null; hoja.classList.remove('on'); velo.classList.remove('on');
+  document.querySelectorAll('.zona.sel').forEach(z => z.classList.remove('sel'));
+}
+// "Atrás" del navegador cierra el menú y regresa al mapa
+window.addEventListener('popstate', e => { if(abierta) cerrar(); });
+function cerrarConHistoria(){ if(abierta){ history.back(); } }
+velo.addEventListener('click', cerrarConHistoria);
+document.addEventListener('keydown', e => {
+  if(e.key==='Escape') cerrarConHistoria();
+  if((e.key==='Enter' || e.key===' ') && e.target.closest && e.target.closest('svg .zona')){ e.preventDefault(); abrir(e.target.closest('.zona').dataset.zona); }
+});
+svg.addEventListener('click', e => { const z = e.target.closest('.zona'); if(z) abrir(z.dataset.zona); });
+
+function cabecera(id, pestanas){
+  const z = ZONAS[id];
+  let h = `<div class="h-cab"><span class="h-ico" style="background:${z.color}22;color:${z.color}"><svg viewBox="0 0 24 24">${ICO[id]}</svg></span>
+    <h2 id="hTitulo">${esc(z.nombre)}</h2><button type="button" class="h-x" data-cerrar aria-label="Cerrar">✕</button></div>`;
+  if(pestanas){
+    const sel = pestana[id] || pestanas[0].id;
+    h += '<div class="pestanas" role="tablist">' + pestanas.map(p =>
+      `<button type="button" role="tab" aria-selected="${p.id===sel}" class="${p.id===sel ? 'sel' : ''}" data-pest="${p.id}">${esc(p.nombre)}${p.n!=null ? ' <i>'+p.n+'</i>' : ''}</button>`).join('') + '</div>';
+  }
+  return h;
+}
+function dibujarHoja(err){
+  const id = abierta; let h = '';
+  if(id==='recibir'){
+    h = cabecera(id) + `<div class="h-cuerpo">${err ? '<p class="err">'+esc(err)+'</p>' : ''}
+      <label class="campo"><span>Número de contenedor</span><input id="cNum" autocomplete="off" placeholder="Como viene en la hoja"></label>
+      <label class="campo"><span>¿Qué trae?</span><input id="cTrae" autocomplete="off" placeholder="Por ejemplo 10 · MC 150"></label>
+      <button type="button" class="btn prin ancho" data-accion="guardarCont">Guardar contenedor</button></div>`;
+  } else if(id==='contenedores'){
+    h = cabecera(id) + '<div class="h-cuerpo">' + (PORCONTAR.length ? PORCONTAR.map((c, i) => `
+      <div class="fila"><span class="bola" style="background:${c.color};border-radius:3px"></span><span><b>${esc(c.numero)}</b><small>Llegó el ${esc(c.llegada)} · ${esc(c.trae)}</small></span>
+      <button type="button" class="btn" style="margin-left:auto;min-height:44px" data-accion="contar" data-i="${i}">Revisar</button></div>`).join('')
+      : '<div class="vacio">No hay contenedores por contar.</div>') + '</div>';
+  } else if(id==='inventario'){
+    const tot = ESPERA.reduce((s, x) => s + x.n, 0);
+    const pes = [{id:'veh', nombre:'Vehículos', n: tot + VEHICULOS.reduce((s, v) => s + v.n, 0)}, {id:'pie', nombre:'Piezas', n: PIEZAS.length}];
+    h = cabecera(id, pes) + '<div class="h-cuerpo">';
+    if((pestana[id] || 'veh')==='veh'){
+      h += VEHICULOS.map(v => `<button type="button" class="fila clic"><span><b>${esc(v.nombre)}</b></span>${v.rojo && v.n ? '<span class="etq rojo">Atender</span>' : ''}<span class="n">${v.n}</span></button>`).join('');
+      h += '<p class="grupo">En espera de armado · ' + tot + '</p>' + ESPERA.map(e =>
+        `<div class="fila"><span class="bola" style="background:${COLORES[e.color]}"></span><span><b>${esc(e.modelo)}</b><small>${esc(e.color)}</small></span><span class="n">${e.n}</span></div>`).join('');
+    } else {
+      h += PIEZAS.map(p => `<div class="fila"><span><b>${esc(p.nombre)}</b><small>${[p.danadas ? p.danadas+' dañadas' : '', p.faltan ? p.faltan+' faltan' : ''].filter(Boolean).join(' · ') || 'Disponibles'}</small></span>
+        ${p.danadas || p.faltan ? '<span class="etq rojo">Revisar</span>' : ''}<span class="n">${p.n}</span></div>`).join('');
+    }
+    h += '</div>';
+  } else if(id==='linea'){
+    h = cabecera(id) + '<div class="h-cuerpo">' + LINEA.map(x => `<button type="button" class="fila clic"><span><b>${esc(x.nombre)}</b>${x.falta ? '<small>'+x.falta+' con piezas faltantes</small>' : ''}</span>
+      ${x.falta ? '<span class="etq rojo">Atender</span>' : ''}<span class="n">${x.n}</span></button>`).join('') +
+      '<button type="button" class="btn ancho" style="margin-top:8px">Ver la línea completa</button></div>';
+  } else if(id==='mostrador'){
+    const pes = [{id:'nueva', nombre:'Nueva venta'}, {id:'lista', nombre:'Lista de ventas', n: VENTAS.length}];
+    h = cabecera(id, pes) + '<div class="h-cuerpo">';
+    if((pestana[id] || 'nueva')==='nueva'){
+      h += (err ? '<p class="err">'+esc(err)+'</p>' : '') + `
+        <label class="campo"><span>Remisión</span><input id="vRem" autocomplete="off" placeholder="Por ejemplo 160"></label>
+        <label class="campo"><span>Vendedor</span><input id="vVen" autocomplete="off"></label>
+        <label class="campo"><span>Destino</span><input id="vDes" autocomplete="off" placeholder="Ciudad o lugar de entrega"></label>
+        <button type="button" class="btn prin ancho" data-accion="guardarVenta">Guardar venta</button>`;
+    } else {
+      h += VENTAS.map(v => `<div class="fila"><span><b>Remisión ${esc(v.rem)}</b><small>${esc(v.veh)} · ${esc(v.vendedor)} · ${esc(v.destino)}</small></span>
+        <span class="etq ${v.etq}" style="margin-left:auto">${esc(v.estado)}</span></div>`).join('');
+    }
+    h += '</div>';
+  }
+  hoja.innerHTML = h;
+}
+hoja.addEventListener('click', e => {
+  if(e.target.closest('[data-cerrar]')){ cerrarConHistoria(); return; }
+  const p = e.target.closest('[data-pest]'); if(p){ pestana[abierta] = p.dataset.pest; dibujarHoja(); return; }
+  const a = e.target.closest('[data-accion]'); if(!a) return;
+  const acc = a.dataset.accion;
+  if(acc==='guardarCont'){
+    const num = document.getElementById('cNum').value.trim(), trae = document.getElementById('cTrae').value.trim();
+    if(!num){ dibujarHoja('Escribe el número de contenedor.'); return; }
+    if(PORCONTAR.length >= 6){ dibujarHoja('Ya no caben más contenedores en esta propuesta.'); return; }
+    cerrarConHistoria();
+    descargar({numero: num.toUpperCase(), llegada:'hoy', trae: trae || 'Sin capturar', color: ['#2a9d8f','#7a5cc4','#c4512f','#4b63d6'][PORCONTAR.length % 4]});
+  } else if(acc==='contar'){
+    const i = +a.dataset.i, c = PORCONTAR[i];
+    cerrarConHistoria();
+    alInventario(i, c);
+  } else if(acc==='guardarVenta'){
+    const rem = document.getElementById('vRem').value.trim(), ven = document.getElementById('vVen').value.trim(), des = document.getElementById('vDes').value.trim();
+    if(!rem || !ven || !des){ dibujarHoja('Falta: ' + [!rem && 'remisión', !ven && 'vendedor', !des && 'destino'].filter(Boolean).join(', ') + '.'); return; }
+    VENTAS.unshift({rem, vendedor:ven, destino:des, veh:'Por escoger', estado:'Por armar', etq:'azul'});
+    pestana.mostrador = 'lista'; dibujarHoja(); dibujarLetreros();
+    avisar('Se guardó la venta ' + rem + '.');
+  }
+});
+
+// ================================================================ Lo que se mueve en el mapa
+function avisar(t){ const l = document.getElementById('letrero'); l.textContent = t; l.classList.add('on'); clearTimeout(avisar.t); avisar.t = setTimeout(() => l.classList.remove('on'), 2800); }
+function mover(g, de, a, ms){
+  if(menosMov) return Promise.resolve();
+  const k = g.animate([{transform:`translate(${de[0]}px,${de[1]}px)`}, {transform:`translate(${a[0]}px,${a[1]}px)`}], {duration:ms, easing:'cubic-bezier(.45,0,.2,1)', fill:'forwards'});
+  return k.finished;
+}
+// El camión deja su contenedor: el contenedor entra por la puerta hasta su lugar, el camión se va vacío y llega otro
+function descargar(c){
+  const i = PORCONTAR.length, p = slot(i);
+  const capa = el('g', {}, capaMov), g = contenedor(c, i, capa);
+  const dx = 11 - p.x, dy = 21.2 + 3.5 - p.y;
+  g.style.transform = `translate(${dx}px,${dy}px)`;
+  dibujarCamion(false);
+  mover(g, [dx, dy], [0, 0], 1300).then(() => {
+    capa.remove(); PORCONTAR.push(c); dibujarContenedores(); dibujarLetreros();
+    avisar('Se guardó el contenedor ' + c.numero + '. Ya está por contar.');
+  });
+  mover(camion, [0, 0], [-45, 0], 900).then(() => { dibujarCamion(true); return mover(camion, [-45, 0], [0, 0], 1100); });
+}
+// Al revisar un contenedor, el patín lo lleva al inventario
+function alInventario(i, c){
+  const p = slot(i), dest = [150, 30];
+  const capa = el('g', {}, capaMov); const g = contenedor(c, i, capa);
+  PORCONTAR.splice(i, 1); dibujarContenedores(); dibujarLetreros();
+  mover(g, [0, 0], [dest[0] - p.x - 10, dest[1] - p.y - 4], 1200).then(() => {
+    g.animate([{opacity:1}, {opacity:0}], {duration:300, fill:'forwards'}).finished.then(() => capa.remove());
+    ESPERA[0].n += 12; PIEZAS.forEach(x => x.n += 12);
+    dibujarInventario(); dibujarLetreros();
+    avisar('Contenedor ' + c.numero + ' revisado: sus vehículos y piezas ya están en el inventario.');
+  });
+  if(!menosMov) patin.animate([{transform:'translate(50px,44px)'}, {transform:`translate(${p.x+10}px,${p.y+11}px)`}, {transform:'translate(150px,44px)'}, {transform:'translate(50px,44px)'}],
+    {duration:2600, easing:'ease-in-out'});
+}
+</script>
+</body>
+</html>
