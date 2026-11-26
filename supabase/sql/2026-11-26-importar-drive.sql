@@ -15,10 +15,8 @@ create table if not exists logistica.inv_vendedor_sucursal (
   vendedor text primary key,
   sucursal text not null check (sucursal in ('AGS','GDL','MAZ','MLM','PUE','QRO','TEP','ZAP','NAU','LPZ','TIJ')));
 alter table logistica.inv_vendedor_sucursal enable row level security;
-insert into logistica.inv_vendedor_sucursal (vendedor, sucursal) values
-  ('Ricardo','MAZ'), ('Pau','PUE'), ('Paulina','PUE'), ('Mode','MLM'), ('Iris','TEP'), ('Lina','MAZ'), ('Ulises','PUE'),
-  ('Argelia','AGS'), ('Ivan','AGS'), ('Silvia R','QRO'), ('Enoch','QRO')
-on conflict (vendedor) do nothing;
+-- Los vendedores y su sucursal se cargan directo en Supabase (nombres de personas: no van en el repo, que es público).
+-- Se sacaron de Administración (bma.personas); los que faltan los da el usuario.
 
 -- Lee el texto del vehículo del Drive -> modelo, opciones de fábrica, aditamentos, color y dudas
 create or replace function logistica.inv_leer_vehiculo(p_texto text) returns jsonb
