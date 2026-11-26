@@ -14,6 +14,8 @@
   var ETAPAS = [
     {id: 'armado', nombre: 'Armado'},
     {id: 'revision', nombre: 'Revisión, mecánica y activación', corto: 'Revisión'},
+    // Sección lateral: los que no pasan la revisión (26-nov-2026); de aquí siguen a Detallado o a Herrería si son especiales
+    {id: 'reparacion', nombre: 'Reparación', lateral: true},
     {id: 'herreria', nombre: 'Herrería', especial: true},
     {id: 'forrado', nombre: 'Forrado', especial: true},
     {id: 'detallado', nombre: 'Detallado y pintura'},
@@ -21,10 +23,12 @@
     {id: 'listo', nombre: 'Listo'}
   ];
   function etapa(id){ return ETAPAS.filter(function(x){ return x.id===id })[0] || {id: id, nombre: id} }
-  function ruta(especial){ return ETAPAS.filter(function(x){ return especial || !x.especial }) }
-  function indice(h){ return ruta(h.especial).map(function(x){ return x.id }).indexOf(h.etapa) }
-  function siguiente(h){ return ruta(h.especial)[indice(h)+1] }
-  function anterior(h){ return ruta(h.especial)[indice(h)-1] }
+  // El recorrido de un vehículo: los especiales pasan por Herrería y Forrado; Reparación solo si está en ella
+  function ruta(especial, conReparacion){ return ETAPAS.filter(function(x){ return (especial || !x.especial) && (conReparacion || !x.lateral) }) }
+  function rutaDe(h){ return ruta(h.especial, h.etapa==='reparacion') }
+  function indice(h){ return rutaDe(h).map(function(x){ return x.id }).indexOf(h.etapa) }
+  function siguiente(h){ return rutaDe(h)[indice(h)+1] }
+  function anterior(h){ return rutaDe(h)[indice(h)-1] }
 
   var ESTADOS = {
     faltantes:  {nombre: 'Faltan piezas', etq: 'rojo', orden: 1},
@@ -472,7 +476,7 @@
     var sig = siguiente(h);
     return H.rpc('inv_vehiculo_avanzar', {p_id: h.id, p: p || {}}).then(function(r){
       var quien = (p && p.serie) ? 'Serie '+p.serie : idVeh(h);
-      var msg = r.faltantes ? quien+' se quedó en Revisión: le faltan piezas.' : r.no_paso ? quien+' no pasó la revisión final.' : quien+' pasó a '+etapa(r.etapa).nombre+'.';
+      var msg = r.faltantes ? quien+' se quedó en Revisión: le faltan piezas.' : r.etapa==='reparacion' && h.etapa==='revision' ? quien+' no pasó la revisión: pasó a Reparación.' : r.no_paso ? quien+' no pasó la revisión final.' : quien+' pasó a '+etapa(r.etapa).nombre+'.';
       (alTerminar || trasCambio)(h.id, msg);
     }).catch(function(err){ aviso('No se pudo', H.mensaje(err)); });
   }
@@ -506,6 +510,7 @@
         falta: 'Escribe el número de serie.'}).then(function(serie){ if(serie!=null) avanzar(h, {serie: serie}, alTerminar); });
     }
     if(h.etapa==='revision') return revision1(h, alTerminar);
+    if(h.etapa==='reparacion') return avanzar(h, {}, alTerminar);
     if(h.etapa==='revision_final') return avanzar(h, {pasa: true}, alTerminar);
     return avanzar(h, {}, alTerminar);
   }
@@ -514,6 +519,7 @@
     if(h.faltantes) return '✓ Ya se pusieron las piezas';
     if(h.etapa==='armado') return '✓ Terminar armado';
     if(h.etapa==='revision') return 'Hacer la revisión';
+    if(h.etapa==='reparacion') return '✓ Ya quedó';
     if(h.etapa==='revision_final') return '✓ Pasa la revisión final';
     return sig ? 'Pasar a '+sig.nombre : '';
   }
@@ -535,12 +541,19 @@
             return '<div class="tarjeta" style="padding:10px 12px"><span class="cant">'+d.cantidad+'</span><span class="ico-d">'+H.icoDano(x ? x.nombre : '')+'</span>'+
               '<span class="txt"><b>'+esc(x ? x.nombre : '?')+'</b><small>'+esc([nomPieza(d.pieza_id), gravNom(d.gravedad)].filter(Boolean).join(' · '))+'</small></span>'+
               '<span class="btns"><button type="button" class="btn" data-quitar="'+k+'">Quitar</button></span></div>';
-          }).join('')+'</div>' : '<p style="margin:0 0 6px">Si todo está bien, da "✓ Todo bien". Si falta una pieza, agrégala como "Faltante de pieza".</p>')+
+          }).join('')+'</div>' : '<p style="margin:0 0 6px">Si todo está bien, da "✓ Pasa la revisión". Si falta una pieza o algo viene dañado, agrégalo: el vehículo se va a Reparación.</p>')+
           '<button type="button" class="btn" data-agregar style="margin-top:10px">+ Agregar faltante o daño</button>'+
+          (danos.length ? '' : ' <button type="button" class="btn-link" data-otra>No pasa por otra cosa…</button>')+
           '<div class="acciones"><button type="button" class="btn" data-hoja-cerrar>Cancelar</button>'+
-          '<button type="button" class="btn prin der" data-listo>'+(danos.length ? 'Guardar revisión' : '✓ Todo bien')+'</button></div></div>', function(v){ if(!enLista) fin(v); });
+          '<button type="button" class="btn prin der" data-listo>'+(danos.length ? 'No pasa: a Reparación' : '✓ Pasa la revisión')+'</button></div></div>', function(v){ if(!enLista) fin(v); });
         H.hojaEl().onclick = function(e){
           if(e.target.closest('[data-hoja-cerrar]')){ H.cerrarHoja(null); return; }
+          if(e.target.closest('[data-otra]')){
+            enLista = true;
+            H.pedirTexto({titulo: '¿Por qué no pasa?', ayuda: 'Se va a Reparación', etiqueta: 'Qué hay que arreglar', largo: true, boton: 'A Reparación',
+              falta: 'Escribe qué hay que arreglar.'}).then(function(t){ enLista = false; if(t!=null){ fin({pasa: false, nota: t, defectos: []}); } else abrir(); });
+            return;
+          }
           if(e.target.closest('[data-listo]')){ H.cerrarHoja({defectos: danos}); return; }
           var qq = e.target.closest('[data-quitar]');
           if(qq){ danos.splice(+qq.dataset.quitar, 1); enLista = true; abrir(); enLista = false; return; }
@@ -593,11 +606,12 @@
     var insp = document.getElementById('insp'); if(!insp) return;
     H.rpc('inv_vehiculo', {p_id: id}).then(function(f){
       var h = f.vehiculo, v = f.venta; FICHA = h;
-      var r = ruta(h.especial), iAhora = indice(h), et = etapa(h.etapa), ant = anterior(h);
+      var r = rutaDe(h), iAhora = indice(h), et = etapa(h.etapa), ant = anterior(h);
       var sr = !v || v.tipo==='showroom';
       var est = h.faltantes ? ['rojo', 'Faltan piezas', 'La revisión encontró piezas que faltan. No avanza hasta que se pongan.']
         : h.no_paso ? ['rojo', 'No pasó la revisión final', 'Hay que corregirlo antes de que salga.']
         : h.etapa==='listo' ? ['ok', 'Listo', sr ? 'Listo para showroom.' : 'Listo para enviar.']
+        : h.etapa==='reparacion' ? ['rojo', 'Reparación', 'No pasó la revisión. Cuando quede, sigue a '+(h.especial ? 'Herrería' : 'Detallado y pintura')+'.']
         : ['azul', et.nombre, 'Lleva '+dias(h.etapa_desde)+' en esta etapa.'];
       document.getElementById('ih').textContent = idVeh(h, v);
       document.getElementById('is').innerHTML = puntoColor(h.color_id)+esc(nombreVeh(h));
@@ -692,12 +706,12 @@
     if(!H.puedeEscribir()) return;
     Promise.all([H.rpc('inv_ventas', {p_bodega: E.verBodega}), H.rpc('inv_produccion', {p_bodega: E.verBodega})]).then(function(r){
       H.CUENTA.ventas = r[0].filter(function(v){ return v.estado_venta==='por_armar' }).length || '';
-      H.CUENTA.produccion = r[1].filter(function(h){ return h.faltantes || h.no_paso }).length || '';
+      H.CUENTA.produccion = r[1].filter(function(h){ return h.faltantes || h.no_paso || h.etapa==='reparacion' }).length || '';
       H.dibujarMenu();
     }).catch(function(){});
   }
   H.alIniciar.push(refrescarCuentas);
-  H.prod = {ETAPAS: ETAPAS, etapa: etapa, ruta: ruta, indice: indice, siguiente: siguiente, anterior: anterior, nombreVeh: nombreVeh, colorHex: colorHex,
+  H.prod = {ETAPAS: ETAPAS, etapa: etapa, ruta: ruta, rutaDe: rutaDe, indice: indice, siguiente: siguiente, anterior: anterior, nombreVeh: nombreVeh, colorHex: colorHex,
     puntoColor: puntoColor, dias: dias, paraDe: paraDe, aviso: aviso, entrar: entrar, avanzar: avanzar, regresar: regresar, revision1: revision1,
     faltantesListos: faltantesListos, noPasa: noPasa, pasoPrincipal: pasoPrincipal, textoPaso: textoPaso,
     abrirFichaVeh: abrirFichaVeh, refrescarCuentas: refrescarCuentas, ESTADOS: ESTADOS, remisionDe: remisionDe, ordenDe: ordenDe, idVeh: idVeh};

@@ -338,8 +338,10 @@ svg.linea{display:block;width:100%;height:auto}
 .inv-mapa,.inv-velo{display:none}
 .inv-panel{display:contents}
 .mp-cab{display:none}
-.inv.con-mapa .inv-mapa{display:flex;flex-direction:column;gap:10px;grid-column:2;grid-row:1;min-width:0}
-.mp-arriba{flex:none;border-radius:18px;overflow:hidden;background:var(--raised)}
+.inv.con-mapa .inv-mapa{display:flex;flex-direction:column;gap:10px;grid-column:2;grid-row:1;min-width:0;
+  padding:10px;border-radius:20px;background:var(--raised)}
+/* La franja gris rodea todo el mapa, también la línea (pedido del usuario, 26-nov-2026) */
+.mp-arriba{flex:none}
 /* La línea ocupa lo que queda; su panel (vehículos del área) se desliza si es largo */
 .mp-linea{flex:1;min-height:0;display:flex;flex-direction:column}
 .mp-linea .ln-panel{flex:none;max-height:45%;overflow:auto;overscroll-behavior:contain}
@@ -459,7 +461,7 @@ svg.linea{display:block;width:100%;height:auto}
 .tarjeta .txt small.pl-por{color:var(--neg)}
 /* Pizarrón del plan en la esquina de la línea, en el mapa */
 .mp-linea{position:relative}
-.mp-plan{position:absolute;top:12px;right:12px;z-index:2;display:flex;flex-direction:column;align-items:flex-start;gap:0;padding:8px 14px;
+.mp-plan{position:absolute;bottom:12px;right:12px;z-index:2;display:flex;flex-direction:column;align-items:flex-start;gap:0;padding:8px 14px;
   border-radius:14px;border:1px solid var(--border);background:var(--surface);box-shadow:0 4px 14px rgba(0,0,0,.12);cursor:pointer;text-align:left}
 .mp-plan span{font-size:12px;color:var(--muted);line-height:16px}
 .mp-plan b{font-size:15px;line-height:20px;font-variant-numeric:tabular-nums}

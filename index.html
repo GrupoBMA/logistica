@@ -7,7 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="icono.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="inventario.css?v=20261126-g">
+<link rel="stylesheet" href="inventario.css?v=20261126-i">
 <style>
 /* BMA Logística: se usa como un videojuego. Menú con contadores, un objetivo por vista,
    íconos de estado que se leen de un vistazo, inventario en casillas, atajos de teclado. */
@@ -529,8 +529,8 @@ body.solo-lectura .ruta li[data-lugar],body.solo-lectura .ruta[data-lugar] heade
 <script src="inventario-contenedores.js?v=20261126-f"></script>
 <script src="inventario-revision.js?v=20261126-a"></script>
 <script src="inventario-admin.js?v=20261126-g"></script>
-<script src="inventario-produccion.js?v=20261126-g"></script>
-<script src="inventario-linea.js?v=20261126-g"></script>
+<script src="inventario-produccion.js?v=20261126-h"></script>
+<script src="inventario-linea.js?v=20261126-i"></script>
 <script src="inventario-plan.js?v=20261126-g"></script>
 <script src="inventario-mapa.js?v=20261126-g"></script>
 <script>
@@ -551,7 +551,9 @@ body.solo-lectura .ruta li[data-lugar],body.solo-lectura .ruta[data-lugar] heade
   var SUPABASE_KEY = 'sb_publishable_RNnR7jV42dGEGLFWdRVfvQ_cP1xSwuO';
   var GOOGLE_CLIENT_ID = '580029556888-pg3prpg2e3cnlqsv6tok69pej6e8n7cq.apps.googleusercontent.com'; // proyecto de Google "Grupo BMA" (público por diseño)
   var DOMINIO = '@logistica.bma';   // el usuario se escribe sin correo: "juan" -> juan@logistica.bma
-  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth:{persistSession:true, autoRefreshToken:true}});
+  // La sesión se guarda con su propio nombre (26-nov-2026): Administración y Catálogo están en el mismo dominio y el mismo
+  // proyecto de Supabase; con el nombre de siempre, entrar en una pestaña pisaba la sesión de la otra ("esa cuenta no tiene acceso")
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth:{persistSession:true, autoRefreshToken:true, storageKey:'logistica-sesion'}});
   var TODAS = [], ENTREGADOS = [], ALL = [], CAMBIOS = [], RUTAS_HOY = L.RUTAS;
 
   // Renglón de la tabla logistica.entregas -> el mismo formato que trae el Excel
