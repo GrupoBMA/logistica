@@ -333,3 +333,51 @@ svg.linea{display:block;width:100%;height:auto}
 .vf .contador{display:inline-flex}
 @media (prefers-reduced-motion: reduce){ .pild{transition:none} }
 .vf-ayuda{font-size:14px;font-weight:400;color:var(--muted)}
+
+/* Mapa de la bodega: inicio de las bodegas en computadora (26-nov-2026, inventario-mapa.js) */
+.inv-mapa,.inv-velo{display:none}
+.inv-panel{display:contents}
+.mp-cab{display:none}
+.inv.con-mapa .inv-mapa{display:block;grid-column:2;grid-row:1;min-width:0;border-radius:18px;overflow:hidden;background:var(--raised)}
+.inv.en-mapa .inv-main{display:none}
+.mapa-svg{width:100%;height:100%;display:block;touch-action:manipulation}
+.mp-camino{fill:#000;fill-opacity:.06}
+.mp-piso{fill:var(--surface)}
+.mp-muro{fill:none;stroke:var(--muted);stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round}
+.mp-cortina{stroke:var(--muted);stroke-width:.25;stroke-opacity:.6}
+.mp-abre{fill:none;stroke:var(--muted);stroke-width:.25;stroke-dasharray:.6 .6}
+.mp-hoja-puerta{stroke:var(--muted);stroke-width:.5}
+.mp-zona{cursor:pointer;outline:none}
+.mp-zona .fondo{transition:fill-opacity .18s}
+.mp-zona .orilla{stroke-opacity:.45;stroke-width:.3}
+@media (hover:hover){ .mp-zona:hover .fondo{fill-opacity:.24} .mp-zona:hover .orilla{stroke-opacity:.9} }
+.mp-zona:focus-visible .orilla{stroke-width:.6;stroke-opacity:1}
+.mp-nombre{font-size:3px;font-weight:600;fill:var(--text)}
+.mp-chico{font-size:1.8px;font-weight:500;fill:var(--muted)}
+.mp-num{font-size:1.7px;font-weight:700;fill:#fff;text-anchor:middle;dominant-baseline:central;letter-spacing:.02em}
+.mp-globo{fill:var(--text)} .mp-globo.cero{fill:var(--muted);fill-opacity:.5}
+.mp-cuenta{font-size:2.2px;font-weight:700;fill:var(--surface);text-anchor:middle;dominant-baseline:central;font-variant-numeric:tabular-nums}
+.mp-anaquel{fill:#8a8d93;fill-opacity:.3;stroke:#8a8d93;stroke-opacity:.6;stroke-width:.2}
+.mp-banda{stroke:#2c5f6c} .mp-banda-f{fill:#2c5f6c}
+.mp-flujo{stroke:#fff;stroke-opacity:.55;stroke-width:.3;stroke-dasharray:1.2 1.4;fill:none;animation:mpAvanza 1.6s linear infinite}
+@keyframes mpAvanza{to{stroke-dashoffset:-2.6}}
+.mp-respira{animation:mpRespira 2.4s ease-in-out infinite}
+@keyframes mpRespira{50%{opacity:.45}}
+/* La pantalla elegida se abre encima del mapa */
+.inv.sobre-mapa .inv-velo{display:block;position:fixed;inset:0;z-index:7;background:rgba(10,10,10,.28);animation:mpAparece .2s ease-out}
+.inv.sobre-mapa .inv-panel{display:flex;flex-direction:column;position:fixed;z-index:8;top:16px;right:16px;bottom:16px;width:min(920px,calc(100vw - 340px));
+  border-radius:22px;background:var(--ground);box-shadow:0 24px 60px rgba(0,0,0,.25),0 0 0 1px var(--border);overflow:auto;overscroll-behavior:contain;
+  animation:mpEntra .24s cubic-bezier(.2,.8,.2,1)}
+.inv.sobre-mapa .mp-cab{display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:2;padding:14px 18px 12px;background:var(--ground)}
+.inv.sobre-mapa .inv-main{padding:4px 24px 24px}
+.mp-pest{display:flex;gap:4px;padding:4px;border-radius:14px;background:var(--raised);flex:1;max-width:520px}
+.mp-pest:has(.mp-tit){background:none;padding:0}
+.mp-pest button{flex:1;min-height:44px;border:0;border-radius:11px;background:transparent;font-size:15px;font-weight:600;color:var(--muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:6px}
+.mp-pest button[aria-selected="true"]{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.mp-pest button i{font-style:normal;font-size:13px;color:var(--neg)}
+.mp-tit{font-size:17px}
+.mp-x{margin-left:auto;width:40px;height:40px;flex:none;border:0;border-radius:50%;background:var(--raised);color:var(--text);font-size:16px;cursor:pointer}
+@keyframes mpEntra{from{opacity:0;transform:translateX(18px)}}
+@keyframes mpAparece{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){ .mp-flujo,.mp-respira{animation:none} .inv.sobre-mapa .inv-panel,.inv.sobre-mapa .inv-velo{animation:none} }

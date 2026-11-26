@@ -40,12 +40,15 @@
     vehiculos: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12.5h2l1.5-4h5l2 4H17"/><path d="M3 12.5V15h14v-2.5"/><circle cx="6" cy="15" r="1.6"/><circle cx="14" cy="15" r="1.6"/></svg>',
     piezas: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="3"/><path d="M10 2.5v2.2M10 15.3v2.2M2.5 10h2.2M15.3 10h2.2M4.7 4.7l1.6 1.6M13.7 13.7l1.6 1.6M4.7 15.3l1.6-1.6M13.7 6.3l1.6-1.6"/></svg>',
     produccion: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 4.5a3 3 0 0 0 3.5 3.8l-7.7 7.7a1.6 1.6 0 0 1-2.3-2.3l7.7-7.7a3 3 0 0 0-1.2-1.5z"/></svg>',
+    mapa: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="15" height="13" rx="1.5"/><path d="M2.5 9.5h6v7M8.5 3.5v3M12 9.5h5.5"/></svg>',
     flecha: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg>'
   };
 
   // ---------------------------------------------------------------- Secciones del menú
   // Por módulos, en el orden que pidió el usuario (21-nov-2026): Contenedores, Ventas, Inventario; luego Producción y Administración
   var SECCIONES = [
+    // Mapa de la bodega: inicio de las bodegas en computadora (pedido del usuario, 26-nov-2026; inventario-mapa.js)
+    {id: 'mapa',         grupo: 'Inicio',       nombre: 'Mapa de la bodega',    sub: 'Todo de un vistazo',               roles: ['admin','bodega','lectura']},
     {id: 'recibir',      grupo: 'Contenedores', nombre: 'Recibir contenedor',   sub: 'Registrar lo que llegó',           roles: ['admin','bodega']},
     {id: 'contenedores', grupo: 'Contenedores', nombre: 'Lista de contenedores', sub: 'Revisar y consultar',             roles: ['admin','bodega','lectura']},
     {id: 'venta',        grupo: 'Ventas',       nombre: 'Nueva venta',          sub: 'La que llegó por WhatsApp',        roles: ['admin','bodega']},
@@ -93,7 +96,10 @@
   }
 
   function ir(id){
-    E.seccion = id; delete NUEVO[id]; dibujarMenu();
+    var antes = E.seccion;
+    E.seccion = id; delete NUEVO[id];
+    H.alIr.forEach(function(f){ try { f(id, antes) } catch(e){} });
+    dibujarMenu();
     var main = q('.inv-main', E.raiz);
     main.innerHTML = '<p class="inv-cargando">Cargando…</p>';
     window.scrollTo({top: 0});
@@ -346,7 +352,8 @@
       E.rol = s.rol; E.bodega = s.bodega || null;
       E.verBodega = E.rol==='bodega' ? E.bodega : null;
       H.alIniciar.forEach(function(f){ try { f() } catch(e){} });
-      ir(E.rol==='bodega' ? 'produccion' : 'contenedores');
+      // Las bodegas empiezan en el mapa en computadora; en pantallas chicas, en la línea de producción
+      ir(E.rol==='bodega' ? (H.mapaCabe && H.mapaCabe() ? 'mapa' : 'produccion') : 'contenedores');
     }).catch(function(err){ q('.inv-main', E.raiz).innerHTML = '<p class="inv-error">'+esc(mensaje(err))+'</p>' });
   }
   function cerrar(){
@@ -361,7 +368,7 @@
     abrirLista: abrirLista, escogerVarios: escogerVarios, escogerTabla: escogerTabla, pedirTexto: pedirTexto, pedirCantidad: pedirCantidad, confirmar: confirmar, contador: contador, valorContador: valorContador,
     abrirHoja: abrirHoja, cerrarHoja: cerrarHoja, cabHoja: cabHoja, hojaEl: hojaEl,
     nombreBodega: nombreBodega, puedeEscribir: puedeEscribir, fechaLarga: fechaLarga, hoyISO: hoyISO, ICO: ICO, BODEGAS: BODEGAS,
-    DIBUJAR: DIBUJAR, CUENTA: CUENTA, alIniciar: [], avisar: avisar, marcarNuevo: marcarNuevo};
+    DIBUJAR: DIBUJAR, CUENTA: CUENTA, alIniciar: [], alIr: [], avisar: avisar, marcarNuevo: marcarNuevo, secciones: secciones};
 
   // Secciones todavía sin pantalla: un aviso amable
   ['recibir','contenedores','vehiculos','piezas','catalogos','cambios'].forEach(function(id){
