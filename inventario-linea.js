@@ -9,20 +9,20 @@
   var H = window.InventarioApp._h, E = H.E, esc = H.esc;
   var NS = 'http://www.w3.org/2000/svg';
   var POS = {
-    espera: [15,0,'arriba'], armado: [45,0,'arriba'], revision1: [75,0,'arriba'],
+    espera: [15,0,'arriba'], armado: [45,0,'arriba'], revision: [75,0,'arriba'],
     herreria: [120,11,'rama'], forrado: [120,29,'rama'],
-    mecanica: [87,40,'abajo'], detallado: [62,40,'abajo'], revision_final: [37,40,'abajo'], listo: [12,40,'abajo']
+    detallado: [80,40,'abajo'], revision_final: [50,40,'abajo'], listo: [20,40,'abajo']
   };
-  var COLOR = {espera:'#4b63d6', armado:'#f08a4b', revision1:'#26a889', herreria:'#6c7a91', forrado:'#9a6ee0', mecanica:'#e0a92c',
+  var COLOR = {espera:'#4b63d6', armado:'#f08a4b', revision:'#26a889', herreria:'#6c7a91', forrado:'#9a6ee0',
     detallado:'#e7698a', revision_final:'#3f9f5d', listo:'#7d848e'};
   function p(id){ return POS[id].slice(0, 2) }
   function ruta(a, b){
     var R = {
-      'espera>armado': [p('espera'), p('armado')], 'armado>revision1': [p('armado'), p('revision1')],
-      'revision1>mecanica': [p('revision1'), [100,0], [100,40], p('mecanica')],
-      'revision1>herreria': [p('revision1'), [100,0], [120,0], p('herreria')], 'herreria>forrado': [p('herreria'), p('forrado')],
-      'forrado>mecanica': [p('forrado'), [120,40], [100,40], p('mecanica')],
-      'mecanica>detallado': [p('mecanica'), p('detallado')], 'detallado>revision_final': [p('detallado'), p('revision_final')],
+      'espera>armado': [p('espera'), p('armado')], 'armado>revision': [p('armado'), p('revision')],
+      'revision>detallado': [p('revision'), [100,0], [100,40], p('detallado')],
+      'revision>herreria': [p('revision'), [100,0], [120,0], p('herreria')], 'herreria>forrado': [p('herreria'), p('forrado')],
+      'forrado>detallado': [p('forrado'), [120,40], [100,40], p('detallado')],
+      'detallado>revision_final': [p('detallado'), p('revision_final')],
       'revision_final>listo': [p('revision_final'), p('listo')]
     };
     var r = R[a+'>'+b];
@@ -240,7 +240,7 @@
       // Pasos: el anterior regresa, el siguiente avanza (pedido del usuario: poder seleccionar los pasos)
       var pasos = r.map(function(x, k){
         var cl = k < i ? 'hecho' : k===i ? (atender(h) ? 'ahora falta' : 'ahora') : '';
-        var accion = !escribe ? '' : (k===i-1 ? 'regresar' : (k===i+1 && !atender(h) && h.etapa!=='revision1' && h.etapa!=='revision_final' ? 'avanzar' : ''));
+        var accion = !escribe ? '' : (k===i-1 ? 'regresar' : (k===i+1 && !atender(h) && h.etapa!=='revision' && h.etapa!=='revision_final' && !(h.etapa==='armado' && !h.serie) ? 'avanzar' : ''));
         return '<button type="button" class="ln-paso '+cl+(accion ? ' accion' : '')+'" '+(accion ? 'data-lp="'+accion+'" data-id="'+h.id+'" title="'+(accion==='regresar' ? 'Regresar a '+esc(x.nombre) : 'Pasar a '+esc(x.nombre))+'"' : 'disabled')+'>'+
           (k < i ? '✓ ' : '')+esc(x.nombre)+'</button>';
       }).join('<span class="ln-sep">›</span>');
@@ -252,7 +252,7 @@
       }
       bot += '<button type="button" class="btn" data-lp="ficha" data-id="'+h.id+'">Ver ficha</button>';
       return '<div class="ln-vh'+(atender(h) ? ' atender' : '')+'"><div class="ln-vh-1"><span class="pt" style="background:'+(P.colorHex(h.color_id)||'#bbb')+'"></span>'+
-        '<b>Serie '+esc(h.serie)+'</b><span class="ln-n">'+esc(P.nombreVeh(h))+' · '+P.paraDe(h)+(h.venta && h.venta.especial_que ? ' · '+esc(h.venta.especial_que) : '')+'</span>'+
+        '<b>'+esc(P.idVeh(h))+'</b><span class="ln-n">'+esc(P.nombreVeh(h))+' · '+P.paraDe(h)+(h.venta && h.venta.especial_que ? ' · '+esc(h.venta.especial_que) : '')+'</span>'+
         (h.faltantes ? '<span class="etq rojo chica">Faltan piezas</span>' : '')+(h.no_paso ? '<span class="etq rojo chica">No pasó la revisión final</span>' : '')+
         '<span class="dias">'+esc(P.dias(h.etapa_desde))+'</span></div>'+
         '<div class="ln-pasos">'+pasos+'</div><div class="botones">'+bot+'</div></div>';

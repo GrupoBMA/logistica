@@ -439,3 +439,28 @@ svg.linea{display:block;width:100%;height:auto}
 .nota-txt b{display:block;font-size:17px;font-weight:600}
 .nota-txt small{display:block;margin-top:2px}
 .nota-obs{margin:0;color:var(--text)}
+
+/* Plan de armado (26-nov-2026) */
+.pl-semana{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 18px}
+.pl-semana b{font-size:18px}
+.pl-semana .btn{min-height:44px;width:44px;padding:0;font-size:20px}
+.pl-caja{margin:0 0 26px}
+.pl-cab{display:flex;align-items:baseline;gap:12px;margin:0 0 10px}
+.pl-cab h2{font-size:19px;margin:0}
+.pl-avance{margin-left:auto;color:var(--muted)}
+.pl-avance b{color:var(--text);font-variant-numeric:tabular-nums}
+.pl-barra{height:8px;border-radius:999px;background:var(--raised);overflow:hidden;margin:0 0 12px}
+.pl-barra span{display:block;height:100%;border-radius:999px;background:var(--ok, #2f8f5b)}
+.pl-aviso{margin:0 0 10px;padding:10px 14px;border-radius:12px;background:var(--neg-bg);color:var(--neg);font-size:15px}
+.pl-sub{font-size:15px;margin:14px 0 8px;color:var(--muted);font-weight:600}
+.pl-sub span{font-weight:400}
+.pl-nada{margin:0;color:var(--muted)}
+.tarjeta.pl-no{opacity:.72}
+.tarjeta .txt small.pl-por{color:var(--neg)}
+/* Pizarrón del plan en la esquina de la línea, en el mapa */
+.mp-linea{position:relative}
+.mp-plan{position:absolute;top:12px;right:12px;z-index:2;display:flex;flex-direction:column;align-items:flex-start;gap:0;padding:8px 14px;
+  border-radius:14px;border:1px solid var(--border);background:var(--surface);box-shadow:0 4px 14px rgba(0,0,0,.12);cursor:pointer;text-align:left}
+.mp-plan span{font-size:12px;color:var(--muted);line-height:16px}
+.mp-plan b{font-size:15px;line-height:20px;font-variant-numeric:tabular-nums}
+.mp-plan:active{transform:scale(.97)}

@@ -1,6 +1,6 @@
 /* Mapa de la bodega (26-nov-2026). Viene de la propuesta prototipos/bodega-mapa.html, que el usuario pidió como inicio de las bodegas.
    Arriba, en una franja más chica, la bodega vista desde arriba (solo SVG): afuera el camión en la puerta del andén
-   (Recibir contenedor), adentro los contenedores por contar, el inventario y el mostrador (ventas), con datos reales y su conteo.
+   (Recibir contenedor), adentro los contenedores por contar, el inventario y el mostrador (órdenes), con datos reales y su conteo.
    Abajo, grande, la línea de producción TAL CUAL es en Producción (inventario-linea.js, con su panel y sus botones).
    Al picar un área, su pantalla de siempre se abre ENCIMA del mapa, en un panel con pestañas (no saca de la pantalla
    principal; ✕, el fondo, Esc o "atrás" regresan al mapa). Solo en pantallas de 900 px o más; en chicas, el menú normal. */
@@ -16,7 +16,7 @@
     recibir:      {nombre: 'Recibir', sub: 'contenedor', color: '#e0a92c', sec: 'recibir'},
     contenedores: {nombre: 'Contenedores por contar', color: '#4b63d6', sec: 'contenedores'},
     inventario:   {nombre: 'Inventario', color: '#26a889', sec: 'vehiculos'},
-    mostrador:    {nombre: 'Ventas', color: '#e7698a', sec: 'ventas'}
+    mostrador:    {nombre: 'Órdenes', color: '#e7698a', sec: 'ventas'}
   };
   // Franja de arriba (más chica); abajo va la línea de producción completa
   var CAJAS = {
@@ -77,7 +77,7 @@
     var insp = document.getElementById('insp'); if(insp && insp.classList.contains('on')) return;
     cerrarPanel();
   });
-  // Pestañas del módulo (Contenedores: Recibir · Lista; Ventas: Nueva · Lista; Inventario: Vehículos · Piezas)
+  // Pestañas del módulo (Contenedores: Recibir · Lista; Órdenes: Nueva · Lista; Inventario: Vehículos · Piezas; Producción: Plan · Línea)
   function pestanas(id){
     var p = partes(), todas = H.secciones(), s = todas.filter(function(x){ return x.id===id })[0];
     var hermanas = s ? todas.filter(function(x){ return x.grupo===s.grupo }) : [];
@@ -97,10 +97,11 @@
       H.rpc('inv_contenedores', {p_bodega: E.verBodega}),
       H.rpc('inv_inventario', {p_bodega: E.verBodega}),
       H.rpc('inv_produccion', {p_bodega: E.verBodega}),
-      H.rpc('inv_ventas', {p_bodega: E.verBodega})
+      H.rpc('inv_ventas', {p_bodega: E.verBodega}),
+      H.rpc('inv_plan', {p_bodega: E.verBodega, p_semana: null})
     ]).then(function(r){
       if(E.seccion!=='mapa') return;
-      M.datos = {cont: r[0].filter(function(c){ return c.estado==='recibido' }), inv: r[1], prod: r[2], ventas: r[3]};
+      M.datos = {cont: r[0].filter(function(c){ return c.estado==='recibido' }), inv: r[1], prod: r[2], ventas: r[3], plan: r[4]};
       dibujar(p.mapa);
     }).catch(function(err){ p.mapa.innerHTML = '<p class="inv-error">'+esc(H.mensaje(err))+'</p>' });
   };
@@ -226,6 +227,12 @@
 
     // La línea de producción, tal cual es en Producción (pedido del usuario, 26-nov-2026): misma banda, áreas, panel y botones
     if(H.linea) H.linea.dibujar(q('.mp-linea', caja), d.prod);
+    // Pizarrón del plan de la semana, en la esquina de la línea: abre el Plan de armado
+    var pl = (d.plan && d.plan.items) || [], hechos = pl.filter(function(x){ return x.armado }).length;
+    var piz = document.createElement('button'); piz.type = 'button'; piz.className = 'mp-plan';
+    piz.innerHTML = '<span>Plan de la semana</span><b>'+(pl.length ? hechos+' de '+pl.length+' armados' : 'Sin planear')+'</b>';
+    piz.addEventListener('click', function(){ H.ir('plan') });
+    q('.mp-linea', caja).appendChild(piz);
   }
   function abrirZona(id){
     var sec = ZONAS[id].sec;

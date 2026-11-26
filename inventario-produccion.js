@@ -1,21 +1,21 @@
-/* Ventas y producción. Diseño: docs/superpowers/specs/2026-11-20-produccion-ventas-design.md
-   Nueva venta (uno o varios vehículos, de uno o varios colores) → cada vehículo queda Por armar o Esperando piezas
-   → Entrar a producción (venta o showroom, número de serie) → etapas:
-   Armado → Revisión 1 → (Herrería → Forrado, solo especiales) → Mecánica → Detallado y pintura → Revisión final → Listo.
-   Si la Revisión 1 encuentra un "Faltante de pieza", el vehículo queda en Faltantes hasta que se pongan.
+/* Órdenes y producción. Diseño: docs/superpowers/specs/2026-11-20-produccion-ventas-design.md
+   Nueva orden, de Cliente (la venta: remisión, vendedor, destino) o de Showroom (folio SR-1, SR-2…), con uno o varios
+   vehículos → cada vehículo queda Por armar o Esperando piezas → Entrar a producción (siempre desde una orden) → etapas:
+   Armado → Revisión, mecánica y activación → (Herrería → Forrado, solo especiales) → Detallado y pintura → Revisión final → Listo.
+   El número de serie se pone al terminar Armado (26-nov-2026).
+   Si la revisión encuentra un "Faltante de pieza", el vehículo queda en Faltantes hasta que se pongan.
    Si no pasa la revisión final, queda marcado (no_paso) hasta que pase. Cualquier paso se puede regresar.
    La ficha del vehículo se abre del lado derecho, como la de Logística (#insp de index.html). */
 (function(){
   var H = window.InventarioApp._h, E = H.E, I = H.I, esc = H.esc, q = H.q;
   function main(){ return q('.inv-main', E.raiz) }
 
-  // Mecánica siempre es la antepenúltima (pedido del usuario, 21-nov-2026)
+  // Revisión 1 y Mecánica se juntaron en una sola etapa, y los especiales van después de ella (pedido del usuario, 26-nov-2026)
   var ETAPAS = [
     {id: 'armado', nombre: 'Armado'},
-    {id: 'revision1', nombre: 'Revisión 1'},
+    {id: 'revision', nombre: 'Revisión, mecánica y activación', corto: 'Revisión'},
     {id: 'herreria', nombre: 'Herrería', especial: true},
     {id: 'forrado', nombre: 'Forrado', especial: true},
-    {id: 'mecanica', nombre: 'Mecánica'},
     {id: 'detallado', nombre: 'Detallado y pintura'},
     {id: 'revision_final', nombre: 'Revisión final'},
     {id: 'listo', nombre: 'Listo'}
@@ -52,6 +52,14 @@
     return n===0 ? 'hoy' : n===1 ? '1 día' : n+' días';
   }
   function remisionDe(v){ return v.remision + (v.partes > 1 ? ' · '+v.parte+' de '+v.partes : '') }
+  // "Remisión 153" o "Showroom SR-3"
+  function ordenDe(v){ return (v.tipo==='showroom' ? 'Showroom ' : 'Remisión ')+v.remision }
+  // Cómo se nombra un vehículo en producción: por su serie; antes de terminar Armado no tiene, así que por su orden
+  function idVeh(h, v){
+    if(h.serie) return 'Serie '+h.serie;
+    v = v || h.venta;
+    return v ? ordenDe(v)+(v.partes > 1 ? ' · '+v.parte+' de '+v.partes : '') : 'Sin número de serie';
+  }
   function avisoPrueba(){ return '<p class="aviso-prueba"><span class="etq pend">En prueba</span> Las ventas se siguen capturando en el Drive hasta el día del cambio.</p>' }
   function errorEn(el, err){ el.innerHTML = '<p class="inv-error">'+esc(H.mensaje(err))+'</p>' }
   function aviso(titulo, texto){ H.confirmar({titulo: titulo, ayuda: texto, si: 'Entendido', no: 'Cerrar'}) }
@@ -60,8 +68,10 @@
 
   // ================================================================ Nueva venta (y corregir)
   var V = null;
-  function nuevaV(){ return {paso: 1, id: null, bodega: E.rol==='bodega' ? E.bodega : E.verBodega, remision: '', fecha: H.hoyISO(), vendedor: '',
+  function nuevaV(){ return {paso: 1, id: null, tipo: null, bodega: E.rol==='bodega' ? E.bodega : E.verBodega, remision: '', fecha: H.hoyISO(), vendedor: '',
     destino: '', tipo_destino: '', vehiculos: [], conProduccion: false, error: ''} }
+  // Showroom no lleva destino: sus pasos son Orden, Vehículos y Guardar
+  function pasosDe(){ return V.tipo==='showroom' ? [1, 2, 4] : [1, 2, 3, 4] }
 
   function campoElegir(accion, etiqueta, valor, vacio){
     return '<div class="campo"><span>'+esc(etiqueta)+'</span><button type="button" class="elegir" data-nv="'+accion+'">'+
@@ -74,20 +84,25 @@
 
   function dibujarVenta(m){
     if(!V || V.terminado) V = nuevaV();
-    var corrigiendo = !!V.id, titulos = ['Venta', 'Vehículos', 'Destino', 'Guardar'];
-    var html = '<header class="inv-cab"><h1>'+(corrigiendo ? 'Corregir venta '+esc(V.remisionOriginal) : 'Nueva venta')+'</h1>'+
-      '<p>'+(corrigiendo ? 'Cambia lo que haga falta. Se te pedirá el motivo.' : 'Registra la venta como te llegó por WhatsApp.')+'</p></header>'+
+    var corrigiendo = !!V.id, NOMBRES = {1: 'Orden', 2: 'Vehículos', 3: 'Destino', 4: 'Guardar'}, pasos = pasosDe();
+    var html = '<header class="inv-cab"><h1>'+(corrigiendo ? 'Corregir orden '+esc(V.remisionOriginal) : 'Nueva orden')+'</h1>'+
+      (corrigiendo ? '<p>Cambia lo que haga falta. Se te pedirá el motivo.</p>' : '')+'</header>'+
       (corrigiendo ? '' : avisoPrueba())+
-      '<ol class="pasos">'+titulos.map(function(t, i){
-        var n = i+1, cl = n < V.paso ? 'hecho' : (n===V.paso ? 'ahora' : '');
-        return '<li class="'+cl+'"><span class="nn">'+(n < V.paso ? '✓' : n)+'</span><span class="tx">'+t+'</span></li>';
+      '<ol class="pasos">'+pasos.map(function(n, i){
+        var cl = n < V.paso ? 'hecho' : (n===V.paso ? 'ahora' : '');
+        return '<li class="'+cl+'"><span class="nn">'+(n < V.paso ? '✓' : i+1)+'</span><span class="tx">'+NOMBRES[n]+'</span></li>';
       }).join('')+'</ol>'+(V.error ? '<p class="inv-error">'+esc(V.error)+'</p>' : '');
 
     if(V.paso===1){
-      if(E.rol==='admin') html += campoElegir('bodega', 'Bodega', V.bodega ? H.nombreBodega(V.bodega) : '', 'Escoge la bodega');
-      html += '<label class="campo"><span>Remisión</span><input id="vRem" autocomplete="off" value="'+esc(V.remision)+'" placeholder="Por ejemplo 153"></label>'+
+      // ¿Para quién es? Cliente (la venta) o Showroom (pedido del usuario, 26-nov-2026; por ahora sin escoger sucursal)
+      if(!corrigiendo) html += '<div class="campo grande"><span>¿Para quién es?</span><div class="pilds">'+
+        '<button type="button" class="pild'+(V.tipo==='cliente' ? ' sel' : '')+'" aria-pressed="'+(V.tipo==='cliente')+'" data-nv="tipo-orden" data-val="cliente">Cliente</button>'+
+        '<button type="button" class="pild'+(V.tipo==='showroom' ? ' sel' : '')+'" aria-pressed="'+(V.tipo==='showroom')+'" data-nv="tipo-orden" data-val="showroom">Showroom</button></div></div>';
+      if(V.tipo && E.rol==='admin') html += campoElegir('bodega', 'Bodega', V.bodega ? H.nombreBodega(V.bodega) : '', 'Escoge la bodega');
+      if(V.tipo==='cliente') html += '<label class="campo"><span>Remisión</span><input id="vRem" autocomplete="off" value="'+esc(V.remision)+'" placeholder="Por ejemplo 153"></label>'+
         '<label class="campo"><span>Fecha de compra</span><input id="vFecha" type="date" value="'+esc(V.fecha)+'"></label>'+
         '<label class="campo"><span>Vendedor</span><input id="vVend" autocomplete="off" value="'+esc(V.vendedor)+'"></label>';
+      else if(V.tipo==='showroom') html += '<label class="campo"><span>Fecha</span><input id="vFecha" type="date" value="'+esc(V.fecha)+'"></label>';
     } else if(V.paso===2 && V.form){
       // El vehículo se captura en una sola pantalla, con secciones numeradas (como Registrar de GVF; pedido del usuario, 26-nov-2026)
       m.innerHTML = html + formVehiculo();
@@ -102,7 +117,7 @@
           (V.conProduccion ? '' : '<span class="btns"><button type="button" class="btn" data-nv="cambiar" data-i="'+i+'">Cambiar</button>'+
           '<button type="button" class="btn" data-nv="quitar" data-i="'+i+'">Quitar</button></span>')+'</div>';
       }).join('')+'</div>'+
-        (V.vehiculos.length ? '' : '<div class="inv-vacio"><b>Todavía no agregas vehículos</b>Agrega cada modelo y color que pidió el cliente. Si pidió 2 blancos y 1 azul, son dos renglones.</div>')+
+        (V.vehiculos.length ? '' : '<div class="inv-vacio"><b>Todavía no agregas vehículos</b>Agrega cada modelo y color. Si son 2 blancos y 1 azul, son dos renglones.</div>')+
         (V.conProduccion ? '' : '<div class="acciones" style="margin-top:16px"><button type="button" class="btn ancho" data-nv="agregar">+ Agregar vehículos</button></div>');
     } else if(V.paso===3){
       html += '<label class="campo"><span>Destino</span><input id="vDest" autocomplete="off" value="'+esc(V.destino)+'" placeholder="Ciudad o lugar de entrega"></label>'+
@@ -110,6 +125,12 @@
         '<label class="campo"><span>Código postal <small style="color:var(--muted);font-weight:400">· opcional</small></span>'+
         '<input id="vCP" autocomplete="off" inputmode="numeric" maxlength="5" value="'+esc(V.cp||'')+'" placeholder="Si no lo tienes, déjalo en blanco"></label>'+
         campoElegir('tipo', 'Tipo de destino', V.tipo_destino, 'Escoge el tipo');
+    } else if(V.tipo==='showroom'){
+      var ns = totalVeh();
+      html += '<div class="resumen">Orden de <b>showroom</b>'+(V.remisionOriginal ? ' <b>'+esc(V.remisionOriginal)+'</b>' : '')+(E.rol==='admin' ? ' en <b>'+esc(H.nombreBodega(V.bodega))+'</b>' : '')+
+        ', del <b>'+esc(H.fechaLarga(V.fecha))+'</b>.'+
+        '<p style="margin:10px 0 4px"><b>'+ns+(ns===1 ? ' vehículo' : ' vehículos')+':</b></p><ul style="margin:0;padding-left:22px">'+
+        V.vehiculos.map(function(r){ return '<li>'+r.cantidad+' · '+puntoColor(r.color_id)+esc(nombreVeh(r))+(r.especial ? ' · Especial: '+esc(r.especial_que) : '')+'</li>' }).join('')+'</ul></div>';
     } else {
       var n = totalVeh();
       html += '<div class="resumen">Remisión <b>'+esc(V.remision)+'</b>'+(E.rol==='admin' ? ' en <b>'+esc(H.nombreBodega(V.bodega))+'</b>' : '')+
@@ -122,7 +143,7 @@
     html += '<div class="acciones">'+
       (V.paso > 1 ? '<button type="button" class="btn" data-nv="atras">Atrás</button>' : (corrigiendo ? '<button type="button" class="btn" data-nv="cancelar">Cancelar</button>' : ''))+
       (V.paso < 4 ? '<button type="button" class="btn prin der" data-nv="sig">Siguiente</button>'
-                  : '<button type="button" class="btn prin der" data-nv="guardar">'+(corrigiendo ? 'Guardar cambios' : 'Guardar venta')+'</button>')+'</div>';
+                  : '<button type="button" class="btn prin der" data-nv="guardar">'+(corrigiendo ? 'Guardar cambios' : 'Guardar orden')+'</button>')+'</div>';
     m.innerHTML = html;
     var f = q('#vRem', m); if(f && !V.remision) f.focus();
   }
@@ -228,24 +249,24 @@
   }
 
   function guardarVenta(m){
-    var motivo = V.id ? H.pedirTexto({titulo: '¿Por qué corriges la venta?', ayuda: 'Queda guardado junto con el cambio', etiqueta: 'Motivo', largo: true,
+    var motivo = V.id ? H.pedirTexto({titulo: '¿Por qué corriges la orden?', ayuda: 'Queda guardado junto con el cambio', etiqueta: 'Motivo', largo: true,
       boton: 'Guardar cambios', falta: 'Escribe el motivo del cambio.'}) : Promise.resolve(null);
     motivo.then(function(mot){
       if(V.id && mot==null) return;
       var b = q('[data-nv="guardar"]', m); if(b){ b.disabled = true; b.textContent = 'Guardando…'; }
-      var p = {id: V.id, bodega: V.bodega, remision: V.remision, fecha: V.fecha, vendedor: V.vendedor, destino: V.destino, tipo_destino: V.tipo_destino, cp: V.cp || null};
+      var p = {id: V.id, tipo: V.tipo, bodega: V.bodega, remision: V.remision, fecha: V.fecha, vendedor: V.vendedor, destino: V.destino, tipo_destino: V.tipo_destino, cp: V.cp || null};
       if(!V.conProduccion) p.vehiculos = V.vehiculos;
       H.rpc('inv_venta_guardar', {p: p, p_motivo: mot}).then(function(r){
-        var id = r.id, rem = V.remision, eraCorreccion = !!V.id;
+        var id = r.id, rem = (V.tipo==='showroom' ? 'de showroom ' : 'de la remisión ')+(r.remision || V.remision), eraCorreccion = !!V.id;
         V.terminado = true;
         return H.rpc('inv_ventas', {p_bodega: E.verBodega}).then(function(l){
           var us = l.filter(function(x){ return x.id===id });
           var porArmar = us.filter(function(x){ return x.estado_venta==='por_armar' }).length, esperan = us.filter(function(x){ return x.estado_venta==='esperando' }).length;
           var det = [porArmar ? porArmar+' por armar' : '', esperan ? esperan+' esperando piezas' : ''].filter(Boolean).join(' y ');
           refrescarCuentas();
-          // Sin pantalla de "Listo" (pedido del usuario): letrero y punto naranja en Lista de ventas
-          if(eraCorreccion){ H.avisar('Se guardaron los cambios de la venta '+rem+'.'); abrirFichaVenta(id); }
-          else { H.avisar('Se guardó la venta '+rem+(det ? ': '+det : '')+'.'); H.marcarNuevo('ventas'); V = null; dibujarVenta(m); }
+          // Sin pantalla de "Listo" (pedido del usuario): letrero y punto naranja en Lista de órdenes
+          if(eraCorreccion){ H.avisar('Se guardaron los cambios de la orden '+rem+'.'); abrirFichaVenta(id); }
+          else { H.avisar('Se guardó la orden '+rem+(det ? ': '+det : '')+'.'); H.marcarNuevo('ventas'); V = null; dibujarVenta(m); }
         });
       }).catch(function(err){ V.error = H.mensaje(err); dibujarVenta(m); });
     });
@@ -255,6 +276,7 @@
     var b = e.target.closest('[data-nv]'); if(!b) return;
     var a = b.dataset.nv; V.error = ''; leerVenta(m); leerForm(m);
     if(a==='vf'){ clicForm(b, m); return; }
+    if(a==='tipo-orden'){ V.tipo = b.dataset.val; dibujarVenta(m); return; }
     if(a==='bodega'){
       H.abrirLista({titulo: 'Bodega', grupos: [{opciones: H.BODEGAS}], elegido: V.bodega}).then(function(v){ if(v) V.bodega = v; dibujarVenta(m); });
     } else if(a==='agregar'){
@@ -267,14 +289,15 @@
         .then(function(v){ if(v) V.tipo_destino = v; dibujarVenta(m); });
     } else if(a==='sig'){
       if(V.paso===1){
-        if(E.rol==='admin' && !V.bodega) V.error = 'Escoge la bodega';
-        else if(!V.remision) V.error = 'Escribe la remisión';
-        else if(!V.fecha) V.error = 'Escribe la fecha de compra';
-        else if(!V.vendedor) V.error = 'Escribe el vendedor';
+        if(!V.tipo) V.error = 'Escoge para quién es la orden';
+        else if(E.rol==='admin' && !V.bodega) V.error = 'Escoge la bodega';
+        else if(V.tipo==='cliente' && !V.remision) V.error = 'Escribe la remisión';
+        else if(!V.fecha) V.error = V.tipo==='cliente' ? 'Escribe la fecha de compra' : 'Escribe la fecha';
+        else if(V.tipo==='cliente' && !V.vendedor) V.error = 'Escribe el vendedor';
         else V.paso = 2;
       } else if(V.paso===2){
         if(!V.vehiculos.length) V.error = 'Agrega al menos un vehículo';
-        else V.paso = 3;
+        else V.paso = V.tipo==='showroom' ? 4 : 3;
       } else if(V.paso===3){
         if(!V.destino) V.error = 'Escribe el destino';
         else if(V.cp && !/^\d{5}$/.test(V.cp)) V.error = 'El código postal lleva 5 números (o déjalo en blanco)';
@@ -284,7 +307,7 @@
       dibujarVenta(m);
       // Al entrar a Vehículos sin ninguno, se abre de una vez el formulario
       if(V.paso===2 && !V.vehiculos.length && !V.error && !V.conProduccion){ V.form = nuevoForm(null); dibujarVenta(m); }
-    } else if(a==='atras'){ V.form = null; V.paso = Math.max(1, V.paso-1); dibujarVenta(m); }
+    } else if(a==='atras'){ V.form = null; var ps = pasosDe(); V.paso = ps[Math.max(0, ps.indexOf(V.paso)-1)]; dibujarVenta(m); }
     else if(a==='cancelar'){ var id = V.id; V = null; abrirFichaVenta(id); }
     else if(a==='guardar') guardarVenta(m);
   }
@@ -295,7 +318,7 @@
   function agruparVentas(lista){
     var porId = {}, orden = [];
     lista.forEach(function(u){
-      if(!porId[u.id]){ porId[u.id] = {id: u.id, remision: u.remision, fecha: u.fecha, vendedor: u.vendedor, destino: u.destino, tipo_destino: u.tipo_destino, cp: u.cp,
+      if(!porId[u.id]){ porId[u.id] = {id: u.id, tipo: u.tipo, remision: u.remision, fecha: u.fecha, vendedor: u.vendedor, destino: u.destino, tipo_destino: u.tipo_destino, cp: u.cp,
         bodega: u.bodega, unidades: []}; orden.push(porId[u.id]); }
       porId[u.id].unidades.push(u);
     });
@@ -309,8 +332,8 @@
     H.rpc('inv_ventas', {p_bodega: E.verBodega}).then(function(lista){
       if(E.seccion!=='ventas') return;
       var ventas = agruparVentas(lista);
-      var html = '<header class="inv-cab"><h1>Lista de ventas</h1><p>De la compra más antigua a la más reciente.</p></header>'+avisoPrueba();
-      if(!ventas.length) html += '<div class="inv-vacio"><b>Todavía no hay ventas</b>'+(H.puedeEscribir() ? 'Cuando llegue una por WhatsApp, regístrala en "Nueva venta".' : '')+'</div>';
+      var html = '<header class="inv-cab"><h1>Lista de órdenes</h1></header>'+avisoPrueba();
+      if(!ventas.length) html += '<div class="inv-vacio"><b>Todavía no hay órdenes</b>'+(H.puedeEscribir() ? 'Regístralas en "Nueva orden".' : '')+'</div>';
       SECCIONES_VENTA.forEach(function(sec){
         var g = ventas.filter(function(v){ return sec.estados.indexOf(v.estado) > -1 }); if(!g.length) return;
         html += '<h2 class="inv-sub'+(sec.id==='atender' ? ' rojo' : '')+'">'+sec.nombre+' <span>· '+g.length+'</span></h2>'+(sec.sub ? '<p class="inv-sub-p">'+sec.sub+'</p>' : '')+
@@ -327,8 +350,10 @@
   function tarjetaVenta(v){
     var n = v.unidades.length;
     return '<button type="button" class="tarjeta clic venta-t" data-ficha-venta="'+v.id+'"><span class="cant rem">'+esc(v.remision)+'</span>'+
-      '<span class="txt"><b>'+n+(n===1 ? ' vehículo' : ' vehículos')+'</b><small>'+esc(v.vendedor)+' · '+esc(v.destino)+' · '+esc(dias(v.fecha))+
-      (E.rol!=='bodega' && !E.verBodega ? ' · '+esc(H.nombreBodega(v.bodega)) : '')+(v.cp ? '' : ' · <span class="etq pend chica">CP pendiente</span>')+'</small>'+
+      '<span class="txt"><b>'+n+(n===1 ? ' vehículo' : ' vehículos')+'</b><small>'+
+      (v.tipo==='showroom' ? '<span class="etq azul chica">Showroom</span> · '+esc(dias(v.fecha))
+        : esc(v.vendedor)+' · '+esc(v.destino)+' · '+esc(dias(v.fecha)))+
+      (E.rol!=='bodega' && !E.verBodega ? ' · '+esc(H.nombreBodega(v.bodega)) : '')+(v.cp || v.tipo==='showroom' ? '' : ' · <span class="etq pend chica">CP pendiente</span>')+'</small>'+
       '<span class="unidades">'+v.unidades.map(function(u){
         return '<span class="unidad">'+puntoColor(u.color_id)+esc(nombreVeh(u))+(u.especial ? ' · '+esc(u.especial_que) : '')+' '+etiquetaUnidad(u)+'</span>';
       }).join('')+'</span></span>'+
@@ -340,17 +365,18 @@
     var m = main(); m.innerHTML = '<p class="inv-cargando">Cargando…</p>'; window.scrollTo({top: 0});
     H.rpc('inv_ventas', {p_bodega: null}).then(function(l){
       var v = agruparVentas(l.filter(function(x){ return x.id===id }))[0];
-      if(!v){ m.innerHTML = '<p class="inv-error">Esa venta no existe.</p>'; return; }
+      if(!v){ m.innerHTML = '<p class="inv-error">Esa orden no existe.</p>'; return; }
       CACHE.venta = v;
       var dato = function(t, val){ return '<div class="dato"><span>'+t+'</span><b>'+val+'</b></div>' };
-      var html = '<button type="button" class="btn-link" data-ir-sec="ventas">‹ Lista de ventas</button>'+
-        '<header class="inv-cab"><h1>Remisión '+esc(v.remision)+'</h1></header>'+
+      var sr = v.tipo==='showroom';
+      var html = '<button type="button" class="btn-link" data-ir-sec="ventas">‹ Lista de órdenes</button>'+
+        '<header class="inv-cab"><h1>'+esc(ordenDe(v))+'</h1></header>'+
         '<div class="datos">'+
-        dato('Fecha de compra', esc(H.fechaLarga(v.fecha))+' · '+esc(dias(v.fecha)))+
-        dato('Vendedor', esc(v.vendedor))+
+        dato(sr ? 'Fecha' : 'Fecha de compra', esc(H.fechaLarga(v.fecha))+' · '+esc(dias(v.fecha)))+
+        (sr ? dato('Para', 'Showroom') : dato('Vendedor', esc(v.vendedor))+
         dato('Destino', esc(v.destino)+(v.tipo_destino ? ' · '+esc(v.tipo_destino) : ''))+
         dato('Código postal', v.cp ? esc(v.cp)+(H.puedeEscribir() ? ' <button type="button" class="btn-link" data-venta-cp="'+v.id+'">Cambiar</button>' : '')
-          : '<span class="etq pend chica">Pendiente</span>'+(H.puedeEscribir() ? ' <button type="button" class="btn-link" data-venta-cp="'+v.id+'">Agregar</button>' : ''))+
+          : '<span class="etq pend chica">Pendiente</span>'+(H.puedeEscribir() ? ' <button type="button" class="btn-link" data-venta-cp="'+v.id+'">Agregar</button>' : '')))+
         (E.rol!=='bodega' ? dato('Bodega', esc(H.nombreBodega(v.bodega))) : '')+
         '</div><h2 class="inv-sub">Vehículos <span>· '+v.unidades.length+'</span></h2><div class="tarjetas">'+
         v.unidades.map(function(u){
@@ -358,12 +384,12 @@
           if(u.estado_venta==='por_armar' && H.puedeEscribir()) acc = '<button type="button" class="btn prin" data-entrar-unidad="'+u.unidad_id+'">Meter a producción</button>';
           else if(u.vehiculo) acc = '<button type="button" class="btn" data-ficha-veh="'+u.vehiculo.id+'">Ver vehículo</button>';
           return '<div class="tarjeta"><span class="cant">'+u.parte+'</span><span class="txt"><b>'+puntoColor(u.color_id)+esc(nombreVeh(u))+'</b><small>'+
-            (u.especial ? 'Especial: '+esc(u.especial_que) : 'Normal')+(u.vehiculo ? ' · Serie '+esc(u.vehiculo.serie) : '')+'</small></span>'+
+            (u.especial ? 'Especial: '+esc(u.especial_que) : 'Normal')+(u.vehiculo && u.vehiculo.serie ? ' · Serie '+esc(u.vehiculo.serie) : '')+'</small></span>'+
             etiquetaUnidad(u)+(acc ? '<span class="btns">'+acc+'</span>' : '')+'</div>';
         }).join('')+'</div>';
       if(v.unidades.some(function(u){ return u.estado_venta==='esperando' }))
         html += '<p style="margin:14px 0 0;color:var(--muted)">Los que están esperando piezas pasan solos a "Por armar" cuando se revise un contenedor que traiga ese modelo y color.</p>';
-      if(H.puedeEscribir()) html += '<div class="acciones"><button type="button" class="btn" data-corregir-venta="'+v.id+'">Corregir la venta</button></div>';
+      if(H.puedeEscribir()) html += '<div class="acciones"><button type="button" class="btn" data-corregir-venta="'+v.id+'">Corregir la orden</button></div>';
       m.innerHTML = html;
     }).catch(function(err){ errorEn(m, err) });
   }
@@ -394,10 +420,10 @@
     if(innerWidth < 700) return 'lista';
     try { return localStorage.getItem('logistica.prodModo') || 'linea' } catch(e){ return 'linea' }
   }
-  function paraDe(h){ return h.venta ? 'Venta '+esc(h.venta.remision)+(h.venta.partes > 1 ? ' ('+h.venta.parte+' de '+h.venta.partes+')' : '') : 'Showroom' }
+  function paraDe(h){ return h.venta ? (h.venta.tipo==='showroom' ? 'Showroom ' : 'Venta ')+esc(h.venta.remision)+(h.venta.partes > 1 ? ' ('+h.venta.parte+' de '+h.venta.partes+')' : '') : 'Showroom' }
   function tarjetaVeh(h){
     return '<button type="button" class="tarjeta clic" data-ficha-veh="'+h.id+'"><span class="txt"><b>'+puntoColor(h.color_id)+esc(nombreVeh(h))+'</b>'+
-      '<small>Serie '+esc(h.serie)+' · '+paraDe(h)+(E.rol!=='bodega' && !E.verBodega ? ' · '+esc(H.nombreBodega(h.bodega)) : '')+'</small></span>'+
+      '<small>'+(h.serie ? 'Serie '+esc(h.serie)+' · ' : '')+paraDe(h)+(E.rol!=='bodega' && !E.verBodega ? ' · '+esc(H.nombreBodega(h.bodega)) : '')+'</small></span>'+
       (h.especial ? '<span class="etq azul">Especial</span>' : '')+
       (h.etapa!=='listo' ? '<span class="etq anul">'+esc(dias(h.etapa_desde))+'</span>' : '')+
       '<span class="fl" style="color:var(--muted)">'+H.ICO.flecha+'</span></button>';
@@ -415,46 +441,27 @@
 
   // ---------------------------------------------------------------- Entrar a producción
   function entrar(unidadId, despues){
-    var paso = unidadId ? Promise.resolve({unidad_id: unidadId}) : H.abrirLista({titulo: '¿Para qué es?', grupos: [{opciones: [
-      {valor: 'venta', nombre: 'Para una venta', detalle: 'Ya tiene nota de remisión'},
-      {valor: 'showroom', nombre: 'Para showroom', detalle: 'Se queda en bodega y se puede mandar a una sucursal'}]}]}).then(function(para){
-      if(para==='venta'){
-        return H.rpc('inv_ventas', {p_bodega: E.verBodega}).then(function(l){
-          var por = l.filter(function(v){ return v.estado_venta==='por_armar' });
-          if(!por.length){ aviso('No hay ventas por armar', 'Primero registra la venta en "Nueva venta". Si ya está, revisa que haya un vehículo de ese modelo y color en espera de armado.'); return null; }
-          return H.abrirLista({titulo: '¿Qué vehículo de qué venta?', ayuda: 'De la compra más antigua a la más reciente', grupos: [{opciones: por.map(function(v){
-            return {valor: v.unidad_id, nombre: 'Remisión '+remisionDe(v), detalle: nombreVeh(v)+(v.especial ? ' · Especial: '+v.especial_que : ''), color: colorHex(v.color_id)} })}]})
-            .then(function(id){ return id==null ? null : {unidad_id: id} });
-        });
-      }
-      if(para==='showroom'){
-        return H.rpc('inv_espera_armado', {p_bodega: E.verBodega}).then(function(l){
-          if(!l.length){ aviso('No hay vehículos en espera de armado', 'Aparecen cuando se revisa un contenedor.'); return null; }
-          return H.abrirLista({titulo: '¿Qué vehículo?', ayuda: 'De los que están en espera de armado', grupos: [{opciones: l.map(function(x, i){
-            return {valor: i, nombre: nombreVeh(x), detalle: E.rol!=='bodega' ? H.nombreBodega(x.bodega) : '', n: x.cantidad, color: colorHex(x.color_id)} })}]})
-            .then(function(i){ if(i==null) return null; var x = l[i];
-              return {para: 'showroom', bodega: x.bodega, modelo_id: x.modelo_id, opciones: x.opciones, color_id: x.color_id}; });
-        });
-      }
-      return null;
+    // Siempre desde una orden (de cliente o de showroom); el número de serie se pone al terminar Armado (26-nov-2026)
+    var paso = unidadId ? Promise.resolve(unidadId) : H.rpc('inv_ventas', {p_bodega: E.verBodega}).then(function(l){
+      var por = l.filter(function(v){ return v.estado_venta==='por_armar' });
+      if(!por.length){ aviso('No hay órdenes por armar', 'Primero registra la orden en "Nueva orden". Si ya está, revisa que haya un vehículo de ese modelo y color en espera de armado.'); return null; }
+      var cli = por.filter(function(v){ return v.tipo!=='showroom' }), sr = por.filter(function(v){ return v.tipo==='showroom' });
+      var op = function(v){ return {valor: v.unidad_id, nombre: ordenDe(v)+(v.partes > 1 ? ' · '+v.parte+' de '+v.partes : ''), detalle: nombreVeh(v)+(v.especial ? ' · Especial: '+v.especial_que : ''), color: colorHex(v.color_id)} };
+      return H.abrirLista({titulo: '¿Qué vehículo de qué orden?', ayuda: 'De la más antigua a la más reciente',
+        grupos: [{titulo: cli.length && sr.length ? 'Clientes' : '', opciones: cli.map(op)}, {titulo: sr.length ? 'Showroom' : '', opciones: sr.map(op)}].filter(function(g){ return g.opciones.length })});
     });
-    paso.then(function(p){
-      if(!p) return;
-      return H.pedirTexto({titulo: 'Número de serie', ayuda: 'El que trae el chasis', etiqueta: 'Número de serie', boton: 'Entrar a producción',
-        falta: 'Escribe el número de serie.'}).then(function(serie){
-        if(serie==null) return;
-        p.serie = serie;
-        return H.rpc('inv_produccion_entrar', {p: p}).then(function(r){
-          refrescarCuentas();
-          H.avisar('Serie '+serie+' entró a producción, en Armado. Sus piezas se descontaron del inventario.');
-          // Entra aunque no alcancen las piezas (llegan con el vehículo), pero se avisa cuáles faltan en el inventario
-          var fal = r.faltan_en_inventario || [];
-          if(fal.length) aviso('Faltan piezas en el inventario', 'Serie '+serie+' entró a producción, pero en el inventario no alcanzaron: '+
-            fal.map(function(x){ return x.faltan+' '+x.pieza }).join(', ')+'. Revisa que se hayan registrado al revisar su contenedor.');
-          H.marcarNuevo('produccion');
-          if(despues) despues(r.id);
-          else if(E.seccion==='ventas' && CACHE.venta) abrirFichaVenta(CACHE.venta.id);
-        });
+    paso.then(function(id){
+      if(id==null) return;
+      return H.rpc('inv_produccion_entrar', {p: {unidad_id: id}}).then(function(r){
+        refrescarCuentas();
+        H.avisar('Entró a producción, en Armado. Sus piezas se descontaron del inventario.');
+        // Entra aunque no alcancen las piezas (llegan con el vehículo), pero se avisa cuáles faltan en el inventario
+        var fal = r.faltan_en_inventario || [];
+        if(fal.length) aviso('Faltan piezas en el inventario', 'Entró a producción, pero en el inventario no alcanzaron: '+
+          fal.map(function(x){ return x.faltan+' '+x.pieza }).join(', ')+'. Revisa que se hayan registrado al revisar su contenedor.');
+        H.marcarNuevo('produccion');
+        if(despues) despues(r.id);
+        else if(E.seccion==='ventas' && CACHE.venta) abrirFichaVenta(CACHE.venta.id);
       });
     }).catch(function(err){ aviso('No se pudo', H.mensaje(err)); });
   }
@@ -464,25 +471,26 @@
   function avanzar(h, p, alTerminar){
     var sig = siguiente(h);
     return H.rpc('inv_vehiculo_avanzar', {p_id: h.id, p: p || {}}).then(function(r){
-      var msg = r.faltantes ? 'Serie '+h.serie+' se quedó en Revisión 1: le faltan piezas.' : r.no_paso ? 'Serie '+h.serie+' no pasó la revisión final.' : 'Serie '+h.serie+' pasó a '+etapa(r.etapa).nombre+'.';
+      var quien = (p && p.serie) ? 'Serie '+p.serie : idVeh(h);
+      var msg = r.faltantes ? quien+' se quedó en Revisión: le faltan piezas.' : r.no_paso ? quien+' no pasó la revisión final.' : quien+' pasó a '+etapa(r.etapa).nombre+'.';
       (alTerminar || trasCambio)(h.id, msg);
     }).catch(function(err){ aviso('No se pudo', H.mensaje(err)); });
   }
   function regresar(h, alTerminar){
     var ant = anterior(h), destino = ant ? ant.nombre : 'En espera de armado';
     H.confirmar({titulo: '¿Regresar a '+destino+'?', ayuda: h.etapa==='armado' ? 'El vehículo sale de producción y regresa a En espera de armado.'
-        : (ant && (ant.id==='revision1' || ant.id==='armado') ? 'Lo que se anotó en la Revisión 1 se borra, para volver a revisarlo.' : 'Por si se pasó por error.'),
+        : (ant && (ant.id==='revision' || ant.id==='armado') ? 'Lo que se anotó en la revisión se borra, para volver a revisarlo.' : 'Por si se pasó por error.'),
       si: 'Sí, regresar', no: 'Cancelar'}).then(function(ok){
       if(!ok) return;
       H.rpc('inv_vehiculo_regresar', {p_id: h.id}).then(function(r){
-        if(r.borrado){ cerrarFicha(); (alTerminar || trasCambio)(null, 'Serie '+h.serie+' regresó a En espera de armado.'); }
-        else (alTerminar || trasCambio)(h.id, 'Serie '+h.serie+' regresó a '+destino+'.');
+        if(r.borrado){ cerrarFicha(); (alTerminar || trasCambio)(null, idVeh(h)+' regresó a En espera de armado.'); }
+        else (alTerminar || trasCambio)(h.id, idVeh(h)+' regresó a '+destino+'.');
       }).catch(function(err){ aviso('No se pudo', H.mensaje(err)); });
     });
   }
   function faltantesListos(h, alTerminar){
     H.rpc('inv_vehiculo_faltantes_listos', {p_id: h.id}).then(function(r){
-      (alTerminar || trasCambio)(h.id, 'Serie '+h.serie+': ya se pusieron las piezas. Pasó a '+etapa(r.etapa).nombre+'.');
+      (alTerminar || trasCambio)(h.id, idVeh(h)+': ya se pusieron las piezas. Pasó a '+etapa(r.etapa).nombre+'.');
     }).catch(function(err){ aviso('No se pudo', H.mensaje(err)); });
   }
   function noPasa(h, alTerminar){
@@ -492,14 +500,20 @@
   // El paso principal de la etapa en la que está (lo que hace el botón grande)
   function pasoPrincipal(h, alTerminar){
     if(h.faltantes) return faltantesListos(h, alTerminar);
-    if(h.etapa==='revision1') return revision1(h, alTerminar);
+    // Al terminar Armado se le pone el número de serie del chasis
+    if(h.etapa==='armado' && !h.serie){
+      return H.pedirTexto({titulo: 'Número de serie', ayuda: 'El que trae el chasis', etiqueta: 'Número de serie', boton: 'Terminar armado',
+        falta: 'Escribe el número de serie.'}).then(function(serie){ if(serie!=null) avanzar(h, {serie: serie}, alTerminar); });
+    }
+    if(h.etapa==='revision') return revision1(h, alTerminar);
     if(h.etapa==='revision_final') return avanzar(h, {pasa: true}, alTerminar);
     return avanzar(h, {}, alTerminar);
   }
   function textoPaso(h){
     var sig = siguiente(h);
     if(h.faltantes) return '✓ Ya se pusieron las piezas';
-    if(h.etapa==='revision1') return 'Hacer la Revisión 1';
+    if(h.etapa==='armado') return '✓ Terminar armado';
+    if(h.etapa==='revision') return 'Hacer la revisión';
     if(h.etapa==='revision_final') return '✓ Pasa la revisión final';
     return sig ? 'Pasar a '+sig.nombre : '';
   }
@@ -515,7 +529,7 @@
     function nomPieza(id){ var p = I.porId(E.cat.piezas, id); return p ? p.nombre : '' }
     new Promise(function(fin){
       function abrir(){
-        H.abrirHoja(H.cabHoja('Revisión 1 · Serie '+h.serie, 'Revisa si le falta alguna pieza o si alguna viene dañada')+'<div class="hoja-cuerpo">'+
+        H.abrirHoja(H.cabHoja('Revisión · '+idVeh(h), 'Revisa si le falta alguna pieza o si alguna viene dañada')+'<div class="hoja-cuerpo">'+
           (danos.length ? '<div class="tarjetas">'+danos.map(function(d, k){
             var x = I.porId(E.cat.defectos, d.defecto_id);
             return '<div class="tarjeta" style="padding:10px 12px"><span class="cant">'+d.cantidad+'</span><span class="ico-d">'+H.icoDano(x ? x.nombre : '')+'</span>'+
@@ -580,17 +594,18 @@
     H.rpc('inv_vehiculo', {p_id: id}).then(function(f){
       var h = f.vehiculo, v = f.venta; FICHA = h;
       var r = ruta(h.especial), iAhora = indice(h), et = etapa(h.etapa), ant = anterior(h);
-      var est = h.faltantes ? ['rojo', 'Faltan piezas', 'La Revisión 1 encontró piezas que faltan. No avanza hasta que se pongan.']
+      var sr = !v || v.tipo==='showroom';
+      var est = h.faltantes ? ['rojo', 'Faltan piezas', 'La revisión encontró piezas que faltan. No avanza hasta que se pongan.']
         : h.no_paso ? ['rojo', 'No pasó la revisión final', 'Hay que corregirlo antes de que salga.']
-        : h.etapa==='listo' ? ['ok', 'Listo', v ? 'Listo para enviar.' : 'Listo en showroom.']
+        : h.etapa==='listo' ? ['ok', 'Listo', sr ? 'Listo para showroom.' : 'Listo para enviar.']
         : ['azul', et.nombre, 'Lleva '+dias(h.etapa_desde)+' en esta etapa.'];
-      document.getElementById('ih').textContent = 'Serie '+h.serie;
+      document.getElementById('ih').textContent = idVeh(h, v);
       document.getElementById('is').innerHTML = puntoColor(h.color_id)+esc(nombreVeh(h));
       var kv = [
-        ['Para', v ? 'Venta · remisión '+esc(v.remision)+(v.partes > 1 ? ' ('+v.parte+' de '+v.partes+')' : '') : 'Showroom'],
+        ['Para', v ? (sr ? 'Showroom · '+esc(v.remision) : 'Venta · remisión '+esc(v.remision))+(v.partes > 1 ? ' ('+v.parte+' de '+v.partes+')' : '') : 'Showroom'],
         ['Especial', h.especial ? esc((v && v.especial_que) || 'Sí') : 'No']
       ];
-      if(v) kv.push(['Vendedor', esc(v.vendedor)], ['Destino', esc(v.destino)+(v.tipo_destino ? ' · '+esc(v.tipo_destino) : '')], ['Fecha de venta', esc(H.fechaLarga(v.fecha))+' · hace '+esc(dias(v.fecha))]);
+      if(v && !sr) kv.push(['Vendedor', esc(v.vendedor)], ['Destino', esc(v.destino)+(v.tipo_destino ? ' · '+esc(v.tipo_destino) : '')], ['Fecha de venta', esc(H.fechaLarga(v.fecha))+' · hace '+esc(dias(v.fecha))]);
       kv.push(['Bodega', esc(H.nombreBodega(h.bodega))], ['Entró a producción', esc(H.fechaLarga(String(h.creado).slice(0, 10)))]);
       var html = '<div class="state"><span class="etq '+est[0]+'">'+esc(est[1])+'</span><span><small>'+esc(est[2])+'</small></span></div>'+
         '<ol class="recorrido chico">'+r.map(function(x, i){
@@ -605,7 +620,7 @@
       }
       html += '<dl class="kv">'+kv.map(function(x){ return '<dt>'+x[0]+'</dt><dd>'+x[1]+'</dd>' }).join('')+'</dl>';
       var defs = f.defectos || [];
-      if(defs.length) html += '<h3 class="ficha-sub">Lo que encontró la Revisión 1</h3>'+defs.map(function(d){
+      if(defs.length) html += '<h3 class="ficha-sub">Lo que encontró la revisión</h3>'+defs.map(function(d){
         var x = I.porId(E.cat.defectos, d.defecto_id);
         return '<div class="ficha-dano"><span class="ico-d">'+H.icoDano(x ? x.nombre : '')+'</span><span><b>'+d.cantidad+' · '+esc(x ? x.nombre : '?')+'</b><small>'+
           esc([d.pieza, gravNom(d.gravedad)].filter(Boolean).join(' · '))+'</small></span>'+(d.resuelto ? '<span class="etq ok chica">Ya se puso</span>' : '')+'</div>';
@@ -662,7 +677,7 @@
       var v = CACHE.venta; if(!v) return;
       var renglones = [];
       v.unidades.forEach(function(u){ renglones.push({modelo_id: u.modelo_id, opciones: u.opciones || [], color_id: u.color_id, especial: u.especial, especial_que: u.especial_que || '', cantidad: 1}) });
-      V = {paso: 1, id: v.id, remisionOriginal: v.remision, bodega: v.bodega, remision: v.remision, fecha: v.fecha, vendedor: v.vendedor, destino: v.destino,
+      V = {paso: 1, id: v.id, tipo: v.tipo || 'cliente', remisionOriginal: v.remision, bodega: v.bodega, remision: v.remision, fecha: v.fecha, vendedor: v.vendedor, destino: v.destino,
         tipo_destino: v.tipo_destino || '', cp: v.cp || '', vehiculos: renglones, conProduccion: v.unidades.some(function(u){ return !!u.vehiculo }), error: ''};
       juntar();
       E.seccion = 'venta'; H.dibujarMenu(); dibujarVenta(main());
@@ -685,5 +700,5 @@
   H.prod = {ETAPAS: ETAPAS, etapa: etapa, ruta: ruta, indice: indice, siguiente: siguiente, anterior: anterior, nombreVeh: nombreVeh, colorHex: colorHex,
     puntoColor: puntoColor, dias: dias, paraDe: paraDe, aviso: aviso, entrar: entrar, avanzar: avanzar, regresar: regresar, revision1: revision1,
     faltantesListos: faltantesListos, noPasa: noPasa, pasoPrincipal: pasoPrincipal, textoPaso: textoPaso,
-    abrirFichaVeh: abrirFichaVeh, refrescarCuentas: refrescarCuentas, ESTADOS: ESTADOS, remisionDe: remisionDe};
+    abrirFichaVeh: abrirFichaVeh, refrescarCuentas: refrescarCuentas, ESTADOS: ESTADOS, remisionDe: remisionDe, ordenDe: ordenDe, idVeh: idVeh};
 })();

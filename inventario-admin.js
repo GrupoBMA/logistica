@@ -35,13 +35,14 @@
       function casilla(h){
         var est = h.faltantes ? '<span class="etq rojo chica">Faltan piezas</span>' : h.no_paso ? '<span class="etq rojo chica">No pasó la revisión final</span>'
           : h.etapa==='listo' ? '<span class="etq ok chica">Listo</span>' : '<span class="etq azul chica">'+esc(P.etapa(h.etapa).nombre)+'</span>';
-        return '<button type="button" class="casilla" data-ficha-veh="'+h.id+'"><span class="c-arriba"><b>'+esc(h.serie)+'</b>'+est+'</span>'+
+        return '<button type="button" class="casilla" data-ficha-veh="'+h.id+'"><span class="c-arriba"><b>'+esc(h.serie || P.idVeh(h))+'</b>'+est+'</span>'+
           '<span class="c-veh">'+P.puntoColor(h.color_id)+esc(P.nombreVeh(h))+'</span>'+
           '<span class="c-abajo"><span>'+P.paraDe(h)+(h.especial ? ' · Especial' : '')+'</span><span>'+esc(P.dias(h.etapa_desde))+'</span></span></button>';
       }
       function casillas(lista, nada){ return lista.length ? '<div class="casillas">'+lista.map(casilla).join('')+'</div>' : vacio(nada) }
-      var listosVenta = veh.filter(function(h){ return h.etapa==='listo' && h.venta && !h.no_paso });
-      var showroom = veh.filter(function(h){ return h.etapa==='listo' && !h.venta });
+      var deShowroom = function(h){ return !h.venta || h.venta.tipo==='showroom' };
+      var listosVenta = veh.filter(function(h){ return h.etapa==='listo' && !deShowroom(h) && !h.no_paso });
+      var showroom = veh.filter(function(h){ return h.etapa==='listo' && deShowroom(h) });
       var enProd = veh.filter(function(h){ return h.etapa!=='listo' && !h.faltantes && !h.no_paso });
       var falt = veh.filter(function(h){ return h.faltantes }), nop = veh.filter(function(h){ return h.no_paso });
       var esperan = ventas.filter(function(u){ return u.estado_venta==='esperando' });

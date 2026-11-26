@@ -42,6 +42,7 @@
     produccion: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 4.5a3 3 0 0 0 3.5 3.8l-7.7 7.7a1.6 1.6 0 0 1-2.3-2.3l7.7-7.7a3 3 0 0 0-1.2-1.5z"/></svg>',
     mapa: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="15" height="13" rx="1.5"/><path d="M2.5 9.5h6v7M8.5 3.5v3M12 9.5h5.5"/></svg>',
     plegar: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="15" height="13" rx="2"/><path d="M7.5 3.5v13"/></svg>',
+    plan: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="14" height="13" rx="2"/><path d="M3 8h14M7 2.5v3M13 2.5v3M6.5 11.5l1.5 1.5 3-3"/></svg>',
     flecha: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg>'
   };
 
@@ -52,10 +53,12 @@
     {id: 'mapa',         grupo: 'Inicio',       nombre: 'Mapa de la bodega',    sub: 'Todo de un vistazo',               roles: ['admin','bodega','lectura']},
     {id: 'recibir',      grupo: 'Contenedores', nombre: 'Recibir contenedor',   sub: 'Registrar lo que llegó',           roles: ['admin','bodega']},
     {id: 'contenedores', grupo: 'Contenedores', nombre: 'Lista de contenedores', sub: 'Revisar y consultar',             roles: ['admin','bodega','lectura']},
-    {id: 'venta',        grupo: 'Ventas',       nombre: 'Nueva venta',          sub: 'La que llegó por WhatsApp',        roles: ['admin','bodega']},
-    {id: 'ventas',       grupo: 'Ventas',       nombre: 'Lista de ventas',      sub: 'Por armar, esperando piezas…',     roles: ['admin','bodega','lectura']},
+    // "Ventas" pasó a "Órdenes": de cliente o de showroom (pedido del usuario, 26-nov-2026)
+    {id: 'venta',        grupo: 'Órdenes',      nombre: 'Nueva orden',          sub: 'De cliente o de showroom',         roles: ['admin','bodega']},
+    {id: 'ventas',       grupo: 'Órdenes',      nombre: 'Lista de órdenes',     sub: 'Por armar, esperando piezas…',     roles: ['admin','bodega','lectura']},
     {id: 'vehiculos',    grupo: 'Inventario',   nombre: 'Vehículos',            sub: 'Listos, en proceso, en espera…',   roles: ['admin','bodega','lectura']},
     {id: 'piezas',       grupo: 'Inventario',   nombre: 'Piezas',               sub: 'Disponibles, dañadas y faltantes', roles: ['admin','bodega','lectura']},
+    {id: 'plan',         grupo: 'Producción',   nombre: 'Plan de armado',       sub: 'Lo que se arma esta semana',       roles: ['admin','bodega','lectura']},
     {id: 'produccion',   grupo: 'Producción',   nombre: 'Línea de producción',  sub: 'Pasar vehículos de etapa',         roles: ['admin','bodega','lectura']},
     {id: 'catalogos',    grupo: 'Administración', nombre: 'Catálogos',          sub: 'Modelos, colores, piezas',         roles: ['admin']},
     {id: 'cambios',      grupo: 'Administración', nombre: 'Cambios',            sub: 'Lo que corrigieron las bodegas',   roles: ['admin']}
