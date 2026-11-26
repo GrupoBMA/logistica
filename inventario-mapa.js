@@ -129,18 +129,14 @@
 
   function dibujar(caja){
     var d = M.datos, k = conteos(d);
-    caja.innerHTML = '<div class="mp-arriba"></div><div class="linea-caja mp-linea"></div>';
-    var svg = el('svg', {viewBox: '0 0 200 38', preserveAspectRatio: 'xMidYMid meet', class: 'mapa-svg', role: 'img', 'aria-label': 'Mapa de la bodega'}, q('.mp-arriba', caja));
+    // Una sola bodega (los muros son el borde de .mp-bodega): arriba las áreas, abajo la línea (pedido del usuario, 26-nov-2026)
+    caja.innerHTML = '<div class="mp-bodega"><div class="mp-arriba"><span class="mp-puerta" aria-hidden="true"></span></div><div class="linea-caja mp-linea"></div></div>';
+    var svg = el('svg', {viewBox: '10 2 187 34', preserveAspectRatio: 'xMidYMid meet', class: 'mapa-svg', role: 'img', 'aria-label': 'Mapa de la bodega'}, q('.mp-arriba', caja));
     el('defs', {}, svg).innerHTML =
       '<filter id="mpSombra" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy=".4" stdDeviation=".5" flood-color="#000" flood-opacity=".16"/></filter>'+
       '<filter id="mpSombraC" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="0" dy=".25" stdDeviation=".25" flood-color="#000" flood-opacity=".28"/></filter>'+
       '<pattern id="mpRayas" width="2" height="2" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="1" height="2" fill="#e0a92c" fill-opacity=".35"/></pattern>';
 
-    // Piso y muros (puerta del andén a la izquierda; la de clientes a la derecha, junto al mostrador)
-    el('rect', {x: 9, y: 1, width: 189, height: 36, rx: 2, class: 'mp-piso', filter: 'url(#mpSombra)'}, svg);
-    el('path', {d: 'M 9 12 V 1 H 198 V 12 M 198 26 V 37 H 9 V 26', class: 'mp-muro'}, svg);
-    for(var y = 12.6; y < 26; y += 1.4) el('line', {x1: 8.5, x2: 9.5, y1: y, y2: y, class: 'mp-cortina'}, svg);
-    el('path', {d: 'M 198 12 A 7 7 0 0 0 191 19 M 198 26 A 7 7 0 0 1 191 19', class: 'mp-abre'}, svg);
 
     var capaZ = el('g', {}, svg), capaC = el('g', {}, svg), capaL = el('g', {}, svg);
     Object.keys(CAJAS).forEach(function(id){
@@ -153,11 +149,14 @@
 
     // Camión chico y vertical junto a la puerta del andén, solo como símbolo (pedido del usuario, 26-nov-2026), y el patín
     if(H.puedeEscribir()){
-      var cam = el('g', {class: 'mp-zona', 'data-zona': 'recibir', filter: 'url(#mpSombraC)'}, capaC);
+      // El camión va afuera, junto a la puerta del andén (fuera del muro), en su propio dibujito
+      var camSvg = el('svg', {viewBox: '1.5 7.5 6 21', class: 'mp-camion', role: 'button', 'aria-label': 'Recibir contenedor'}, q('.mp-arriba', caja));
+      var cam = el('g', {}, camSvg);
       el('rect', {x: 2, y: 8, width: 5, height: 15, rx: .5, fill: '#c4512f', stroke: 'rgba(0,0,0,.25)', 'stroke-width': .15}, cam);
       for(var cy = 9.2; cy < 22.5; cy += 1.3) el('line', {x1: 2.4, x2: 6.6, y1: cy, y2: cy, stroke: '#000', 'stroke-opacity': .13, 'stroke-width': .22}, cam);
       el('rect', {x: 2.4, y: 23.6, width: 4.2, height: 4.6, rx: 1.1, fill: '#e8e6df', stroke: 'rgba(0,0,0,.2)', 'stroke-width': .15}, cam);
       el('rect', {x: 2.9, y: 26.6, width: 3.2, height: 1.1, rx: .4, fill: '#9cc3e6'}, cam);
+      camSvg.addEventListener('click', function(){ abrirZona('recibir') });
       var pat = el('g', {class: 'mp-zona', 'data-zona': 'recibir', filter: 'url(#mpSombraC)', transform: 'translate(20 29)'}, capaC);
       el('rect', {x: -2, y: -1.4, width: 3.4, height: 2.8, rx: .5, fill: '#f2b53a'}, pat);
       el('rect', {x: 1.4, y: -1.1, width: 2.4, height: .5, fill: '#55575c'}, pat);
@@ -213,7 +212,7 @@
       var t = el('text', {class: 'mp-nombre', x: x0, y: y0}, g); t.textContent = z.nombre;
       if(z.sub){ var s = el('text', {class: 'mp-chico', x: x0, y: y0+2.6}, g); s.textContent = z.sub; }
       var kk = k[id]; if(kk.n==null) return;
-      var ancho = String(kk.n).length > 1 ? 4.2 : 3.3, bx = x0 + t.getComputedTextLength() + 2.6;
+      var ancho = 2 + String(kk.n).length * 1.3, bx = x0 + t.getComputedTextLength() + 1 + ancho/2;
       el('rect', {x: bx-ancho/2, y: y0-2.6, width: ancho, height: 3.1, rx: 1.55, class: kk.n ? 'mp-globo' : 'mp-globo cero'}, g);
       var tn = el('text', {class: 'mp-cuenta', x: bx, y: y0-1.05}, g); tn.textContent = kk.n;
       if(kk.alerta) el('circle', {class: 'mp-respira', cx: bx+ancho/2+1.4, cy: y0-1.05, r: .9, fill: 'var(--neg)'}, g);

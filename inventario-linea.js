@@ -1,8 +1,8 @@
 /* Producción vista como línea (21-nov-2026). Viene del prototipo prototipos/linea-produccion-svg.html, que el usuario escogió.
    Banda en U vista desde arriba, solo SVG (sin librerías). La producción empieza en Armado (sin "En espera", 26-nov-2026):
    arriba Armado y Revisión, mecánica y activación; abajo, de derecha a izquierda, Detallado y pintura, Revisión final y Listo.
-   Reparación es un desvío lateral dentro de la U para los que no pasan la revisión (26-nov-2026): sale de la banda después
-   de Revisión y vuelve a ella antes de la esquina. Herrería y Forrado son una rama aparte (por fuera, a la derecha) que
+   Reparación es un desvío lateral por fuera de la U, arriba, para los que no pasan la revisión (26-nov-2026): sale de la
+   banda después de Revisión y vuelve a ella antes de la esquina. Herrería y Forrado son una rama aparte (por fuera, a la derecha) que
    sale después de Revisión (o de Reparación) y vuelve antes de Detallado.
    Al picar un área, ARRIBA de la línea sale la lista de sus vehículos con sus pasos para avanzarlos o regresarlos,
    y ABAJO solo se ve cómo se mueven (pedido del usuario). */
@@ -10,9 +10,10 @@
   var H = window.InventarioApp._h, E = H.E, esc = H.esc;
   var NS = 'http://www.w3.org/2000/svg';
   var POS = {
-    armado: [20,0,'arriba'], revision: [50,0,'arriba'], reparacion: [75,26,'lateral'],
-    herreria: [120,15,'rama'], forrado: [120,41,'rama'],
-    detallado: [80,56,'abajo'], revision_final: [50,56,'abajo'], listo: [20,56,'abajo']
+    // Más ancha y más baja para llenar el espacio (26-nov-2026); Reparación va por fuera de la U, arriba
+    armado: [32,0,'arriba'], revision: [80,0,'arriba'], reparacion: [122,-17,'lateral'],
+    herreria: [202,11,'rama'], forrado: [202,33,'rama'],
+    detallado: [150,46,'abajo'], revision_final: [100,46,'abajo'], listo: [50,46,'abajo']
   };
   var COLOR = {armado:'#f08a4b', revision:'#26a889', reparacion:'#e5533d', herreria:'#6c7a91', forrado:'#9a6ee0',
     detallado:'#e7698a', revision_final:'#3f9f5d', listo:'#7d848e'};
@@ -20,12 +21,12 @@
   function ruta(a, b){
     var R = {
       'armado>revision': [p('armado'), p('revision')],
-      'revision>reparacion': [p('revision'), [64,0], [64,26], p('reparacion')],
-      'reparacion>detallado': [p('reparacion'), [86,26], [86,0], [100,0], [100,56], p('detallado')],
-      'reparacion>herreria': [p('reparacion'), [86,26], [86,0], [100,0], [120,0], p('herreria')],
-      'revision>detallado': [p('revision'), [100,0], [100,56], p('detallado')],
-      'revision>herreria': [p('revision'), [100,0], [120,0], p('herreria')], 'herreria>forrado': [p('herreria'), p('forrado')],
-      'forrado>detallado': [p('forrado'), [120,56], [100,56], p('detallado')],
+      'revision>reparacion': [p('revision'), [106,0], [106,-17], p('reparacion')],
+      'reparacion>detallado': [p('reparacion'), [138,-17], [138,0], [178,0], [178,46], p('detallado')],
+      'reparacion>herreria': [p('reparacion'), [138,-17], [138,0], [178,0], [202,0], p('herreria')],
+      'revision>detallado': [p('revision'), [178,0], [178,46], p('detallado')],
+      'revision>herreria': [p('revision'), [178,0], [202,0], p('herreria')], 'herreria>forrado': [p('herreria'), p('forrado')],
+      'forrado>detallado': [p('forrado'), [202,46], [178,46], p('detallado')],
       'detallado>revision_final': [p('detallado'), p('revision_final')],
       'revision_final>listo': [p('revision_final'), p('listo')]
     };
@@ -44,7 +45,7 @@
     L = {caja: caja, veh: {}, abierta: abierta};
     L.panel = document.createElement('div'); L.panel.className = 'ln-panel'; caja.appendChild(L.panel);
     L.panel.addEventListener('click', alClicPanel);
-    var svg = el('svg', {viewBox: '-16 -16 160 92', class: 'linea', role: 'img', 'aria-label': 'Línea de producción'});
+    var svg = el('svg', {viewBox: '-6 -37 232 102', class: 'linea', role: 'img', 'aria-label': 'Línea de producción'});
     caja.appendChild(svg); L.svg = svg;
     el('defs', {}, svg).innerHTML = '<filter id="lnSombra" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy=".35" stdDeviation=".45" flood-color="#000" flood-opacity=".14"/></filter>'+
       '<filter id="lnSombraVeh" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="0" dy=".25" stdDeviation=".25" flood-color="#000" flood-opacity=".25"/></filter>';
@@ -57,13 +58,13 @@
       el('rect', {class: 'orilla', x: c.x, y: c.y, width: c.w, height: c.h, rx: 2.2, fill: 'none', stroke: COLOR[id], 'stroke-opacity': .45, 'stroke-width': .25,
         'stroke-dasharray': POS[id][2]==='rama' || POS[id][2]==='lateral' ? '1 .7' : 'none'}, g);
     });
-    var U = 'M 6 0 H 100 V 56 H 4', RAMA = 'M 100 0 H 120 V 56 H 100', LADO = 'M 64 0 V 26 H 86 V 0';
-    // Desvío de Reparación (más delgado, dentro de la U)
+    var U = 'M 6 0 H 178 V 46 H 4', RAMA = 'M 178 0 H 202 V 46 H 178', LADO = 'M 106 0 V -17 H 138 V 0';
+    // Desvío de Reparación (más delgado, por fuera de la U)
     el('path', {d: LADO, fill: 'none', stroke: '#2c5f6c', 'stroke-width': 3, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', 'stroke-opacity': .7, filter: 'url(#lnSombra)'}, banda);
     el('path', {class: 'ln-flujo', d: LADO}, banda);
     el('path', {d: RAMA, fill: 'none', stroke: '#2c5f6c', 'stroke-width': 4.2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', 'stroke-opacity': .85, filter: 'url(#lnSombra)'}, banda);
     el('path', {d: U, fill: 'none', stroke: '#2c5f6c', 'stroke-width': 4.2, 'stroke-linejoin': 'round', filter: 'url(#lnSombra)'}, banda);
-    el('path', {d: 'M 4.2 52.4 L -2.5 56 L 4.2 59.6 Z', fill: '#2c5f6c'}, banda);
+    el('path', {d: 'M 4.2 42.4 L -2.5 46 L 4.2 49.6 Z', fill: '#2c5f6c'}, banda);
     el('path', {class: 'ln-flujo', d: U}, banda);
     el('path', {class: 'ln-flujo', d: RAMA}, banda);
     Object.keys(POS).forEach(function(id){
@@ -88,14 +89,14 @@
     var x = POS[id][0], y = POS[id][1], lado = POS[id][2];
     if(lado==='arriba') return {x: x-13, y: y-9, w: 26, h: 26};
     if(lado==='abajo') return {x: x-11.5, y: y-17, w: 23, h: 26};
-    if(lado==='lateral') return {x: x-13, y: y-6, w: 26, h: 18};
+    if(lado==='lateral') return {x: x-14, y: y-14, w: 28, h: 19};
     return {x: x-6, y: y-8, w: 26, h: 16};
   }
   function lugares(id){
     var x = POS[id][0], y = POS[id][1], lado = POS[id][2], res = [];
     if(lado==='arriba') [7.5, 13.5].forEach(function(fy){ [-7, 0, 7].forEach(function(fx){ res.push([x+fx, y+fy]) }) });
     else if(lado==='abajo') [-7.5, -13.5].forEach(function(fy){ [-6.5, 0, 6.5].forEach(function(fx){ res.push([x+fx, y+fy]) }) });
-    else if(lado==='lateral') [-7, 0, 7].forEach(function(fx){ res.push([x+fx, y+7.5]) });
+    else if(lado==='lateral') [-7, 0, 7].forEach(function(fx){ res.push([x+fx, y-8]) });
     else [1, 5.2].forEach(function(fy){ [8, 14].forEach(function(fx){ res.push([x+fx, y+fy]) }) });
     return res;
   }
@@ -194,8 +195,8 @@
       if(f){ rojos = f; txtRojo = f + (f>1 ? ' faltan' : ' falta'); }
       else if(np){ rojos = np; txtRojo = np + (np>1 ? ' no pasaron' : ' no pasó'); }
       var rama = lado==='rama', lat = lado==='lateral';
-      var x0 = rama ? POS[id][0] + 4.6 : c.x + 1.2, y0 = rama ? c.y + 3.4 : lat ? c.y - 1 : lado==='abajo' ? c.y + c.h + 3.2 : c.y - 2;
-      var t = el('text', {class: 'ln-nombre', x: x0, y: y0}, g); t.textContent = nombreEtapa(id);
+      var x0 = rama ? POS[id][0] + 4.6 : c.x + 1.2, y0 = rama ? c.y + 3.4 : lat ? c.y - 1.5 : lado==='abajo' ? c.y + c.h + 3.2 : c.y - 2;
+      var t = el('text', {class: 'ln-nombre', x: x0, y: y0}, g); t.textContent = H.prod.etapa(id).corto || nombreEtapa(id);
       var cx = x0 + t.getComputedTextLength() + 2.2;
       el('rect', {x: cx-1.7, y: y0-2.35, width: 3.4, height: 3, rx: 1.5, class: n ? 'ln-pill' : 'ln-pill cero'}, g);
       el('text', {class: 'ln-cuenta', x: cx, y: y0-.85}, g).textContent = n;
@@ -205,7 +206,8 @@
         el('rect', {x: rx, y: ry, width: w, height: 3, rx: 1.5, fill: '#e5533d'}, g);
         el('text', {class: 'ln-falta', x: rx + w/2, y: ry + 1.5}, g).textContent = txtRojo;
       }
-      if(rama || lat) el('text', {class: 'ln-sub', x: x0, y: y0+2.1}, g).textContent = lat ? 'no pasaron la revisión' : 'solo especiales';
+      var sub = lat ? 'no pasaron la revisión' : rama ? 'solo especiales' : id==='revision' ? 'mecánica y activación' : '';
+      if(sub) el('text', {class: 'ln-sub', x: x0, y: y0+2.1}, g).textContent = sub;
       // Si hay más vehículos de los que caben dibujados, "+N" en la esquina del área
       var ocultos = n - lugares(id).length;
       if(ocultos > 0){

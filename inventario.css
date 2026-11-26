@@ -338,8 +338,14 @@ svg.linea{display:block;width:100%;height:auto}
 .inv-mapa,.inv-velo{display:none}
 .inv-panel{display:contents}
 .mp-cab{display:none}
-.inv.con-mapa .inv-mapa{display:flex;flex-direction:column;gap:10px;grid-column:2;grid-row:1;min-width:0;
-  padding:10px;border-radius:20px;background:var(--raised)}
+.inv.con-mapa .inv-mapa{display:flex;flex-direction:column;grid-column:2;grid-row:1;min-width:0;
+  padding:10px 10px 10px 40px;border-radius:20px;background:var(--raised)}
+/* Una sola bodega: los muros rodean las áreas de arriba y la línea (26-nov-2026). Afuera, a la izquierda, el patio con el camión */
+.mp-bodega{flex:1;min-height:0;display:flex;flex-direction:column;border:5px solid var(--muted);border-radius:8px;background:var(--surface)}
+.mp-arriba{position:relative;padding:6px 6px 0}
+.mp-puerta{position:absolute;left:-5px;top:24%;height:46%;width:5px;background:repeating-linear-gradient(var(--raised) 0 3px, var(--muted) 3px 4px)}
+.mp-camion{position:absolute;left:-33px;top:18%;width:20px;height:auto;cursor:pointer;filter:drop-shadow(0 2px 3px rgba(0,0,0,.2))}
+.mp-bodega .mp-linea{border:0;border-radius:0;background:transparent;padding:2px 8px 8px}
 /* La franja gris rodea todo el mapa, también la línea (pedido del usuario, 26-nov-2026) */
 .mp-arriba{flex:none}
 /* La línea ocupa lo que queda; su panel (vehículos del área) se desliza si es largo */
