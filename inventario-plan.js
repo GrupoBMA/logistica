@@ -39,7 +39,7 @@
       // Lo planeado que todavía no entra a producción ya ocupa lugar
       var libres = Object.assign({}, puede), sobre = {};
       items.filter(function(x){ return !x.vehiculo }).forEach(function(x){
-        var k = clave(x); libres[k] = (libres[k]||0) - 1; if(libres[k] < 0) sobre[k] = x;
+        var k = clave(x); libres[k] = (libres[k]||0) - 1;   // (producción separada del inventario: ya no se avisa si no alcanzan)
       });
 
       var html = '<header class="inv-cab"><h1>Plan de armado</h1></header>'+
@@ -75,14 +75,9 @@
         items.forEach(function(x){ enPlan[x.unidad_id] = 1 });
         var pend = ventas.filter(function(u){ return !u.vehiculo && !enPlan[u.unidad_id] && (u.estado_venta==='por_armar' || u.estado_venta==='esperando') })
           .sort(function(a, b){ return (a.tipo==='showroom') - (b.tipo==='showroom') || String(a.fecha).localeCompare(String(b.fecha)) || a.id - b.id || a.parte - b.parte });
-        var quedan = Object.assign({}, libres);
-        var recs = pend.map(function(u){
-          var k = clave(u), si = (quedan[k]||0) > 0;
-          if(si) quedan[k]--;
-          var por = si ? '' : u.estado_venta==='esperando' || !(puede[k] > 0) ? 'No hay de ese modelo y color en espera de armado'
-            : limita[k] ? 'No alcanzan las piezas: '+limita[k] : 'Ya están ocupados los que hay en espera';
-          return {u: u, si: si, por: por};
-        });
+        // Por ahora la producción va separada del inventario (26-nov-2026): se puede armar todo lo que está Por armar;
+        // lo que está marcado Esperando piezas sale aparte
+        var recs = pend.map(function(u){ var si = u.estado_venta==='por_armar'; return {u: u, si: si, por: si ? '' : 'Esperando piezas'}; });
         html += '<section class="pl-caja"><div class="pl-cab"><h2>Recomendaciones</h2></div>';
         if(!recs.length) html += '<p class="pl-nada">No hay órdenes pendientes de planear.</p>';
         [['Clientes', function(x){ return x.u.tipo!=='showroom' }], ['Showroom', function(x){ return x.u.tipo==='showroom' }]].forEach(function(g){
@@ -100,15 +95,12 @@
       }
 
       // ---- Qué se puede armar con lo que hay
-      html += '<section class="pl-caja"><div class="pl-cab"><h2>Qué se puede armar con lo que hay</h2></div>';
-      if(!cap.length) html += '<p class="pl-nada">No hay vehículos en espera de armado.</p>';
-      else html += '<div class="tarjetas">'+cap.map(function(c){
+      if(cap.length) html += '<section class="pl-caja"><div class="pl-cab"><h2>Qué se puede armar con lo que hay</h2></div>'+ '<div class="tarjetas">'+cap.map(function(c){
         var k = clave(c), n = puede[k];
         return '<div class="tarjeta"><span class="cant">'+n+'</span><span class="txt"><b>'+P.puntoColor(c.color_id)+esc(P.nombreVeh(c))+'</b>'+
           '<small>'+c.en_espera+' en espera de armado'+(c.alcanzan==null ? ' · sin lista de piezas' : limita[k] ? ' · alcanzan las piezas para '+c.alcanzan+' (limita: '+esc(limita[k])+')' : ' · alcanzan las piezas')+
           (E.rol!=='bodega' && !E.verBodega ? ' · '+esc(H.nombreBodega(c.bodega)) : '')+'</small></span></div>';
-      }).join('')+'</div>';
-      html += '</section>';
+      }).join('')+'</div></section>';
       m.innerHTML = html;
     }).catch(function(err){ m.innerHTML = '<p class="inv-error">'+esc(H.mensaje(err))+'</p>' });
   };

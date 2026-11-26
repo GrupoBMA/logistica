@@ -253,7 +253,7 @@
       bot += '<button type="button" class="btn" data-lp="ficha" data-id="'+h.id+'">Ver ficha</button>';
       return '<div class="ln-vh'+(atender(h) ? ' atender' : '')+'"><div class="ln-vh-1"><span class="pt" style="background:'+(P.colorHex(h.color_id)||'#bbb')+'"></span>'+
         '<b>'+esc(P.idVeh(h))+'</b><span class="ln-n">'+esc(P.nombreVeh(h))+' · '+P.paraDe(h)+(h.venta && h.venta.especial_que ? ' · '+esc(h.venta.especial_que) : '')+'</span>'+
-        (h.faltantes ? '<span class="etq rojo chica">Faltan piezas</span>' : '')+(h.no_paso ? '<span class="etq rojo chica">No pasó la revisión final</span>' : '')+
+        (h.faltantes ? '<span class="etq rojo chica">Faltan piezas</span>' : '')+(h.no_paso ? '<span class="etq rojo chica">No pasó la revisión final</span>' : '')+(h.mecanica_pendiente ? '<span class="etq pend chica">Falta mecánica</span>' : '')+
         '<span class="dias">'+esc(P.dias(h.etapa_desde))+'</span></div>'+
         '<div class="ln-pasos">'+pasos+'</div><div class="botones">'+bot+'</div></div>';
     }).join('')+'</div>';

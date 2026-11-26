@@ -474,3 +474,5 @@ svg.linea{display:block;width:100%;height:auto}
 .mp-plan:active{transform:scale(.97)}
 /* Opciones que se contradicen con lo escogido: apagadas (26-nov-2026) */
 .pild:disabled{opacity:.32;cursor:not-allowed}
+/* Faltante del Drive y mecánica pendiente (26-nov-2026) */
+.falta-txt,.tarjeta .txt small.falta-txt{color:var(--pz-pen)}
