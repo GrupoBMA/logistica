@@ -338,9 +338,14 @@ svg.linea{display:block;width:100%;height:auto}
 .inv-mapa,.inv-velo{display:none}
 .inv-panel{display:contents}
 .mp-cab{display:none}
-.inv.con-mapa .inv-mapa{display:block;grid-column:2;grid-row:1;min-width:0;border-radius:18px;overflow:hidden;background:var(--raised)}
+.inv.con-mapa .inv-mapa{display:flex;flex-direction:column;gap:10px;grid-column:2;grid-row:1;min-width:0}
+.mp-arriba{flex:none;border-radius:18px;overflow:hidden;background:var(--raised)}
+/* La línea ocupa lo que queda; su panel (vehículos del área) se desliza si es largo */
+.mp-linea{flex:1;min-height:0;display:flex;flex-direction:column}
+.mp-linea .ln-panel{flex:none;max-height:45%;overflow:auto;overscroll-behavior:contain}
+.mp-linea svg.linea{flex:1;min-height:0;height:100%}
 .inv.en-mapa .inv-main{display:none}
-.mapa-svg{width:100%;height:100%;display:block;touch-action:manipulation}
+.mapa-svg{width:100%;height:auto;display:block;touch-action:manipulation}
 .mp-camino{fill:#000;fill-opacity:.06}
 .mp-piso{fill:var(--surface)}
 .mp-muro{fill:none;stroke:var(--muted);stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round}
