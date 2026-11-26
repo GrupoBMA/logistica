@@ -252,13 +252,18 @@
         '<button type="submit" class="btn prin der">'+esc(o.boton||'Guardar')+'</button></div></form>', res);
       var h = hojaEl(), f = q('form', h), t = f.elements.t;
       t.value = o.valor || '';
+      if(o.numerico){ t.setAttribute('inputmode', 'numeric'); if(o.max) t.maxLength = o.max; }
       h.onclick = function(e){ if(e.target.closest('[data-hoja-cerrar]')) cerrarHoja(null) };
       f.onsubmit = function(e){
         e.preventDefault();
         var v = t.value.trim();
         if(!v){ var er = q('.inv-error', f); er.textContent = o.falta || 'Escribe algo para continuar.'; er.hidden = false; t.focus(); return; }
+        // o.validar(v) regresa un mensaje si no sirve (p. ej. el código postal)
+        var mal = o.validar && o.validar(v);
+        if(mal){ var er2 = q('.inv-error', f); er2.textContent = mal; er2.hidden = false; t.focus(); return; }
         cerrarHoja(v);
       };
+      setTimeout(function(){ t.focus() }, 60);
     });
   }
 

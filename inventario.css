@@ -307,3 +307,11 @@ svg.linea{display:block;width:100%;height:auto}
 @media (max-width:600px){ .casillas{grid-template-columns:minmax(0,1fr)} }
 .ln-mas{fill:var(--surface);stroke:var(--control);stroke-width:.2}
 .ln-mas-t{font-size:1.7px;font-weight:700;fill:var(--text);text-anchor:middle;dominant-baseline:central}
+
+/* Revisión de piezas del contenedor: caja con barra deslizante (26-nov-2026) */
+.piezas-cab{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px}
+.piezas-cab p{margin:0;flex:1;min-width:200px}
+.lista-desliza{max-height:60vh;overflow-y:auto;overscroll-behavior:contain;padding:10px;border-radius:16px;
+  background:var(--raised);scrollbar-gutter:stable}
+.lista-desliza:focus-visible{outline:2px solid var(--work);outline-offset:2px}
+.tarjeta .etqs{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}

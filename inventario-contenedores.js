@@ -252,8 +252,11 @@
     var grav = {leve: 'Leve', media: 'Media', grave: 'Grave'};
     return '<h2 style="font-size:18px;margin:24px 0 10px">Daños <span class="etq rojo" style="vertical-align:middle">'+t+'</span></h2>'+
       '<div class="tarjetas">'+defs.map(function(d){
-        var x = I.porId(E.cat.defectos, d.defecto_id);
-        return '<div class="tarjeta"><span class="cant">'+d.cantidad+'</span><span class="ico-p">'+H.icoDano(x ? x.nombre : '')+'</span><span class="txt"><b>'+esc(x ? x.nombre : '?')+'</b></span>'+
+        var x = I.porId(E.cat.defectos, d.defecto_id), pz = d.pieza_id!=null ? I.porId(E.cat.piezas, d.pieza_id) : null;
+        // Por pieza: el nombre de la pieza y si es reparable (26-nov-2026); del contenedor: tipo y gravedad
+        return '<div class="tarjeta"><span class="cant">'+d.cantidad+'</span><span class="ico-p">'+(pz ? H.icoPieza(pz.nombre) : H.icoDano(x ? x.nombre : ''))+'</span>'+
+          '<span class="txt"><b>'+esc(pz ? pz.nombre : (x ? x.nombre : '?'))+'</b>'+(pz ? '<small>'+esc(x ? x.nombre : '')+'</small>' : '')+'</span>'+
+          (d.reparable===true ? '<span class="etq pend">Reparable</span>' : d.reparable===false ? '<span class="etq rojo">Irreparable</span>' : '')+
           (d.gravedad ? '<span class="etq '+(d.gravedad==='leve' ? 'pend' : 'rojo')+'">'+grav[d.gravedad]+'</span>' : '')+'</div>';
       }).join('')+'</div>';
   }

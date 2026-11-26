@@ -101,6 +101,9 @@
         (V.conProduccion ? '' : '<div class="acciones" style="margin-top:16px"><button type="button" class="btn ancho" data-nv="agregar">+ Agregar vehículos</button></div>');
     } else if(V.paso===3){
       html += '<label class="campo"><span>Destino</span><input id="vDest" autocomplete="off" value="'+esc(V.destino)+'" placeholder="Ciudad o lugar de entrega"></label>'+
+        // Código postal opcional: si no lo tienen a la mano queda pendiente (pedido del usuario, 26-nov-2026)
+        '<label class="campo"><span>Código postal <small style="color:var(--muted);font-weight:400">· opcional</small></span>'+
+        '<input id="vCP" autocomplete="off" inputmode="numeric" maxlength="5" value="'+esc(V.cp||'')+'" placeholder="Si no lo tienes, déjalo en blanco"></label>'+
         campoElegir('tipo', 'Tipo de destino', V.tipo_destino, 'Escoge el tipo');
     } else {
       var n = totalVeh();
@@ -108,7 +111,8 @@
         ', comprada el <b>'+esc(H.fechaLarga(V.fecha))+'</b>, vendedor <b>'+esc(V.vendedor)+'</b>.'+
         '<p style="margin:10px 0 4px"><b>'+n+(n===1 ? ' vehículo' : ' vehículos')+':</b></p><ul style="margin:0;padding-left:22px">'+
         V.vehiculos.map(function(r){ return '<li>'+r.cantidad+' · '+puntoColor(r.color_id)+esc(nombreVeh(r))+(r.especial ? ' · Especial: '+esc(r.especial_que) : '')+'</li>' }).join('')+'</ul>'+
-        '<p style="margin:10px 0 0">Va a <b>'+esc(V.destino)+'</b>'+(V.tipo_destino ? ' ('+esc(V.tipo_destino)+')' : '')+'.</p></div>';
+        '<p style="margin:10px 0 0">Va a <b>'+esc(V.destino)+'</b>'+(V.tipo_destino ? ' ('+esc(V.tipo_destino)+')' : '')+'.</p>'+
+        '<p style="margin:6px 0 0">Código postal: '+(V.cp ? '<b>'+esc(V.cp)+'</b>' : '<span class="etq pend chica">Pendiente</span>')+'</p></div>';
     }
     html += '<div class="acciones">'+
       (V.paso > 1 ? '<button type="button" class="btn" data-nv="atras">Atrás</button>' : (corrigiendo ? '<button type="button" class="btn" data-nv="cancelar">Cancelar</button>' : ''))+
@@ -124,6 +128,7 @@
     if((x = q('#vFecha', m))) V.fecha = x.value;
     if((x = q('#vVend', m))) V.vendedor = x.value.trim();
     if((x = q('#vDest', m))) V.destino = x.value.trim();
+    if((x = q('#vCP', m))) V.cp = x.value.replace(/\s/g, '');
   }
 
   // Modelo → opciones → color → ¿especial? (y qué lleva) → cuántos
@@ -172,7 +177,7 @@
     motivo.then(function(mot){
       if(V.id && mot==null) return;
       var b = q('[data-nv="guardar"]', m); if(b){ b.disabled = true; b.textContent = 'Guardando…'; }
-      var p = {id: V.id, bodega: V.bodega, remision: V.remision, fecha: V.fecha, vendedor: V.vendedor, destino: V.destino, tipo_destino: V.tipo_destino};
+      var p = {id: V.id, bodega: V.bodega, remision: V.remision, fecha: V.fecha, vendedor: V.vendedor, destino: V.destino, tipo_destino: V.tipo_destino, cp: V.cp || null};
       if(!V.conProduccion) p.vehiculos = V.vehiculos;
       H.rpc('inv_venta_guardar', {p: p, p_motivo: mot}).then(function(r){
         var id = r.id, rem = V.remision, eraCorreccion = !!V.id;
@@ -216,6 +221,7 @@
         else V.paso = 3;
       } else if(V.paso===3){
         if(!V.destino) V.error = 'Escribe el destino';
+        else if(V.cp && !/^\d{5}$/.test(V.cp)) V.error = 'El código postal lleva 5 números (o déjalo en blanco)';
         else if(!V.tipo_destino) V.error = 'Escoge el tipo de destino';
         else V.paso = 4;
       }
@@ -232,7 +238,7 @@
   function agruparVentas(lista){
     var porId = {}, orden = [];
     lista.forEach(function(u){
-      if(!porId[u.id]){ porId[u.id] = {id: u.id, remision: u.remision, fecha: u.fecha, vendedor: u.vendedor, destino: u.destino, tipo_destino: u.tipo_destino,
+      if(!porId[u.id]){ porId[u.id] = {id: u.id, remision: u.remision, fecha: u.fecha, vendedor: u.vendedor, destino: u.destino, tipo_destino: u.tipo_destino, cp: u.cp,
         bodega: u.bodega, unidades: []}; orden.push(porId[u.id]); }
       porId[u.id].unidades.push(u);
     });
@@ -265,7 +271,7 @@
     var n = v.unidades.length;
     return '<button type="button" class="tarjeta clic venta-t" data-ficha-venta="'+v.id+'"><span class="cant rem">'+esc(v.remision)+'</span>'+
       '<span class="txt"><b>'+n+(n===1 ? ' vehículo' : ' vehículos')+'</b><small>'+esc(v.vendedor)+' · '+esc(v.destino)+' · '+esc(dias(v.fecha))+
-      (E.rol!=='bodega' && !E.verBodega ? ' · '+esc(H.nombreBodega(v.bodega)) : '')+'</small>'+
+      (E.rol!=='bodega' && !E.verBodega ? ' · '+esc(H.nombreBodega(v.bodega)) : '')+(v.cp ? '' : ' · <span class="etq pend chica">CP pendiente</span>')+'</small>'+
       '<span class="unidades">'+v.unidades.map(function(u){
         return '<span class="unidad">'+puntoColor(u.color_id)+esc(nombreVeh(u))+(u.especial ? ' · '+esc(u.especial_que) : '')+' '+etiquetaUnidad(u)+'</span>';
       }).join('')+'</span></span>'+
@@ -286,6 +292,8 @@
         dato('Fecha de compra', esc(H.fechaLarga(v.fecha))+' · '+esc(dias(v.fecha)))+
         dato('Vendedor', esc(v.vendedor))+
         dato('Destino', esc(v.destino)+(v.tipo_destino ? ' · '+esc(v.tipo_destino) : ''))+
+        dato('Código postal', v.cp ? esc(v.cp)+(H.puedeEscribir() ? ' <button type="button" class="btn-link" data-venta-cp="'+v.id+'">Cambiar</button>' : '')
+          : '<span class="etq pend chica">Pendiente</span>'+(H.puedeEscribir() ? ' <button type="button" class="btn-link" data-venta-cp="'+v.id+'">Agregar</button>' : ''))+
         (E.rol!=='bodega' ? dato('Bodega', esc(H.nombreBodega(v.bodega))) : '')+
         '</div><h2 class="inv-sub">Vehículos <span>· '+v.unidades.length+'</span></h2><div class="tarjetas">'+
         v.unidades.map(function(u){
@@ -577,6 +585,17 @@
     if(!E.raiz || !E.raiz.contains(e.target)) return;
     var m = main(), b;
     if(E.seccion==='venta' && V && m.contains(e.target) && e.target.closest('[data-nv]')){ alClicVenta(e, m); return; }
+    if((b = e.target.closest('[data-venta-cp]'))){
+      var idv = +b.dataset.ventaCp, act = CACHE.venta && CACHE.venta.id===idv ? CACHE.venta.cp : '';
+      H.pedirTexto({titulo: 'Código postal', ayuda: 'Del lugar de entrega', etiqueta: 'Código postal', valor: act || '', numerico: true, max: 5, boton: 'Guardar',
+        falta: 'Escribe el código postal o da Cancelar.', validar: function(t){ return /^\d{5}$/.test(t.replace(/\s/g, '')) ? '' : 'El código postal lleva 5 números.' }})
+        .then(function(t){
+          if(t==null) return;
+          H.rpc('inv_venta_cp', {p_id: idv, p_cp: t.replace(/\s/g, '')}).then(function(){ H.avisar('Se guardó el código postal.'); abrirFichaVenta(idv); })
+            .catch(function(err){ aviso('No se guardó', H.mensaje(err)); });
+        });
+      return;
+    }
     if((b = e.target.closest('[data-ficha-venta]'))){ abrirFichaVenta(+b.dataset.fichaVenta); return; }
     if((b = e.target.closest('[data-ficha-veh]'))){ abrirFichaVeh(+b.dataset.fichaVeh); return; }
     if((b = e.target.closest('[data-entrar-unidad]'))){ entrar(+b.dataset.entrarUnidad); return; }
@@ -587,7 +606,7 @@
       var renglones = [];
       v.unidades.forEach(function(u){ renglones.push({modelo_id: u.modelo_id, opciones: u.opciones || [], color_id: u.color_id, especial: u.especial, especial_que: u.especial_que || '', cantidad: 1}) });
       V = {paso: 1, id: v.id, remisionOriginal: v.remision, bodega: v.bodega, remision: v.remision, fecha: v.fecha, vendedor: v.vendedor, destino: v.destino,
-        tipo_destino: v.tipo_destino || '', vehiculos: renglones, conProduccion: v.unidades.some(function(u){ return !!u.vehiculo }), error: ''};
+        tipo_destino: v.tipo_destino || '', cp: v.cp || '', vehiculos: renglones, conProduccion: v.unidades.some(function(u){ return !!u.vehiculo }), error: ''};
       juntar();
       E.seccion = 'venta'; H.dibujarMenu(); dibujarVenta(main());
       return;

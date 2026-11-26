@@ -89,7 +89,7 @@
           return danos.length ? '<div class="tarjetas">'+danos.map(function(d){
             var t = I.porId(E.cat.defectos, d.defecto_id), tn = t ? t.nombre : '?';
             return '<div class="tarjeta"><span class="ico-p">'+H.icoPieza(d.pieza||'')+'</span><span class="txt"><b>'+esc(d.pieza || 'Del contenedor')+'</b>'+
-              '<small><span class="ico-mini">'+H.icoDano(tn)+'</span>'+esc(tn)+(d.gravedad ? ' · '+grav(d.gravedad) : '')+' · contenedor '+esc(d.contenedor)+'</small></span><span class="cant">'+d.cantidad+'</span></div>';
+              '<small><span class="ico-mini">'+H.icoDano(tn)+'</span>'+esc(tn)+(d.gravedad ? ' · '+grav(d.gravedad) : '')+(d.reparable===true ? ' · Reparable' : d.reparable===false ? ' · Irreparable' : '')+' · contenedor '+esc(d.contenedor)+'</small></span><span class="cant">'+d.cantidad+'</span></div>';
           }).join('')+'</div>' : vacio('No hay piezas dañadas') }},
         {id: 'faltantes', nombre: 'Faltantes', n: nFalt, rojo: true, contenido: function(){
           return falt.length ? '<div class="tarjetas">'+falt.map(function(x){
