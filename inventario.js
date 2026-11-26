@@ -41,6 +41,7 @@
     piezas: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="3"/><path d="M10 2.5v2.2M10 15.3v2.2M2.5 10h2.2M15.3 10h2.2M4.7 4.7l1.6 1.6M13.7 13.7l1.6 1.6M4.7 15.3l1.6-1.6M13.7 6.3l1.6-1.6"/></svg>',
     produccion: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 4.5a3 3 0 0 0 3.5 3.8l-7.7 7.7a1.6 1.6 0 0 1-2.3-2.3l7.7-7.7a3 3 0 0 0-1.2-1.5z"/></svg>',
     mapa: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="15" height="13" rx="1.5"/><path d="M2.5 9.5h6v7M8.5 3.5v3M12 9.5h5.5"/></svg>',
+    plegar: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="15" height="13" rx="2"/><path d="M7.5 3.5v13"/></svg>',
     flecha: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg>'
   };
 
@@ -73,12 +74,18 @@
     clearTimeout(letreroT); letreroT = setTimeout(function(){ letrero.classList.remove('on') }, 3800);
   }
 
+  // Plegado por omisión, para que el mapa y las pantallas tengan más espacio; se recuerda en el navegador
+  function menuChico(){ try { return localStorage.getItem('logistica.menuChico')!=='0' } catch(e){ return true } }
   function secciones(){ return SECCIONES.filter(function(s){ return s.roles.indexOf(E.rol) > -1 }) }
 
   function dibujarMenu(){
     var m = q('.inv-menu', E.raiz); if(!m) return;
     var quien = E.rol==='bodega' ? nombreBodega(E.bodega) : (E.rol==='admin' ? 'Administrador' : 'Consulta');
-    var html = '<div class="inv-quien">Inventario<b>'+esc(quien)+'</b></div>';
+    // El menú se pliega a una columna de íconos para dar más espacio (pedido del usuario, 26-nov-2026)
+    var chico = menuChico(), inv = q('.inv', E.raiz);
+    if(inv) inv.classList.toggle('menu-chico', chico);
+    var html = '<div class="inv-quien"><span class="iq-txt">Inventario<b>'+esc(quien)+'</b></span>'+
+      '<button type="button" class="inv-plegar" data-accion="plegar" aria-expanded="'+(!chico)+'" aria-label="'+(chico ? 'Abrir el menú' : 'Plegar el menú')+'" title="'+(chico ? 'Abrir el menú' : 'Plegar el menú')+'">'+ICO.plegar+'</button></div>';
     if(E.rol!=='bodega'){
       html += '<button type="button" class="elegir" data-accion="bodega" style="margin:0 0 10px">'+
         '<span><span class="et">Viendo</span><span class="va">'+esc(nombreBodega(E.verBodega))+'</span></span><span class="fl">'+ICO.flecha+'</span></button>';
@@ -88,7 +95,7 @@
       if(s.grupo !== grupo){ grupo = s.grupo; html += '<div class="inv-grupo">'+esc(grupo)+'</div>'; }
       var n = CUENTA[s.id], nuevo = NUEVO[s.id] && E.seccion !== s.id;
       html += '<button class="mi" type="button" data-sec="'+s.id+'" aria-current="'+(E.seccion===s.id)+'">'+
-        '<span class="ic">'+ICO[s.id]+(nuevo ? '<span class="punto-nuevo" title="Entró algo nuevo"></span>' : '')+'</span><span><b>'+esc(s.nombre)+'</b><small>'+esc(s.sub)+'</small></span>'+
+        '<span class="ic" title="'+esc(s.nombre)+'">'+ICO[s.id]+(nuevo ? '<span class="punto-nuevo" title="Entró algo nuevo"></span>' : '')+'</span><span><b>'+esc(s.nombre)+'</b><small>'+esc(s.sub)+'</small></span>'+
         '<span class="c">'+(n ? '<span class="burbuja">'+n+'</span>' : '')+'</span></button>';
     });
     if(E.rol==='bodega') html += '<div class="inv-pie"><button type="button" data-accion="salir">Salir</button></div>';
@@ -331,6 +338,10 @@
     var s = e.target.closest('[data-sec]'); if(s){ ir(s.dataset.sec); return; }
     var a = e.target.closest('[data-accion]'); if(!a) return;
     if(a.dataset.accion==='salir'){ if(E.salir) E.salir(); return; }
+    if(a.dataset.accion==='plegar'){
+      try { localStorage.setItem('logistica.menuChico', menuChico() ? '0' : '1') } catch(e){}
+      dibujarMenu(); window.dispatchEvent(new Event('resize')); return;
+    }
     if(a.dataset.accion==='bodega'){
       abrirLista({titulo: 'Qué bodega ver', grupos: [{opciones: [{valor: '', nombre: 'Las dos bodegas'}].concat(BODEGAS)}],
         elegido: E.verBodega || ''}).then(function(v){

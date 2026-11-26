@@ -346,7 +346,7 @@ svg.linea{display:block;width:100%;height:auto}
 .mp-linea svg.linea{flex:1;min-height:0;height:100%}
 .inv.en-mapa .inv-main{display:none}
 .mapa-svg{width:100%;height:auto;display:block;touch-action:manipulation}
-.mp-camino{fill:#000;fill-opacity:.06}
+
 .mp-piso{fill:var(--surface)}
 .mp-muro{fill:none;stroke:var(--muted);stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round}
 .mp-cortina{stroke:var(--muted);stroke-width:.25;stroke-opacity:.6}
@@ -386,3 +386,56 @@ svg.linea{display:block;width:100%;height:auto}
 @keyframes mpEntra{from{opacity:0;transform:translateX(18px)}}
 @keyframes mpAparece{from{opacity:0}}
 @media (prefers-reduced-motion:reduce){ .mp-flujo,.mp-respira{animation:none} .inv.sobre-mapa .inv-panel,.inv.sobre-mapa .inv-velo{animation:none} }
+
+/* Menú plegable (26-nov-2026): plegado queda solo la columna de íconos */
+.ln-panel[hidden]{display:none}
+.inv-quien{display:flex;align-items:flex-start;gap:8px}
+.iq-txt{flex:1;min-width:0}
+.inv-plegar{flex:none;width:40px;height:40px;border:0;border-radius:12px;background:var(--raised);color:var(--text);display:grid;place-items:center;cursor:pointer}
+.inv.menu-chico{grid-template-columns:64px minmax(0,1fr);gap:18px}
+.inv.menu-chico .inv-quien{padding:4px 0 8px;justify-content:center}
+.inv.menu-chico .iq-txt,.inv.menu-chico .inv-grupo,.inv.menu-chico .inv-menu .elegir{display:none}
+.inv.menu-chico .inv-menu .mi{grid-template-columns:40px;justify-content:center;padding:8px 0;min-height:52px;position:relative}
+.inv.menu-chico .inv-menu .mi .ic{width:40px;height:40px}
+.inv.menu-chico .inv-menu .mi > span:nth-child(2){display:none}
+.inv.menu-chico .inv-menu .mi .c{position:absolute;top:2px;right:0}
+.inv.menu-chico .inv-menu .mi .c .burbuja{min-width:20px;height:18px;padding:0 5px;font-size:11px;line-height:18px}
+.inv.menu-chico .inv-pie{padding:10px 0 0;text-align:center}
+.inv.menu-chico .inv-pie button{font-size:13px}
+
+.inv.menu-chico.sobre-mapa .inv-panel{width:min(980px,calc(100vw - 130px))}
+@media (max-width:900px){
+  .inv-plegar{display:none}
+  .inv.menu-chico{grid-template-columns:minmax(0,1fr)}
+  .inv.menu-chico .iq-txt,.inv.menu-chico .inv-grupo{display:revert}
+  .inv.menu-chico .inv-menu .mi{grid-template-columns:36px auto auto;padding:8px 12px;position:static}
+  .inv.menu-chico .inv-menu .mi > span:nth-child(2){display:revert}
+  .inv.menu-chico .inv-menu .mi .c{position:static}
+}
+
+/* Recibir contenedor (26-nov-2026): título del campo grande, pista de adentro chica */
+.campo.grande > span{font-size:19px;font-weight:600;line-height:26px}
+.campo input::placeholder,.campo textarea::placeholder{font-size:14px}
+/* Contenido en dos columnas, sin deslizar */
+.vf-dos{max-width:none}
+.vf-cols{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:0 32px}
+.vf-dos .vf-sec{padding:10px 0 14px}
+.vf-dos .vf-tabla{gap:6px}
+.vf-dos .pild{min-height:42px;padding:0 16px}
+.vf-dos .elegir .va .col-et{margin-right:10px}
+@media (max-width:760px){ .vf-cols{grid-template-columns:minmax(0,1fr)} }
+/* Revisar y guardar como una nota */
+.nota{max-width:640px;border-radius:18px;background:var(--surface);border:1px solid var(--border);padding:22px 24px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.nota-cab span{display:block;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.nota-cab b{display:block;font-size:26px;line-height:32px;font-weight:700;letter-spacing:-.01em}
+.nota-datos{display:flex;flex-wrap:wrap;gap:12px 36px;margin:16px 0 4px;padding:14px 0;border-top:1px dashed var(--control);border-bottom:1px dashed var(--control)}
+.nota-datos span{display:block;font-size:13px;color:var(--muted)}
+.nota-datos b{font-size:17px;font-weight:600}
+.nota-tit{margin:16px 0 8px;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.nota-lista{display:flex;flex-direction:column}
+.nota-fila{display:flex;align-items:center;gap:14px;padding:10px 0;border-top:1px solid var(--border)}
+.nota-fila:first-child{border-top:0;padding-top:2px}
+.nota-n{min-width:44px;font-size:22px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums}
+.nota-txt b{display:block;font-size:17px;font-weight:600}
+.nota-txt small{display:block;margin-top:2px}
+.nota-obs{margin:0;color:var(--text)}

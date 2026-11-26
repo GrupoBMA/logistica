@@ -60,30 +60,30 @@
   function pild(attrs, on, contenido){
     return '<button type="button" class="pild'+(on ? ' sel' : '')+'" aria-pressed="'+on+'" data-r="vf" '+attrs+'>'+contenido+'</button>';
   }
+  // En una sola pantalla sin deslizar (pedido del usuario, 26-nov-2026): a la izquierda Modelo y Características;
+  // a la derecha Colores (en una lista para escoger, ya no como botones) y ¿Cuántos?
   function formVehiculo(){
-    var f = W.form, n = 0, html = '<div class="vf">';
-    html += '<h2 class="vf-tit">'+(f.i==null ? 'Agregar vehículos' : 'Cambiar vehículos')+'</h2>';
-    if(f.error) html += '<p class="inv-error">'+esc(f.error)+'</p>';
-    html += '<section class="vf-sec"><h3>'+(++n)+'. Modelo</h3><div class="pilds">'+
+    var f = W.form, n = 0, izq = '', der = '';
+    izq += '<section class="vf-sec"><h3>'+(++n)+'. Modelo</h3><div class="pilds">'+
       activos(E.cat.modelos).map(function(x){ return pild('data-k="modelo" data-val="'+x.id+'"', f.modelo_id===x.id, esc(x.nombre)) }).join('')+'</div></section>';
     if(f.modelo_id!=null){
       var cars = H.opcionesDeModelo(f.modelo_id);
       if(cars.length){
-        html += '<section class="vf-sec"><h3>'+(++n)+'. Características</h3><div class="vf-tabla">'+cars.map(function(x){
+        izq += '<section class="vf-sec"><h3>'+(++n)+'. Características</h3><div class="vf-tabla">'+cars.map(function(x){
           return '<div class="vf-fila"><span class="vf-nom">'+esc(x.car.nombre)+'</span><div class="pilds">'+x.opciones.map(function(o){
             return pild('data-k="op" data-car="'+x.car.id+'" data-val="'+o.id+'"', f.sel[x.car.id]===o.id, esc(o.nombre)) }).join('')+'</div></div>';
         }).join('')+'</div></section>';
       }
-      html += '<section class="vf-sec"><h3>'+(++n)+'. Colores <small class="vf-ayuda">· todos los que dice la hoja</small></h3><div class="pilds">'+
-        activos(E.cat.colores).map(function(c){
-          var hx = hexColor(c.nombre), on = f.colores.indexOf(c.id) > -1;
-          return pild('data-k="color" data-val="'+c.id+'"', on, (hx ? '<span class="pt-col" style="background:'+hx+'"></span>' : '')+esc(c.nombre)) }).join('')+'</div></section>';
-      html += '<section class="vf-sec"><h3>'+(++n)+'. '+(f.colores.length > 1 ? '¿Cuántos en total?' : '¿Cuántos?')+'</h3>'+H.contador('vfCant', f.cantidad, 1)+'</section>';
+      der += '<section class="vf-sec"><h3>'+(++n)+'. Colores</h3>'+
+        '<button type="button" class="elegir" data-r="vf" data-k="colores"><span><span class="va'+(f.colores.length ? '' : ' vacio')+'">'+
+        (f.colores.length ? coloresHTML(f.colores) : 'Escoge los colores')+'</span></span><span class="fl">'+H.ICO.flecha+'</span></button></section>';
+      der += '<section class="vf-sec"><h3>'+(++n)+'. '+(f.colores.length > 1 ? '¿Cuántos en total?' : '¿Cuántos?')+'</h3>'+H.contador('vfCant', f.cantidad, 1)+'</section>';
     }
-    html += '<div class="acciones">'+(W.renglones.length || f.i!=null ? '<button type="button" class="btn" data-r="vf" data-k="cancelar">Cancelar</button>'
-                                                                      : '<button type="button" class="btn" data-r="atras">Atrás</button>')+
+    return '<div class="vf vf-dos">'+(f.error ? '<p class="inv-error">'+esc(f.error)+'</p>' : '')+
+      '<div class="vf-cols"><div>'+izq+'</div><div>'+der+'</div></div>'+
+      '<div class="acciones">'+(W.renglones.length || f.i!=null ? '<button type="button" class="btn" data-r="vf" data-k="cancelar">Cancelar</button>'
+                                                               : '<button type="button" class="btn" data-r="atras">Atrás</button>')+
       '<button type="button" class="btn prin der" data-r="vf" data-k="listo">'+(f.i==null ? 'Agregar' : 'Listo')+'</button></div></div>';
-    return html;
   }
   function leerForm(main){
     var f = W.form; if(!f) return;
@@ -94,7 +94,12 @@
     leerForm(main); f.error = '';
     if(k==='modelo'){ if(f.modelo_id!==val){ f.modelo_id = val; f.sel = {}; } }
     else if(k==='op') f.sel[+b.dataset.car] = val;
-    else if(k==='color'){ var j = f.colores.indexOf(val); if(j > -1) f.colores.splice(j, 1); else f.colores.push(val); }
+    else if(k==='colores'){
+      H.escogerVarios({titulo: 'Colores', ayuda: 'Marca todos los colores que dice la hoja',
+        opciones: activos(E.cat.colores).map(function(c){ return {valor: c.id, nombre: c.nombre, color: hexColor(c.nombre)} }),
+        elegidos: f.colores, boton: 'Listo', falta: 'Marca al menos un color.'}).then(function(v){ if(v) f.colores = v; dibujarRecibir(main); });
+      return;
+    }
     else if(k==='cancelar') W.form = null;
     else if(k==='listo'){
       var cars = f.modelo_id==null ? [] : H.opcionesDeModelo(f.modelo_id), faltan = [];
@@ -123,9 +128,9 @@
   function dibujarRecibir(main){
     if(!W || W.terminado) W = nuevoW();
     var corrigiendo = !!W.id;
-    var titulos = ['Contenedor', '¿Qué trae?', 'Revisar y guardar'];
+    var titulos = ['Contenedor', 'Contenido', 'Revisar y guardar'];
     var html = '<header class="inv-cab"><h1>'+(corrigiendo ? 'Corregir contenedor '+esc(W.numeroOriginal) : 'Recibir contenedor')+'</h1>'+
-      '<p>'+(corrigiendo ? 'Cambia lo que haga falta y guarda. Se te pedirá el motivo.' : 'Registra el contenedor tal como dice la hoja que trae.')+'</p></header>'+
+      (corrigiendo ? '<p>Cambia lo que haga falta y guarda. Se te pedirá el motivo.</p>' : '')+'</header>'+
       '<ol class="pasos">'+titulos.map(function(t, i){
         var n = i+1, cl = n < W.paso ? 'hecho' : (n===W.paso ? 'ahora' : '');
         return '<li class="'+cl+'"><span class="nn">'+(n < W.paso ? '✓' : n)+'</span><span class="tx">'+t+'</span></li>';
@@ -134,11 +139,12 @@
 
     if(W.paso===1){
       if(E.rol==='admin'){
-        html += '<div class="campo"><span>Bodega</span><button type="button" class="elegir" data-r="bodega">'+
+        html += '<div class="campo grande"><span>Bodega</span><button type="button" class="elegir" data-r="bodega">'+
           '<span><span class="va'+(W.bodega ? '' : ' vacio')+'">'+esc(W.bodega ? H.nombreBodega(W.bodega) : 'Escoge la bodega')+'</span></span><span class="fl">'+H.ICO.flecha+'</span></button></div>';
       }
-      html += '<label class="campo"><span>Número de contenedor</span><input id="rNum" autocomplete="off" value="'+esc(W.numero)+'" placeholder="Como viene en la hoja"></label>'+
-        '<label class="campo"><span>Fecha en que llegó</span><input id="rFecha" type="date" value="'+esc(W.llegada)+'"></label>'+
+      // El título de cada campo en grande y la pista de adentro en chiquito (pedido del usuario, 26-nov-2026)
+      html += '<label class="campo grande"><span>Número de contenedor</span><input id="rNum" autocomplete="off" value="'+esc(W.numero)+'" placeholder="Como viene en la hoja"></label>'+
+        '<label class="campo grande"><span>Fecha en que llegó</span><input id="rFecha" type="date" value="'+esc(W.llegada)+'"></label>'+
         '<div class="acciones">'+(corrigiendo ? '<button type="button" class="btn" data-r="cancelar">Cancelar</button>' : '')+
         '<button type="button" class="btn prin der" data-r="sig">Siguiente</button></div>';
     } else if(W.paso===2 && W.form){
@@ -157,11 +163,22 @@
         '<div class="acciones"><button type="button" class="btn" data-r="atras">Atrás</button>'+
         '<button type="button" class="btn prin der" data-r="sig">Siguiente</button></div>';
     } else {
+      // Revisar y guardar: como una nota, con la información separada (pedido del usuario, 26-nov-2026)
       var n = totalVehiculos(W.renglones);
-      html += '<div class="resumen">Contenedor <b>'+esc(W.numero)+'</b>'+(E.rol==='admin' ? ' en <b>'+esc(H.nombreBodega(W.bodega))+'</b>' : '')+
-        ', llegó el <b>'+esc(H.fechaLarga(W.llegada))+'</b> y trae <b>'+n+' '+(n===1 ? 'vehículo' : 'vehículos')+'</b>:'+
-        '<ul style="margin:10px 0 0;padding-left:22px">'+W.renglones.map(function(r){ return '<li>'+r.cantidad+' · '+esc(I.nombreVehiculo(r, E.cat))+'</li>' }).join('')+'</ul>'+
-        (W.observaciones ? '<p style="margin:10px 0 0;color:var(--muted)">Nota: '+esc(W.observaciones)+'</p>' : '')+'</div>'+
+      html += '<div class="nota">'+
+        '<div class="nota-cab"><span>Contenedor</span><b>'+esc(W.numero)+'</b></div>'+
+        '<div class="nota-datos">'+
+          '<div><span>Llegó el</span><b>'+esc(H.fechaLarga(W.llegada))+'</b></div>'+
+          (E.rol==='admin' ? '<div><span>Bodega</span><b>'+esc(H.nombreBodega(W.bodega))+'</b></div>' : '')+
+          '<div><span>Total</span><b>'+n+' '+(n===1 ? 'vehículo' : 'vehículos')+'</b></div>'+
+        '</div>'+
+        '<div class="nota-tit">Contenido</div>'+
+        '<div class="nota-lista">'+W.renglones.map(function(r){
+          return '<div class="nota-fila"><span class="nota-n">'+r.cantidad+'</span><span class="nota-txt"><b>'+esc(I.nombreModelo(r, E.cat))+'</b>'+
+            '<small>'+coloresHTML(r.colores)+'</small></span></div>';
+        }).join('')+'</div>'+
+        (W.observaciones ? '<div class="nota-tit">Nota</div><p class="nota-obs">'+esc(W.observaciones)+'</p>' : '')+
+      '</div>'+
         '<div class="acciones"><button type="button" class="btn" data-r="atras">Atrás</button>'+
         '<button type="button" class="btn prin der" data-r="guardar">'+(corrigiendo ? 'Guardar cambios' : 'Guardar contenedor')+'</button></div>';
     }

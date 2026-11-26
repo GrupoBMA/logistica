@@ -20,8 +20,8 @@
   };
   // Franja de arriba (más chica); abajo va la línea de producción completa
   var CAJAS = {
-    recibir: {x: 38, y: 4, w: 20, h: 38}, contenedores: {x: 60, y: 4, w: 46, h: 38},
-    inventario: {x: 108, y: 4, w: 50, h: 38}, mostrador: {x: 160, y: 4, w: 34, h: 38}
+    recibir: {x: 11, y: 3, w: 20, h: 32}, contenedores: {x: 33, y: 3, w: 50, h: 32},
+    inventario: {x: 85, y: 3, w: 64, h: 32}, mostrador: {x: 151, y: 3, w: 45, h: 32}
   };
   var CONT_COLORES = ['#4b63d6', '#e0793c', '#2a9d8f', '#7a5cc4', '#c4512f', '#3f9f5d'];
 
@@ -129,19 +129,17 @@
   function dibujar(caja){
     var d = M.datos, k = conteos(d);
     caja.innerHTML = '<div class="mp-arriba"></div><div class="linea-caja mp-linea"></div>';
-    var svg = el('svg', {viewBox: '0 0 200 46', preserveAspectRatio: 'xMidYMid meet', class: 'mapa-svg', role: 'img', 'aria-label': 'Mapa de la bodega'}, q('.mp-arriba', caja));
+    var svg = el('svg', {viewBox: '0 0 200 38', preserveAspectRatio: 'xMidYMid meet', class: 'mapa-svg', role: 'img', 'aria-label': 'Mapa de la bodega'}, q('.mp-arriba', caja));
     el('defs', {}, svg).innerHTML =
       '<filter id="mpSombra" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy=".4" stdDeviation=".5" flood-color="#000" flood-opacity=".16"/></filter>'+
       '<filter id="mpSombraC" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="0" dy=".25" stdDeviation=".25" flood-color="#000" flood-opacity=".28"/></filter>'+
       '<pattern id="mpRayas" width="2" height="2" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="1" height="2" fill="#e0a92c" fill-opacity=".35"/></pattern>';
 
-    // Patio con su camino, piso y muros (puerta del andén a la izquierda; la de clientes a la derecha, junto al mostrador)
-    el('rect', {x: 0, y: 8, width: 34, height: 26, class: 'mp-camino'}, svg);
-    for(var x = 2; x < 32; x += 6) el('rect', {x: x, y: 20.7, width: 3, height: .5, fill: '#fff', 'fill-opacity': .5}, svg);
-    el('rect', {x: 36, y: 2, width: 160, height: 42, rx: 2, class: 'mp-piso', filter: 'url(#mpSombra)'}, svg);
-    el('path', {d: 'M 36 10 V 2 H 196 V 14 M 196 30 V 44 H 36 V 32', class: 'mp-muro'}, svg);
-    for(var y = 10.6; y < 32; y += 1.4) el('line', {x1: 35.5, x2: 36.5, y1: y, y2: y, class: 'mp-cortina'}, svg);
-    el('path', {d: 'M 196 14 A 8 8 0 0 0 188 22 M 196 30 A 8 8 0 0 1 188 22', class: 'mp-abre'}, svg);
+    // Piso y muros (puerta del andén a la izquierda; la de clientes a la derecha, junto al mostrador)
+    el('rect', {x: 9, y: 1, width: 189, height: 36, rx: 2, class: 'mp-piso', filter: 'url(#mpSombra)'}, svg);
+    el('path', {d: 'M 9 12 V 1 H 198 V 12 M 198 26 V 37 H 9 V 26', class: 'mp-muro'}, svg);
+    for(var y = 12.6; y < 26; y += 1.4) el('line', {x1: 8.5, x2: 9.5, y1: y, y2: y, class: 'mp-cortina'}, svg);
+    el('path', {d: 'M 198 12 A 7 7 0 0 0 191 19 M 198 26 A 7 7 0 0 1 191 19', class: 'mp-abre'}, svg);
 
     var capaZ = el('g', {}, svg), capaC = el('g', {}, svg), capaL = el('g', {}, svg);
     Object.keys(CAJAS).forEach(function(id){
@@ -152,15 +150,14 @@
       el('rect', {class: 'orilla', x: c.x, y: c.y, width: c.w, height: c.h, rx: 2.2, fill: 'none', stroke: z.color}, g);
     });
 
-    // Camión con su contenedor, pegado a la puerta del andén, y el patín
+    // Camión chico y vertical junto a la puerta del andén, solo como símbolo (pedido del usuario, 26-nov-2026), y el patín
     if(H.puedeEscribir()){
-      var cam = el('g', {class: 'mp-zona', 'data-zona': 'recibir', filter: 'url(#mpSombra)'}, capaC);
-      el('rect', {x: 2.5, y: 14.8, width: 7, height: 12.4, rx: 1.6, fill: '#e8e6df', stroke: 'rgba(0,0,0,.2)', 'stroke-width': .15}, cam);
-      el('rect', {x: 3.2, y: 15.8, width: 1.8, height: 10.4, rx: .6, fill: '#9cc3e6'}, cam);
-      el('rect', {x: 9.8, y: 19.6, width: 1.2, height: 2.8, fill: '#55575c'}, cam);
-      el('rect', {x: 11, y: 13.2, width: 24, height: 15.6, rx: .6, fill: '#c4512f', stroke: 'rgba(0,0,0,.25)', 'stroke-width': .15}, cam);
-      for(var cx = 12.5; cx < 34.5; cx += 1.6) el('line', {x1: cx, x2: cx, y1: 13.6, y2: 28.4, stroke: '#000', 'stroke-opacity': .13, 'stroke-width': .25}, cam);
-      var pat = el('g', {class: 'mp-zona', 'data-zona': 'recibir', filter: 'url(#mpSombraC)', transform: 'translate(47 32)'}, capaC);
+      var cam = el('g', {class: 'mp-zona', 'data-zona': 'recibir', filter: 'url(#mpSombraC)'}, capaC);
+      el('rect', {x: 2, y: 8, width: 5, height: 15, rx: .5, fill: '#c4512f', stroke: 'rgba(0,0,0,.25)', 'stroke-width': .15}, cam);
+      for(var cy = 9.2; cy < 22.5; cy += 1.3) el('line', {x1: 2.4, x2: 6.6, y1: cy, y2: cy, stroke: '#000', 'stroke-opacity': .13, 'stroke-width': .22}, cam);
+      el('rect', {x: 2.4, y: 23.6, width: 4.2, height: 4.6, rx: 1.1, fill: '#e8e6df', stroke: 'rgba(0,0,0,.2)', 'stroke-width': .15}, cam);
+      el('rect', {x: 2.9, y: 26.6, width: 3.2, height: 1.1, rx: .4, fill: '#9cc3e6'}, cam);
+      var pat = el('g', {class: 'mp-zona', 'data-zona': 'recibir', filter: 'url(#mpSombraC)', transform: 'translate(20 29)'}, capaC);
       el('rect', {x: -2, y: -1.4, width: 3.4, height: 2.8, rx: .5, fill: '#f2b53a'}, pat);
       el('rect', {x: 1.4, y: -1.1, width: 2.4, height: .5, fill: '#55575c'}, pat);
       el('rect', {x: 1.4, y: .6, width: 2.4, height: .5, fill: '#55575c'}, pat);
@@ -169,43 +166,43 @@
     // Contenedores por contar (los que todavía no se revisan), con su número
     var gc = el('g', {class: 'mp-zona', 'data-zona': 'contenedores'}, capaC);
     d.cont.slice(0, 4).forEach(function(c, i){
-      var px = 62.5 + (i % 2) * 21.5, py = 13.5 + Math.floor(i / 2) * 10.5, g = el('g', {filter: 'url(#mpSombraC)'}, gc);
-      el('rect', {x: px, y: py, width: 19.5, height: 8.2, rx: .5, fill: CONT_COLORES[i % CONT_COLORES.length], stroke: 'rgba(0,0,0,.22)', 'stroke-width': .15}, g);
-      for(var lx = px + 1.2; lx < px + 19; lx += 1.3) el('line', {x1: lx, x2: lx, y1: py+.4, y2: py+7.8, stroke: '#000', 'stroke-opacity': .12, 'stroke-width': .22}, g);
-      el('rect', {x: px+2.5, y: py+2.7, width: 14.5, height: 2.8, rx: 1.4, fill: 'rgba(0,0,0,.35)'}, g);
-      var t = el('text', {class: 'mp-num', x: px+9.75, y: py+4.15}, g); t.textContent = String(c.numero).slice(0, 14);
+      var px = 35.5 + (i % 2) * 23.5, py = 11.5 + Math.floor(i / 2) * 11, g = el('g', {filter: 'url(#mpSombraC)'}, gc);
+      el('rect', {x: px, y: py, width: 21, height: 8.2, rx: .5, fill: CONT_COLORES[i % CONT_COLORES.length], stroke: 'rgba(0,0,0,.22)', 'stroke-width': .15}, g);
+      for(var lx = px + 1.2; lx < px + 20.5; lx += 1.3) el('line', {x1: lx, x2: lx, y1: py+.4, y2: py+7.8, stroke: '#000', 'stroke-opacity': .12, 'stroke-width': .22}, g);
+      el('rect', {x: px+3, y: py+2.7, width: 15, height: 2.8, rx: 1.4, fill: 'rgba(0,0,0,.35)'}, g);
+      var t = el('text', {class: 'mp-num', x: px+10.5, y: py+4.15}, g); t.textContent = String(c.numero).slice(0, 14);
     });
-    if(d.cont.length > 4){ var mas = el('text', {class: 'mp-chico', x: 104, y: 9, 'text-anchor': 'end'}, gc); mas.textContent = '+'+(d.cont.length - 4)+' más'; }
-    if(!d.cont.length){ var nada = el('text', {class: 'mp-chico', x: 83, y: 25, 'text-anchor': 'middle'}, gc); nada.textContent = 'Nada por contar'; }
+    if(d.cont.length > 4){ var mas = el('text', {class: 'mp-chico', x: 81.5, y: 7.6, 'text-anchor': 'end'}, gc); mas.textContent = '+'+(d.cont.length - 4)+' más'; }
+    if(!d.cont.length){ var nada = el('text', {class: 'mp-chico', x: 58, y: 22, 'text-anchor': 'middle'}, gc); nada.textContent = 'Nada por contar'; }
 
     // Inventario: anaqueles con las piezas (una caja por pieza; punto rojo si hay dañadas o faltan) y los motocarros en espera
     var gi = el('g', {class: 'mp-zona', 'data-zona': 'inventario'}, capaC);
     var tonos = ['#c9a36b', '#b98d55', '#d6b47e'], piezas = d.inv.piezas || [], faltan = {};
     (d.inv.faltantes||[]).forEach(function(f){ faltan[f.pieza_id] = 1 });
-    [11.5, 18.5].forEach(function(ry, r){
-      el('rect', {x: 110, y: ry, width: 46, height: 5.4, rx: .6, class: 'mp-anaquel'}, gi);
-      for(var i = 0; i < 11; i++){
-        var pz = piezas[r*11 + i]; if(!pz) break;
-        el('rect', {x: 110.7 + i*4.12, y: ry+.7, width: 3.4, height: 4, rx: .3, fill: tonos[(i+r) % 3], 'fill-opacity': +pz.disponibles > 0 ? 1 : .35, filter: 'url(#mpSombraC)'}, gi);
-        if(+pz.danadas > 0 || faltan[pz.pieza_id] || +pz.disponibles < 0) el('circle', {class: 'mp-respira', cx: 110.7 + i*4.12 + 3.1, cy: ry+.9, r: .65, fill: 'var(--neg)'}, gi);
+    [9.5, 16.3].forEach(function(ry, r){
+      el('rect', {x: 87, y: ry, width: 60, height: 5.4, rx: .6, class: 'mp-anaquel'}, gi);
+      for(var i = 0; i < 14; i++){
+        var pz = piezas[r*14 + i]; if(!pz) break;
+        el('rect', {x: 87.7 + i*4.22, y: ry+.7, width: 3.4, height: 4, rx: .3, fill: tonos[(i+r) % 3], 'fill-opacity': +pz.disponibles > 0 ? 1 : .35, filter: 'url(#mpSombraC)'}, gi);
+        if(+pz.danadas > 0 || faltan[pz.pieza_id] || +pz.disponibles < 0) el('circle', {class: 'mp-respira', cx: 87.7 + i*4.22 + 3.1, cy: ry+.9, r: .65, fill: 'var(--neg)'}, gi);
       }
     });
-    if(!piezas.length){ var sp = el('text', {class: 'mp-chico', x: 133, y: 17.6, 'text-anchor': 'middle'}, gi); sp.textContent = 'Sin piezas todavía'; }
+    if(!piezas.length){ var sp = el('text', {class: 'mp-chico', x: 117, y: 15.6, 'text-anchor': 'middle'}, gi); sp.textContent = 'Sin piezas todavía'; }
     var motos = [];
     (d.inv.espera||[]).forEach(function(e){ for(var j = 0; j < (+e.cantidad||0); j++) motos.push(e.color_id) });
-    motos.slice(0, 12).forEach(function(c, i){ motocarro(113.5 + (i % 6) * 7.6, 30 + Math.floor(i / 6) * 5.6, colorDe(c), gi) });
-    if(motos.length > 12){ var mm = el('text', {class: 'mp-chico', x: 157, y: 9, 'text-anchor': 'end'}, gi); mm.textContent = '+'+(motos.length - 12)+' más'; }
-    if(!motos.length){ var sm = el('text', {class: 'mp-chico', x: 133, y: 33, 'text-anchor': 'middle'}, gi); sm.textContent = 'Ninguno en espera de armado'; }
+    motos.slice(0, 16).forEach(function(c, i){ motocarro(90.5 + (i % 8) * 7.3, 26.5 + Math.floor(i / 8) * 5, colorDe(c), gi) });
+    if(motos.length > 16){ var mm = el('text', {class: 'mp-chico', x: 147.5, y: 7.6, 'text-anchor': 'end'}, gi); mm.textContent = '+'+(motos.length - 16)+' más'; }
+    if(!motos.length){ var sm = el('text', {class: 'mp-chico', x: 117, y: 29, 'text-anchor': 'middle'}, gi); sm.textContent = 'Ninguno en espera de armado'; }
 
     // Mostrador: barra en L, caja, la remisión, vendedor, cliente y un motocarro de exhibición
     var gm = el('g', {class: 'mp-zona', 'data-zona': 'mostrador'}, capaC);
-    el('path', {d: 'M 164 19 H 184 V 34', fill: 'none', stroke: '#b07a55', 'stroke-width': 3.4, 'stroke-linejoin': 'round', filter: 'url(#mpSombra)'}, gm);
-    el('rect', {x: 177, y: 17.8, width: 4.6, height: 2.4, rx: .4, fill: '#3a3a3d'}, gm);
-    el('rect', {x: 177.8, y: 18.3, width: 3, height: 1.2, rx: .2, fill: '#7fd3a8'}, gm);
-    el('rect', {x: 167, y: 17.8, width: 6, height: 2.4, rx: .3, fill: '#f4f4f1', stroke: 'rgba(0,0,0,.15)', 'stroke-width': .12}, gm);
-    el('circle', {cx: 180, cy: 14, r: 1.6, fill: '#4b63d6', filter: 'url(#mpSombraC)'}, gm); el('circle', {cx: 180, cy: 14, r: .8, fill: '#f0c8a0'}, gm);
-    el('circle', {cx: 173, cy: 26, r: 1.6, fill: '#e7698a', filter: 'url(#mpSombraC)'}, gm); el('circle', {cx: 173, cy: 26, r: .8, fill: '#d8a77f'}, gm);
-    motocarro(165, 36, '#d9483b', gm, 0);
+    el('path', {d: 'M 156 17 H 177 V 31', fill: 'none', stroke: '#b07a55', 'stroke-width': 3.2, 'stroke-linejoin': 'round', filter: 'url(#mpSombra)'}, gm);
+    el('rect', {x: 170, y: 15.8, width: 4.6, height: 2.4, rx: .4, fill: '#3a3a3d'}, gm);
+    el('rect', {x: 170.8, y: 16.3, width: 3, height: 1.2, rx: .2, fill: '#7fd3a8'}, gm);
+    el('rect', {x: 159, y: 15.8, width: 6, height: 2.4, rx: .3, fill: '#f4f4f1', stroke: 'rgba(0,0,0,.15)', 'stroke-width': .12}, gm);
+    el('circle', {cx: 173, cy: 12.2, r: 1.5, fill: '#4b63d6', filter: 'url(#mpSombraC)'}, gm); el('circle', {cx: 173, cy: 12.2, r: .75, fill: '#f0c8a0'}, gm);
+    el('circle', {cx: 166, cy: 24, r: 1.5, fill: '#e7698a', filter: 'url(#mpSombraC)'}, gm); el('circle', {cx: 166, cy: 24, r: .75, fill: '#d8a77f'}, gm);
+    motocarro(158, 31, '#d9483b', gm, 0);
 
     // Letreros con el nombre y el conteo de cada área
     Object.keys(CAJAS).forEach(function(id){

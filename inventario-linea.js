@@ -217,12 +217,9 @@
   function pintarPanel(){
     if(!L || !L.panel) return;
     var id = L.abierta, P = H.prod, escribe = H.puedeEscribir();
-    if(!id){
-      var atn = L.lista.filter(atender).length;
-      L.panel.innerHTML = '<p class="ln-pista">Pica un área de la línea para ver sus vehículos y pasarlos a la siguiente etapa.'+
-        (atn ? ' <span class="etq rojo chica">'+atn+(atn===1 ? ' vehículo necesita' : ' vehículos necesitan')+' atención</span>' : '')+'</p>';
-      return;
-    }
+    // Sin área abierta no se muestra nada: la pista "Pica un área…" quitaba espacio (pedido del usuario, 26-nov-2026)
+    L.panel.hidden = !id;
+    if(!id){ L.panel.innerHTML = ''; return; }
     var html = '<div class="ln-cab"><span class="ln-ico" style="background:'+COLOR[id]+'"></span><b>'+esc(nombreEtapa(id))+'</b>';
     if(id==='espera'){
       var esp = L.espera || [], n = esp.reduce(function(s, x){ return s + (+x.cantidad||0) }, 0);
