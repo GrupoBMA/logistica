@@ -98,14 +98,33 @@
     return caracteristica + ' ' + opcion.toLowerCase();
   }
 
-  // "MC 300 · Cabina · Hidráulico · Rodado doble" (sin colores; lo que va en "No" no se nombra)
+  // "MC 300 · Con cabina · Pick up · Hidráulico" (sin colores ni aditamentos; lo que va en "No" o "Normal" no se nombra).
+  // Desde el 26-nov-2026 las características con solo_opcion (Cabina, Atrás, Tipo…) se nombran solo con la opción.
   function nombreModelo(r, cat){
     var partes = [], mo = porId(cat.modelos, r.modelo_id);
     partes.push(mo ? mo.nombre : '?');
     (cat.caracteristicas||[]).forEach(function(c){
-      (c.opciones||[]).forEach(function(o){ if((r.opciones||[]).indexOf(o.id) > -1 && !esNo(o.nombre)) partes.push(nombreOpcion(c.nombre, o.nombre)); });
+      (c.opciones||[]).forEach(function(o){
+        if((r.opciones||[]).indexOf(o.id) < 0 || esNo(o.nombre) || /^normal$/i.test(o.nombre)) return;
+        partes.push(c.solo_opcion ? o.nombre : nombreOpcion(c.nombre, o.nombre));
+      });
     });
     return partes.join(' · ');
+  }
+  // "Caja seca 2 puertas · Toldo": los aditamentos escogidos, en el orden del catálogo
+  function nombreAditamentos(ids, cat){
+    var res = [];
+    (cat.caracteristicas||[]).forEach(function(c){ (c.opciones||[]).forEach(function(o){ if((ids||[]).indexOf(o.id) > -1) res.push(o.nombre) }) });
+    return res.join(' · ');
+  }
+  // Opciones que ya no se pueden escoger porque se contradicen con alguna de las escogidas (cat.incompatibles: [[a, b], …])
+  function bloqueadas(ids, cat){
+    var res = {};
+    (cat.incompatibles||[]).forEach(function(par){
+      if((ids||[]).indexOf(par[0]) > -1) res[par[1]] = par[0];
+      if((ids||[]).indexOf(par[1]) > -1) res[par[0]] = par[1];
+    });
+    return res;   // id bloqueado -> id con el que choca
   }
 
   // "Azul, Rojo y Blanco", en el orden del catálogo
@@ -125,7 +144,7 @@
 
   var api = {piezasEsperadas: piezasEsperadas, sinListaDePiezas: sinListaDePiezas, diferencia: diferencia,
     validarContenedor: validarContenedor, validarPieza: validarPieza, nombreOpcion: nombreOpcion, resumenRevision: resumenRevision,
-    nombreVehiculo: nombreVehiculo, nombreModelo: nombreModelo, nombreColores: nombreColores, sumaConteo: sumaConteo,
+    nombreVehiculo: nombreVehiculo, nombreModelo: nombreModelo, nombreAditamentos: nombreAditamentos, bloqueadas: bloqueadas, nombreColores: nombreColores, sumaConteo: sumaConteo,
     vehiculosPorColor: vehiculosPorColor, porId: porId, normaNumero: normaNumero};
   if(typeof module !== 'undefined' && module.exports) module.exports = api; else raiz.Inventario = api;
 })(this);

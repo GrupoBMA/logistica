@@ -140,3 +140,20 @@ test('opciones Sí/No: el Sí se nombra y el No no sale en el vehículo', () => 
   assert.equal(I.nombreOpcion('Pick up', 'No'), 'Sin pick up');
   assert.equal(I.nombreOpcion('Pick up', 'Sí'), 'Pick up');
 });
+
+test('catálogo nuevo: solo la opción en el nombre, aditamentos aparte y lo que se contradice (26-nov-2026)', () => {
+  const cat = {modelos: [{id: 3, nombre: 'MC 300'}], caracteristicas: [
+    {id: 1, nombre: 'Cabina', solo_opcion: true, opciones: [{id: 11, nombre: 'Sin cabina'}, {id: 12, nombre: 'Con cabina'}, {id: 13, nombre: 'Cabina cerrada'}]},
+    {id: 2, nombre: 'Atrás', solo_opcion: true, opciones: [{id: 21, nombre: 'Pick up'}, {id: 22, nombre: 'En chasis'}]},
+    {id: 3, nombre: 'Hidráulico', opciones: [{id: 31, nombre: 'Sí'}, {id: 32, nombre: 'No'}]},
+    {id: 4, nombre: 'Tipo', solo_opcion: true, opciones: [{id: 41, nombre: 'Normal'}, {id: 42, nombre: 'Mini'}]},
+    {id: 5, nombre: 'Caja', solo_opcion: true, aditamento: true, opciones: [{id: 51, nombre: 'Caja seca 2 puertas'}]},
+    {id: 6, nombre: 'Toldo', solo_opcion: true, aditamento: true, opciones: [{id: 61, nombre: 'Toldo'}]}],
+    incompatibles: [[13, 31], [22, 31]]};
+  assert.equal(I.nombreModelo({modelo_id: 3, opciones: [12, 21, 31]}, cat), 'MC 300 · Con cabina · Pick up · Hidráulico');
+  assert.equal(I.nombreModelo({modelo_id: 3, opciones: [13, 22, 32]}, cat), 'MC 300 · Cabina cerrada · En chasis');
+  assert.equal(I.nombreModelo({modelo_id: 3, opciones: [41]}, cat), 'MC 300');
+  assert.equal(I.nombreAditamentos([61, 51], cat), 'Caja seca 2 puertas · Toldo');
+  assert.deepEqual(I.bloqueadas([13], cat), {31: 13});
+  assert.deepEqual(I.bloqueadas([31], cat), {13: 31, 22: 31});
+});

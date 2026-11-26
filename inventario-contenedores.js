@@ -25,14 +25,38 @@
   }
 
   function activos(lista){ return (lista||[]).filter(function(x){ return x.activo !== false }) }
-  function opcionesDeModelo(modeloId){
+  // De fábrica (aditamentos = false) o aditamentos (true): las características que tiene el modelo, con sus opciones permitidas
+  function opcionesDeModelo(modeloId, aditamentos){
     var permitidas = (E.cat.modelo_opciones||[]).filter(function(mo){ return mo.modelo_id===modeloId }).map(function(mo){ return mo.opcion_id });
-    return activos(E.cat.caracteristicas).map(function(c){
+    return activos(E.cat.caracteristicas).filter(function(c){ return !!c.aditamento===!!aditamentos }).map(function(c){
       return {car: c, opciones: activos(c.opciones).filter(function(o){ return permitidas.indexOf(o.id) > -1 })};
     }).filter(function(x){ return x.opciones.length });
   }
-  // Características del modelo en su orden (Cabina, Hidráulico, Pick up, Plus, Rodado), para los formularios de vehículo
-  H.opcionesDeModelo = function(m){ return opcionesDeModelo(m).sort(function(a, b){ return (a.car.orden||0) - (b.car.orden||0) }) };
+  // Características de fábrica del modelo en su orden (Cabina, Atrás, Hidráulico, Tipo) y sus aditamentos (Caja, Toldo, Cachucha)
+  H.opcionesDeModelo = function(m){ return opcionesDeModelo(m, false).sort(function(a, b){ return (a.car.orden||0) - (b.car.orden||0) }) };
+  H.aditamentosDeModelo = function(m){ return opcionesDeModelo(m, true).sort(function(a, b){ return (a.car.orden||0) - (b.car.orden||0) }) };
+  // Lo que se contradice no se puede escoger (pedido del usuario, 26-nov-2026): al escoger una opción se quitan las que chocan con ella
+  H.escogerOpcion = function(sel, carId, opId, quitarSiEsLaMisma){
+    if(quitarSiEsLaMisma && sel[carId]===opId){ delete sel[carId]; return; }
+    sel[carId] = opId;
+    var bl = I.bloqueadas([opId], E.cat);
+    Object.keys(sel).forEach(function(k){ if(+k!==carId && bl[sel[k]]) delete sel[k]; });
+  };
+  // Botones de un renglón: el escogido marcado y los que chocan con lo ya escogido, apagados
+  H.filaOpciones = function(x, sel, bloq, attrs){
+    return '<div class="vf-fila"><span class="vf-nom">'+esc(x.car.nombre)+'</span><div class="pilds">'+x.opciones.map(function(o){
+      var on = sel[x.car.id]===o.id, apagado = !on && bloq[o.id]!=null, choca = apagado ? nombreLegible(bloq[o.id]) : '';
+      return '<button type="button" class="pild'+(on ? ' sel' : '')+'" aria-pressed="'+on+'" '+attrs+' data-car="'+x.car.id+'" data-val="'+o.id+'"'+
+        (apagado ? ' disabled title="No va con '+esc(choca || 'lo que escogiste')+'"' : '')+'>'+esc(o.nombre)+'</button>';
+    }).join('')+'</div></div>';
+  };
+  // "Hidráulico" en vez de "Sí", "Cabina cerrada" tal cual
+  function nombreLegible(opId){
+    var r = '';
+    (E.cat.caracteristicas||[]).forEach(function(c){ (c.opciones||[]).forEach(function(o){ if(o.id===opId) r = c.solo_opcion ? o.nombre : I.nombreOpcion(c.nombre, o.nombre) }) });
+    return r;
+  }
+  H.valores = function(sel){ return Object.keys(sel).map(function(k){ return sel[k] }) };
   function totalVehiculos(renglones){ return renglones.reduce(function(s, r){ return s + (r.cantidad||0) }, 0) }
   // Mismo modelo y opciones (los colores se juntan)
   function mismoVehiculo(a, b){
@@ -69,9 +93,9 @@
     if(f.modelo_id!=null){
       var cars = H.opcionesDeModelo(f.modelo_id);
       if(cars.length){
+        var bloq = I.bloqueadas(H.valores(f.sel), E.cat);
         izq += '<section class="vf-sec"><h3>'+(++n)+'. Características</h3><div class="vf-tabla">'+cars.map(function(x){
-          return '<div class="vf-fila"><span class="vf-nom">'+esc(x.car.nombre)+'</span><div class="pilds">'+x.opciones.map(function(o){
-            return pild('data-k="op" data-car="'+x.car.id+'" data-val="'+o.id+'"', f.sel[x.car.id]===o.id, esc(o.nombre)) }).join('')+'</div></div>';
+          return H.filaOpciones(x, f.sel, bloq, 'data-r="vf" data-k="op"');
         }).join('')+'</div></section>';
       }
       der += '<section class="vf-sec"><h3>'+(++n)+'. Colores</h3>'+
@@ -93,7 +117,7 @@
     var f = W.form, k = b.dataset.k, val = +b.dataset.val;
     leerForm(main); f.error = '';
     if(k==='modelo'){ if(f.modelo_id!==val){ f.modelo_id = val; f.sel = {}; } }
-    else if(k==='op') f.sel[+b.dataset.car] = val;
+    else if(k==='op') H.escogerOpcion(f.sel, +b.dataset.car, val);
     else if(k==='colores'){
       H.escogerVarios({titulo: 'Colores', ayuda: 'Marca todos los colores que dice la hoja',
         opciones: activos(E.cat.colores).map(function(c){ return {valor: c.id, nombre: c.nombre, color: hexColor(c.nombre)} }),

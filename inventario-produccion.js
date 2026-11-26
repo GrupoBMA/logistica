@@ -162,15 +162,19 @@
   }
 
   // ---------------------------------------------------------------- Formulario de un vehículo (una sola pantalla)
-  // 1. Modelo · 2. Características (una fila por característica) · 3. Color · 4. ¿Es especial? · 5. ¿Cuántos?
-  // Las secciones aparecen cuando ya se escogió el modelo. Nada viene escogido de antemano (candado).
+  // 1. Modelo · 2. De fábrica (Cabina, Atrás, Hidráulico, Tipo) · 3. Color · 4. Aditamentos (opcionales) · 5. ¿Cuántos?
+  // Lo que se contradice no se puede escoger (26-nov-2026). Si lleva algún aditamento, el vehículo es especial
+  // (pasa por Herrería y Forrado) sin tener que preguntarlo. Nada viene escogido de antemano (candado).
   function nuevoForm(i){
     var p = i==null ? null : V.vehiculos[i];
-    var f = {i: i, modelo_id: p ? p.modelo_id : null, sel: {}, color_id: p ? p.color_id : null,
-      especial: p ? !!p.especial : null, especial_que: p ? (p.especial_que||'') : '', cantidad: p ? p.cantidad : 1, error: ''};
-    if(p) H.opcionesDeModelo(p.modelo_id).forEach(function(x){
-      var o = x.opciones.filter(function(o){ return (p.opciones||[]).indexOf(o.id) > -1 })[0]; if(o) f.sel[x.car.id] = o.id;
-    });
+    var f = {i: i, modelo_id: p ? p.modelo_id : null, sel: {}, adit: {}, color_id: p ? p.color_id : null,
+      nota: p ? (p.nota||'') : '', cantidad: p ? p.cantidad : 1, error: ''};
+    if(p){
+      H.opcionesDeModelo(p.modelo_id).forEach(function(x){
+        var o = x.opciones.filter(function(o){ return (p.opciones||[]).indexOf(o.id) > -1 })[0]; if(o) f.sel[x.car.id] = o.id; });
+      H.aditamentosDeModelo(p.modelo_id).forEach(function(x){
+        var o = x.opciones.filter(function(o){ return (p.aditamentos||[]).indexOf(o.id) > -1 })[0]; if(o) f.adit[x.car.id] = o.id; });
+    }
     return f;
   }
   function pild(attrs, on, contenido){
@@ -184,21 +188,23 @@
       (E.cat.modelos||[]).filter(function(x){ return x.activo!==false }).map(function(x){
         return pild('data-k="modelo" data-val="'+x.id+'"', f.modelo_id===x.id, esc(x.nombre)) }).join('')+'</div></section>';
     if(f.modelo_id!=null){
-      var cars = H.opcionesDeModelo(f.modelo_id);
+      var cars = H.opcionesDeModelo(f.modelo_id), adits = H.aditamentosDeModelo(f.modelo_id);
+      var bloq = I.bloqueadas(H.valores(f.sel).concat(H.valores(f.adit)), E.cat);
       if(cars.length){
-        html += '<section class="vf-sec"><h3>'+(++n)+'. Características</h3><div class="vf-tabla">'+cars.map(function(x){
-          return '<div class="vf-fila"><span class="vf-nom">'+esc(x.car.nombre)+'</span><div class="pilds">'+x.opciones.map(function(o){
-            return pild('data-k="op" data-car="'+x.car.id+'" data-val="'+o.id+'"', f.sel[x.car.id]===o.id, esc(o.nombre)) }).join('')+'</div></div>';
-        }).join('')+'</div></section>';
+        html += '<section class="vf-sec"><h3>'+(++n)+'. De fábrica</h3><div class="vf-tabla">'+cars.map(function(x){
+          return H.filaOpciones(x, f.sel, bloq, 'data-nv="vf" data-k="op"') }).join('')+'</div></section>';
       }
       html += '<section class="vf-sec"><h3>'+(++n)+'. Color</h3><div class="pilds">'+
         (E.cat.colores||[]).filter(function(c){ return c.activo!==false }).map(function(c){
           var hx = H.hexColor(c.nombre);
           return pild('data-k="color" data-val="'+c.id+'"', f.color_id===c.id, (hx ? '<span class="pt-col" style="background:'+hx+'"></span>' : '')+esc(c.nombre)) }).join('')+'</div></section>';
-      html += '<section class="vf-sec"><h3>'+(++n)+'. ¿Es especial?</h3><div class="pilds">'+
-        pild('data-k="esp" data-val="no"', f.especial===false, 'No, es normal')+pild('data-k="esp" data-val="si"', f.especial===true, 'Sí, es especial')+'</div>'+
-        (f.especial ? '<label class="campo" style="margin-top:12px"><span>¿Qué lleva?</span><input id="vfQue" autocomplete="off" value="'+esc(f.especial_que)+'" placeholder="Garrafonero, caja seca…"></label>' : '')+
-        '</section>';
+      if(adits.length){
+        var lleva = H.valores(f.adit).length > 0;
+        html += '<section class="vf-sec"><h3>'+(++n)+'. Aditamentos <small class="vf-ayuda">· opcionales'+(lleva ? ' · <span class="etq azul chica">Especial</span>' : '')+'</small></h3>'+
+          '<div class="vf-tabla">'+adits.map(function(x){ return H.filaOpciones(x, f.adit, bloq, 'data-nv="vf" data-k="adit"') }).join('')+'</div>'+
+          '<label class="campo" style="margin:12px 0 0"><span>Nota <small style="color:var(--muted);font-weight:400">· opcional</small></span>'+
+          '<input id="vfNota" autocomplete="off" value="'+esc(f.nota)+'" placeholder="Algo especial que pidió el cliente"></label></section>';
+      }
       html += '<section class="vf-sec"><h3>'+(++n)+'. ¿Cuántos?</h3>'+H.contador('vfCant', f.cantidad, 1)+'</section>';
     }
     html += '<div class="acciones">'+(V.vehiculos.length || f.i!=null ? '<button type="button" class="btn" data-nv="vf" data-k="cancelar">Cancelar</button>'
@@ -208,29 +214,36 @@
   }
   function leerForm(m){
     var f = V.form; if(!f) return;
-    var x = q('#vfQue', m); if(x) f.especial_que = x.value.trim();
+    var x = q('#vfNota', m); if(x) f.nota = x.value.trim();
     var c = q('[data-contador="vfCant"]', m); if(c) f.cantidad = H.valorContador(c);
   }
   function clicForm(b, m){
     var f = V.form, k = b.dataset.k, val = b.dataset.val;
     f.error = '';
-    if(k==='modelo'){ if(f.modelo_id!==+val){ f.modelo_id = +val; f.sel = {}; } }
-    else if(k==='op') f.sel[+b.dataset.car] = +val;
+    if(k==='modelo'){ if(f.modelo_id!==+val){ f.modelo_id = +val; f.sel = {}; f.adit = {}; } }
+    else if(k==='op' || k==='adit'){
+      // Una sola lista de lo escogido para que lo que choca se quite de los dos lados
+      var todo = Object.assign({}, f.sel, f.adit), car = +b.dataset.car;
+      H.escogerOpcion(todo, car, +val, k==='adit');   // los aditamentos se quitan picándolos otra vez
+      var fab = {}, ad = {};
+      H.opcionesDeModelo(f.modelo_id).forEach(function(x){ if(todo[x.car.id]!=null) fab[x.car.id] = todo[x.car.id] });
+      H.aditamentosDeModelo(f.modelo_id).forEach(function(x){ if(todo[x.car.id]!=null) ad[x.car.id] = todo[x.car.id] });
+      f.sel = fab; f.adit = ad;
+    }
     else if(k==='color') f.color_id = +val;
-    else if(k==='esp') f.especial = val==='si';
     else if(k==='cancelar'){ V.form = null; }
     else if(k==='listo'){
       var cars = f.modelo_id==null ? [] : H.opcionesDeModelo(f.modelo_id), faltan = [];
       if(f.modelo_id==null) faltan.push('el modelo');
       cars.forEach(function(x){ if(f.sel[x.car.id]==null) faltan.push(x.car.nombre) });
       if(f.modelo_id!=null && f.color_id==null) faltan.push('el color');
-      if(f.modelo_id!=null && f.especial==null) faltan.push('si es especial');
       if(faltan.length) f.error = 'Falta escoger: '+faltan.join(', ')+'.';
-      else if(f.especial && !f.especial_que) f.error = 'Escribe qué lleva el especial (garrafonero, caja seca…).';
       else if(!(f.cantidad >= 1)) f.error = 'La cantidad debe ser 1 o más.';
       else {
-        var r = {modelo_id: f.modelo_id, opciones: cars.map(function(x){ return f.sel[x.car.id] }), color_id: f.color_id,
-          especial: f.especial, especial_que: f.especial ? f.especial_que : '', cantidad: f.cantidad};
+        var adit = H.valores(f.adit);
+        var r = {modelo_id: f.modelo_id, opciones: cars.map(function(x){ return f.sel[x.car.id] }), aditamentos: adit, nota: f.nota,
+          color_id: f.color_id, especial: adit.length > 0, cantidad: f.cantidad};
+        r.especial_que = [I.nombreAditamentos(adit, E.cat), f.nota].filter(Boolean).join(' · ');
         if(f.i==null) V.vehiculos.push(r); else V.vehiculos[f.i] = r;
         juntar(); V.form = null;
       }
@@ -245,7 +258,7 @@
   function juntar(){
     var res = [];
     V.vehiculos.forEach(function(r){
-      var k = function(x){ return [x.modelo_id, (x.opciones||[]).slice().sort().join(','), x.color_id, x.especial ? 1 : 0, (x.especial_que||'').toLowerCase()].join('|') };
+      var k = function(x){ return [x.modelo_id, (x.opciones||[]).slice().sort().join(','), (x.aditamentos||[]).slice().sort().join(','), x.color_id, (x.nota||'').toLowerCase()].join('|') };
       var y = res.filter(function(z){ return k(z)===k(r) })[0];
       if(y) y.cantidad += r.cantidad; else res.push(r);
     });
@@ -690,7 +703,8 @@
     if((b = e.target.closest('[data-corregir-venta]'))){
       var v = CACHE.venta; if(!v) return;
       var renglones = [];
-      v.unidades.forEach(function(u){ renglones.push({modelo_id: u.modelo_id, opciones: u.opciones || [], color_id: u.color_id, especial: u.especial, especial_que: u.especial_que || '', cantidad: 1}) });
+      v.unidades.forEach(function(u){ renglones.push({modelo_id: u.modelo_id, opciones: u.opciones || [], aditamentos: u.aditamentos || [], nota: u.nota || '',
+        color_id: u.color_id, especial: u.especial, especial_que: u.especial_que || '', cantidad: 1}) });
       V = {paso: 1, id: v.id, tipo: v.tipo || 'cliente', remisionOriginal: v.remision, bodega: v.bodega, remision: v.remision, fecha: v.fecha, vendedor: v.vendedor, destino: v.destino,
         tipo_destino: v.tipo_destino || '', cp: v.cp || '', vehiculos: renglones, conProduccion: v.unidades.some(function(u){ return !!u.vehiculo }), error: ''};
       juntar();

@@ -105,7 +105,7 @@
   var CATS = [
     {id: 'modelos', nombre: 'Modelos', sub: 'MC 150, MC 200…'},
     {id: 'colores', nombre: 'Colores', sub: 'Los que pueden traer los vehículos'},
-    {id: 'caracteristicas', nombre: 'Características', sub: 'Hidráulico, rodado… y qué modelos las tienen'},
+    {id: 'caracteristicas', nombre: 'Características', sub: 'Cabina, atrás, aditamentos… y qué modelos las tienen'},
     {id: 'defectos', nombre: 'Tipos de daño', sub: 'Para la revisión'},
     {id: 'piezas', nombre: 'Piezas', sub: 'Todas las piezas que pueden llegar'},
     {id: 'materiales', nombre: 'Lista de piezas', sub: 'Qué piezas trae cada modelo'}
@@ -145,10 +145,10 @@
         '<div class="acciones"><button type="button" class="btn prin" data-c="agregar" data-t="'+C.vista+'">+ Agregar</button></div>';
     } else if(C.vista==='caracteristicas'){
       html += (cat.caracteristicas||[]).map(function(c){
-        return '<section style="margin:0 0 28px"><div class="tarjeta" style="background:var(--raised)"><span class="txt"><b>'+esc(c.nombre)+'</b></span>'+botonesFila('caracteristicas', c)+'</div>'+
+        return '<section style="margin:0 0 28px"><div class="tarjeta" style="background:var(--raised)"><span class="txt"><b>'+esc(c.nombre)+'</b>'+(c.aditamento ? '<small>Aditamento: se pone en la bodega y hace especial al vehículo</small>' : '<small>De fábrica</small>')+'</span>'+botonesFila('caracteristicas', c)+'</div>'+
           '<div class="tarjetas" style="margin:8px 0 0 18px">'+(c.opciones||[]).map(function(o){
             var mods = (cat.modelo_opciones||[]).filter(function(x){ return x.opcion_id===o.id }).map(function(x){ var mo = I.porId(cat.modelos, x.modelo_id); return mo ? mo.nombre : '' });
-            return '<div class="tarjeta"><span class="txt"><b>'+esc(I.nombreOpcion(c.nombre, o.nombre))+'</b><small>'+(mods.length ? 'Modelos: '+esc(mods.join(', ')) : 'Ningún modelo la tiene')+'</small>'+
+            return '<div class="tarjeta"><span class="txt"><b>'+esc(c.solo_opcion ? o.nombre : I.nombreOpcion(c.nombre, o.nombre))+'</b><small>'+(mods.length ? 'Modelos: '+esc(mods.join(', ')) : 'Ningún modelo la tiene')+'</small>'+
               (o.activo===false ? '<small>Desactivada</small>' : '')+'</span><span class="btns"><button type="button" class="btn" data-c="modelos-op" data-id="'+o.id+'">Modelos</button>'+
               '<button type="button" class="btn" data-c="renombrar" data-t="opciones" data-id="'+o.id+'">Renombrar</button>'+
               '<button type="button" class="btn" data-c="activo" data-t="opciones" data-id="'+o.id+'" data-v="'+(o.activo===false ? 1 : 0)+'">'+(o.activo===false ? 'Activar' : 'Desactivar')+'</button></span></div>';
