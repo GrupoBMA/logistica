@@ -7,7 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="icono.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="inventario.css?v=20261127-sr2">
+<link rel="stylesheet" href="inventario.css?v=20261127-sr3">
 <style>
 /* BMA Logística: se usa como un videojuego. Menú con contadores, un objetivo por vista,
    íconos de estado que se leen de un vistazo, inventario en casillas, atajos de teclado. */
@@ -497,9 +497,11 @@ body.solo-lectura .ruta li[data-lugar],body.solo-lectura .ruta[data-lugar] heade
       <button class="tab" type="button" role="tab" data-t="rutas" aria-selected="false">Rutas <span class="n" id="nR"></span></button>
       <button class="tab" type="button" role="tab" data-t="cambios" aria-selected="false">Cambios <span class="n" id="nC"></span></button>
       <button class="tab" type="button" role="tab" data-t="entregados" aria-selected="false">Entregados <span class="n" id="nE"></span></button>
+      <button class="tab" type="button" role="tab" data-t="showrooms" aria-selected="false" id="tabSr" hidden>Showrooms</button>
       <button class="tab" type="button" role="tab" data-t="inventario" aria-selected="false">Inventario</button>
     </nav>
     <div id="inv" class="inv-raiz" hidden></div>
+    <div id="sr" class="inv-raiz" hidden></div>
     <div class="view-head sr"><h1 id="vt"></h1><p class="objective" id="vo"></p></div>
     <div class="toolbar">
       <div class="cats" id="cats"></div>
@@ -523,8 +525,8 @@ body.solo-lectura .ruta li[data-lugar],body.solo-lectura .ruta[data-lugar] heade
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="logica.js?v=20261112-bodega1"></script>
-<script src="inventario-logica.js?v=20261127-sr2"></script>
-<script src="inventario.js?v=20261127-sr2"></script>
+<script src="inventario-logica.js?v=20261127-sr3"></script>
+<script src="inventario.js?v=20261127-sr3"></script>
 <script src="inventario-iconos.js?v=20261123-a"></script>
 <script src="inventario-contenedores.js?v=20261126-l"></script>
 <script src="inventario-revision.js?v=20261126-a"></script>
@@ -533,7 +535,8 @@ body.solo-lectura .ruta li[data-lugar],body.solo-lectura .ruta[data-lugar] heade
 <script src="inventario-linea.js?v=20261126-m"></script>
 <script src="inventario-plan.js?v=20261126-m"></script>
 <script src="inventario-mapa.js?v=20261126-k"></script>
-<script src="inventario-showrooms.js?v=20261127-sr2"></script>
+<script src="siluetas.js?v=20261127-a"></script>
+<script src="showrooms.js?v=20261127-a"></script>
 <script>
 (function(){
   // Regreso de Google ("Conectar con Google"): la función logistica-google manda aquí ?google=ok|error&msg=
@@ -738,7 +741,7 @@ body.solo-lectura .ruta li[data-lugar],body.solo-lectura .ruta[data-lugar] heade
     $('nC').textContent = recientes || '';
     $('nR').textContent = base().filter(function(u){ return u.ruta }).length || '';
     drawAvisos();
-    if(st.tab==='inventario') return;   // lo dibuja inventario.js
+    if(st.tab==='inventario' || st.tab==='showrooms') return;   // los dibujan inventario.js y showrooms.js
     if(st.tab==='cambios'){ drawCambios(); return; }
     if(st.tab==='rutas'){ drawRutas(); return; }
     var ent = st.tab==='entregados';
@@ -1022,7 +1025,10 @@ body.solo-lectura .ruta li[data-lugar],body.solo-lectura .ruta[data-lugar] heade
   function ir(v){ st.tab='ventas'; st.vista=v; st.tipo=''; st.destino=''; st.vendedor=''; st.paso=-1; st.q=''; $('q').value=''; draw(); scrollTo({top:0}); }
   $('menu').addEventListener('click', function(e){ var b=e.target.closest('.mi'); if(b) ir(b.dataset.v) });
   $('tabs').addEventListener('click', function(e){ var b=e.target.closest('.tab'); if(!b) return;
+    $('sr').hidden = true;
     if(b.dataset.t==='inventario'){ st.tab='inventario'; abrirInventario(); draw(); scrollTo({top:0}); return; }
+    // Showrooms (27-nov-2026): pestaña propia, solo para quien tiene ve_showrooms; esconde lo de Logística igual que Inventario
+    if(b.dataset.t==='showrooms'){ st.tab='showrooms'; document.body.classList.add('en-inventario'); $('inv').hidden = true; Showrooms.abrir($('sr'), sb); draw(); scrollTo({top:0}); return; }
     document.body.classList.remove('en-inventario'); $('inv').hidden = true;
     st.tab=b.dataset.t; st.tipo=''; st.destino=''; st.vendedor=''; st.q=''; $('q').value=''; draw(); scrollTo({top:0}); });
   $('cats').addEventListener('change', function(e){
@@ -1191,7 +1197,7 @@ body.solo-lectura .ruta li[data-lugar],body.solo-lectura .ruta[data-lugar] heade
   $('salir').addEventListener('click', salir);
   function salir(){
     sb.auth.signOut().then(function(){
-      TODAS=[]; cerrar(); if(window.InventarioApp) InventarioApp.cerrar();
+      TODAS=[]; cerrar(); if(window.InventarioApp) InventarioApp.cerrar(); if(window.Showrooms) Showrooms.cerrar(); verShowrooms(false);
       document.body.classList.remove('modo-bodega','en-inventario'); $('inv').hidden = true; st.tab = 'ventas';
       sesionVisible(false); $('lUser').focus();
     });
@@ -1207,9 +1213,11 @@ body.solo-lectura .ruta li[data-lugar],body.solo-lectura .ruta[data-lugar] heade
       if(s.rol==='bodega'){
         document.body.classList.add('modo-bodega'); sesionVisible(true); abrirInventario(s); return;
       }
+      verShowrooms(!!s.ve_showrooms);
       leerDrive();
     });
   }
+  function verShowrooms(si){ $('tabSr').hidden = !si; $('tabs').classList.toggle('con-sr', si); }
   // Muestra Inventario (inventario.js) dentro de la app
   function abrirInventario(s){
     document.body.classList.add('en-inventario'); $('inv').hidden = false;

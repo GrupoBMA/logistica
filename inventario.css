@@ -482,6 +482,23 @@ svg.linea{display:block;width:100%;height:auto}
 .sr-cols span:last-child{padding-left:16px}
 .tarjeta.sr-fila{display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:stretch}
 .sr-lado{display:flex;align-items:center;gap:14px;min-width:0}
+.sr-pantalla{margin-top:16px}
+.sr-hay{flex-direction:column;align-items:stretch;gap:8px;justify-content:center}
+.sr-arr{display:flex;align-items:center;gap:14px;min-width:0}
+.sr-arr .txt{flex:1;min-width:0}
+.sr-colores{list-style:none;margin:0;padding:0 0 0 70px;display:flex;flex-direction:column;gap:4px}
+.sr-colores li{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
+.sr-colores li b{margin-left:auto;color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+.sr-pt{width:14px;height:14px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
+.sr-pt.sin{background:transparent;box-shadow:inset 0 0 0 1.5px var(--faint)}
+.suc-sig{width:38px;height:38px;border-radius:10px;flex:none;display:grid;place-items:center;background:var(--raised);color:var(--text);font-size:12px;font-weight:700;letter-spacing:.02em}
+.vista.on .suc-sig{background:var(--surface)}
+.suc-sig.alerta{background:var(--neg-bg);color:var(--neg);font-size:17px}
+.vista.sr-top{margin-top:10px}
+.sr-copia{margin:12px 12px 0;color:var(--faint);font-size:13px}
+.sil-c{--hueco:color-mix(in srgb,var(--work) 11%,var(--surface));width:64px;aspect-ratio:64/40;border-radius:10px;flex:none;display:grid;place-items:center;background:var(--hueco);color:var(--work)}
+.sil{width:80%;height:auto;fill:currentColor}
+.sil .h{fill:var(--hueco)}
 .sr-lado + .sr-lado{border-left:1px solid var(--border);padding-left:16px;margin-left:0}
 .sr-fila .sr-lado:first-child{padding-right:16px}
 .tarjeta.sr-sospechoso .sr-lado + .sr-lado .cant{color:var(--neg)}
@@ -491,4 +508,8 @@ svg.linea{display:block;width:100%;height:auto}
   .tarjeta.sr-fila{grid-template-columns:1fr}
   .sr-lado + .sr-lado{border-left:0;border-top:1px solid var(--border);padding:10px 0 0;margin-top:10px}
   .sr-fila .sr-lado:first-child{padding-right:0}
+  .sr-colores{padding-left:0}
 }
+/* 6 pestañas cuando se ve Showrooms */
+#tabs .tab[hidden]{display:none}
+@media (min-width:761px){ #tabs.tabs.con-sr{grid-template-columns:repeat(6,minmax(0,1fr))} }

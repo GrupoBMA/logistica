@@ -62,10 +62,7 @@
     {id: 'plan',         grupo: 'Producción',   nombre: 'Plan de armado',       sub: 'Lo que se arma esta semana',       roles: ['admin','bodega','lectura']},
     {id: 'produccion',   grupo: 'Producción',   nombre: 'Línea de producción',  sub: 'Pasar vehículos de etapa',         roles: ['admin','bodega','lectura']},
     {id: 'catalogos',    grupo: 'Administración', nombre: 'Catálogos',          sub: 'Modelos, colores, piezas',         roles: ['admin']},
-    {id: 'cambios',      grupo: 'Administración', nombre: 'Cambios',            sub: 'Lo que corrigieron las bodegas',   roles: ['admin']},
-    // Showrooms contra Odoo (27-nov-2026): por ahora solo la cuenta admin (logistica.usuarios.ve_showrooms)
-    {id: 'showrooms',    grupo: 'Administración', nombre: 'Showrooms',          sub: 'Lo que piden contra Odoo',         roles: ['admin'], solo: 've_showrooms'}
-  ];
+    {id: 'cambios',      grupo: 'Administración', nombre: 'Cambios',            sub: 'Lo que corrigieron las bodegas',   roles: ['admin']}  ];
   var DIBUJAR = {};          // id de sección -> function(main)
   var CUENTA = {};           // id de sección -> número para la burbuja (o '')
   var NUEVO = {};            // id de sección -> true: entró algo nuevo (punto naranja hasta que se visita)
