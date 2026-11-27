@@ -19,18 +19,27 @@
   }
   function num(n){ n = Math.round((+n || 0) * 10) / 10; return Number.isInteger(n) ? String(n) : n.toFixed(1) }
 
-  function tarjeta(p, conSuc){
-    var nv = NIVEL[p.nivel], u = p.rollo ? (p.hay == 1 ? ' rollo' : ' rollos') : '';
-    var datos = [];
-    if(p.existe) datos.push('Vendió ' + num(p.vendio) + ' en 30 días');
-    datos.push(p.cantidad == null ? 'No dijo cuántas' : 'Pide ' + p.cantidad);
+  /* Dos columnas por renglón (pedido del usuario, 27-nov-2026): a la izquierda lo que pidió, a la derecha lo que hay en Odoo. */
+  function renglon(p, conSuc){
+    var nv = NIVEL[p.nivel], u = p.rollo ? (p.hay == 1 ? 'rollo' : 'rollos') : '';
     var cols = (p.colores || []).slice(0, 6).map(function(c){ return esc(c.color) + ' ' + num(c.n) }).join(' · ');
-    return '<div class="tarjeta sr-' + p.nivel + '">' +
-      '<span class="cant" title="Lo que tiene hoy en Odoo">' + (p.existe ? num(p.hay) : '–') + '</span>' +
-      '<span class="txt"><b>' + (conSuc ? esc(p.suc) + ' · ' : '') + esc(p.texto) + '</b>' +
-        '<small>' + (p.existe ? 'Tiene' + u + ' · ' : '') + datos.join(' · ') + '</small>' +
-        (p.existe ? '<small class="sr-odoo">' + esc(p.odoo) + (cols ? ': ' + cols : '') + '</small>' : '') +
-      '</span><span class="etq ' + nv.etq + '">' + nv.nombre + '</span></div>';
+    var pidio = '<div class="sr-lado"><span class="cant">' + (p.cantidad == null ? '–' : esc(p.cantidad)) + '</span>' +
+      '<span class="txt"><b>' + esc(p.texto) + '</b>' +
+        (conSuc || p.cantidad == null ? '<small>' + [conSuc ? esc(p.suc) : '', p.cantidad == null ? 'No dijo cuántas' : ''].filter(Boolean).join(' · ') + '</small>' : '') +
+      '</span></div>';
+    var hay = p.existe
+      ? '<div class="sr-lado"><span class="cant">' + num(p.hay) + '</span>' +
+          '<span class="txt"><b>' + esc(p.odoo) + '</b>' +
+            '<small>' + (u ? u + ' · ' : '') + 'Vendió ' + num(p.vendio) + ' en 30 días</small>' +
+            (cols ? '<small class="sr-odoo">' + cols + '</small>' : '') + '</span>' +
+          '<span class="etq ' + nv.etq + '">' + nv.nombre + '</span></div>'
+      : '<div class="sr-lado"><span class="cant">–</span><span class="txt"><small>No está en Odoo</small></span>' +
+          '<span class="etq ' + nv.etq + '">' + nv.nombre + '</span></div>';
+    return '<div class="tarjeta sr-fila sr-' + p.nivel + '">' + pidio + hay + '</div>';
+  }
+  function tabla(lista, conSuc){
+    return '<div class="sr-cols"><span>Lo que pidió</span><span>Lo que hay en Odoo</span></div>' +
+      '<div class="tarjetas">' + lista.map(function(p){ return renglon(p, conSuc) }).join('') + '</div>';
   }
 
   function pintar(m, datos){
@@ -44,13 +53,13 @@
     var top = pedidos.filter(function(p){ return p.nivel === 'sospechoso' })
       .sort(function(a, b){ return (b.hay - b.vendio) - (a.hay - a.vendio) });
     var lista = [{id: 'top', nombre: 'Lo más sospechoso', n: top.length, rojo: true, contenido: function(){
-      return top.length ? '<div class="tarjetas">' + top.map(function(p){ return tarjeta(p, true) }).join('') + '</div>'
+      return top.length ? tabla(top, true)
         : '<div class="inv-vacio"><b>Nada sospechoso</b></div>';
     }}].concat(sucs.map(function(alm){
       var suyos = pedidos.filter(function(p){ return p.almacen === alm })
         .sort(function(a, b){ return ORDEN[a.nivel] - ORDEN[b.nivel] });
       return {id: alm, nombre: nombreSuc(datos, alm), n: cuenta(suyos), rojo: true, contenido: function(){
-        return '<div class="tarjetas">' + suyos.map(function(p){ return tarjeta(p, false) }).join('') + '</div>';
+        return tabla(suyos, false);
       }};
     }));
     var v = lista.filter(function(x){ return x.id === vista })[0] || lista[0];
