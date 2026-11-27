@@ -43,6 +43,7 @@
     mapa: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="15" height="13" rx="1.5"/><path d="M2.5 9.5h6v7M8.5 3.5v3M12 9.5h5.5"/></svg>',
     plegar: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="15" height="13" rx="2"/><path d="M7.5 3.5v13"/></svg>',
     plan: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="14" height="13" rx="2"/><path d="M3 8h14M7 2.5v3M13 2.5v3M6.5 11.5l1.5 1.5 3-3"/></svg>',
+    showrooms: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5 4.5 4h11L17 8.5"/><path d="M3 8.5h14v8H3z"/><path d="M8 16.5v-4h4v4"/></svg>',
     flecha: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg>'
   };
 
@@ -61,7 +62,9 @@
     {id: 'plan',         grupo: 'Producción',   nombre: 'Plan de armado',       sub: 'Lo que se arma esta semana',       roles: ['admin','bodega','lectura']},
     {id: 'produccion',   grupo: 'Producción',   nombre: 'Línea de producción',  sub: 'Pasar vehículos de etapa',         roles: ['admin','bodega','lectura']},
     {id: 'catalogos',    grupo: 'Administración', nombre: 'Catálogos',          sub: 'Modelos, colores, piezas',         roles: ['admin']},
-    {id: 'cambios',      grupo: 'Administración', nombre: 'Cambios',            sub: 'Lo que corrigieron las bodegas',   roles: ['admin']}
+    {id: 'cambios',      grupo: 'Administración', nombre: 'Cambios',            sub: 'Lo que corrigieron las bodegas',   roles: ['admin']},
+    // Showrooms contra Odoo (27-nov-2026): por ahora solo la cuenta admin (logistica.usuarios.ve_showrooms)
+    {id: 'showrooms',    grupo: 'Administración', nombre: 'Showrooms',          sub: 'Lo que piden contra Odoo',         roles: ['admin'], solo: 've_showrooms'}
   ];
   var DIBUJAR = {};          // id de sección -> function(main)
   var CUENTA = {};           // id de sección -> número para la burbuja (o '')
@@ -79,7 +82,7 @@
 
   // Plegado por omisión, para que el mapa y las pantallas tengan más espacio; se recuerda en el navegador
   function menuChico(){ try { return localStorage.getItem('logistica.menuChico')!=='0' } catch(e){ return true } }
-  function secciones(){ return SECCIONES.filter(function(s){ return s.roles.indexOf(E.rol) > -1 }) }
+  function secciones(){ return SECCIONES.filter(function(s){ return s.roles.indexOf(E.rol) > -1 && (!s.solo || E.sesion && E.sesion[s.solo]) }) }
 
   function dibujarMenu(){
     var m = q('.inv-menu', E.raiz); if(!m) return;
@@ -363,7 +366,7 @@
     E.raiz.innerHTML = '<div class="inv"><nav class="inv-menu" aria-label="Menú de inventario"></nav><section class="inv-main" aria-live="polite"></section></div>';
     E.raiz.addEventListener('click', alClic);
     return listo.then(function(s){
-      E.rol = s.rol; E.bodega = s.bodega || null;
+      E.rol = s.rol; E.bodega = s.bodega || null; E.sesion = s;
       E.verBodega = E.rol==='bodega' ? E.bodega : null;
       H.alIniciar.forEach(function(f){ try { f() } catch(e){} });
       // Las bodegas empiezan en el mapa en computadora; en pantallas chicas, en la línea de producción
@@ -373,7 +376,7 @@
   function cerrar(){
     cerrarHoja(null);
     if(E.raiz){ E.raiz.innerHTML = ''; E.raiz.hidden = true; }
-    E.iniciado = false; E.cat = null; E.rol = null; E.bodega = null; E.verBodega = null; E.seccion = null;
+    E.iniciado = false; E.cat = null; E.rol = null; E.sesion = null; E.bodega = null; E.verBodega = null; E.seccion = null;
     Object.keys(CUENTA).forEach(function(k){ delete CUENTA[k] });
   }
 

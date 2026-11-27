@@ -140,11 +140,23 @@
     return nombreModelo(r, cat) + (col ? ' · ' + col : '');
   }
 
+  // Showrooms (27-nov-2026): qué tan sospechoso es lo que pidió una sucursal.
+  // p: {cantidad (null = no dijo), hay (lo que tiene hoy en Odoo), vendio (en 30 días), existe (hay producto en Odoo)}
+  // sospechoso: ya tiene 3 o más, tanto o más de lo que pide (o no dijo cuánto) y le alcanza para 2 meses de venta
+  // revisar: lo que tiene más lo que pide da para más de 4 meses de venta
+  function nivelShowroom(p){
+    if(!p.existe) return 'noexiste';
+    var hay = +p.hay || 0, pide = p.cantidad == null ? null : +p.cantidad, mes = Math.max(+p.vendio || 0, 1);
+    if(hay >= 3 && (pide == null || hay >= pide) && hay >= 2 * mes) return 'sospechoso';
+    if(hay >= 1 && pide && hay + pide > 4 * mes) return 'revisar';
+    return 'bien';
+  }
+
   function sumaConteo(conteo){ return (conteo||[]).reduce(function(s, x){ return s + (x.contados||0) }, 0) }
 
   var api = {piezasEsperadas: piezasEsperadas, sinListaDePiezas: sinListaDePiezas, diferencia: diferencia,
     validarContenedor: validarContenedor, validarPieza: validarPieza, nombreOpcion: nombreOpcion, resumenRevision: resumenRevision,
     nombreVehiculo: nombreVehiculo, nombreModelo: nombreModelo, nombreAditamentos: nombreAditamentos, bloqueadas: bloqueadas, nombreColores: nombreColores, sumaConteo: sumaConteo,
-    vehiculosPorColor: vehiculosPorColor, porId: porId, normaNumero: normaNumero};
+    vehiculosPorColor: vehiculosPorColor, porId: porId, normaNumero: normaNumero, nivelShowroom: nivelShowroom};
   if(typeof module !== 'undefined' && module.exports) module.exports = api; else raiz.Inventario = api;
 })(this);

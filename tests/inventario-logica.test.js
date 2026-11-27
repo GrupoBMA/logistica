@@ -157,3 +157,14 @@ test('catálogo nuevo: solo la opción en el nombre, aditamentos aparte y lo que
   assert.deepEqual(I.bloqueadas([13], cat), {31: 13});
   assert.deepEqual(I.bloqueadas([31], cat), {13: 31, 22: 31});
 });
+
+test('nivelShowroom: sospechoso, revisar, bien y no existe', () => {
+  const n = I.nivelShowroom;
+  assert.equal(n({existe: true, cantidad: 4, hay: 14, vendio: 4}), 'sospechoso');   // tiene 14, pide 4, vende 4
+  assert.equal(n({existe: true, cantidad: null, hay: 7, vendio: 0}), 'sospechoso'); // no dijo cuántas y no vende
+  assert.equal(n({existe: true, cantidad: 4, hay: 2, vendio: 0}), 'revisar');       // poco, pero pide mucho para lo que vende
+  assert.equal(n({existe: true, cantidad: 10, hay: 0, vendio: 3}), 'bien');         // no tiene
+  assert.equal(n({existe: true, cantidad: null, hay: 1, vendio: 0}), 'bien');       // uno de exhibición
+  assert.equal(n({existe: true, cantidad: 5, hay: 4, vendio: 9}), 'bien');          // se vende rápido
+  assert.equal(n({existe: false, cantidad: 4, hay: 0, vendio: 0}), 'noexiste');
+});

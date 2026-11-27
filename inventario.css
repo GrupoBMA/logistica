@@ -476,3 +476,7 @@ svg.linea{display:block;width:100%;height:auto}
 .pild:disabled{opacity:.32;cursor:not-allowed}
 /* Faltante del Drive y mecánica pendiente (26-nov-2026) */
 .falta-txt,.tarjeta .txt small.falta-txt{color:var(--pz-pen)}
+/* Showrooms contra Odoo (27-nov-2026): el número grande es lo que tiene hoy; la etiqueta, qué tan sospechoso */
+.tarjeta .txt small.sr-odoo{color:var(--faint);font-size:13px}
+.tarjeta.sr-sospechoso .cant{color:var(--neg)}
+.tarjeta.sr-noexiste .cant,.tarjeta.sr-bien .cant{color:var(--muted)}
