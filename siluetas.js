@@ -114,6 +114,12 @@
       '<path d="M41 35Q47 20 61 12Q51 22 50 35Z" stroke="var(--hueco)" stroke-width="1.6" stroke-linejoin="round"/>' +
       // el piso va al final para tapar la orilla de abajo de las hojas
       '<rect x="2" y="34.6" width="60" height="2.4" rx="1.2"/>',
+    melamina:
+      // Solo de Logística (27-nov-2026, pedido del usuario): pila de hojas de melamina vista en perspectiva,
+      // con las orillas de cada hoja marcadas y unas vetas en la de arriba
+      '<path d="M4 25L22 14H60V26L42 37H4Z"/>' +
+      '<path d="M4 25H42L60 14M42 25V37M4 29H42L60 18M4 33H42L60 22" fill="none" stroke="var(--hueco)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<path d="M17 20.6Q28 19.4 38 20.6M27 17.2Q37 16.2 48 17.2" fill="none" stroke="var(--hueco)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>',
     caja:
       // caja cerrada con su cinta
       '<path d="M12 12.4l20-7.4 20 7.4v18.4L32 38 12 30.8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>' +
@@ -121,7 +127,7 @@
   };
   function sinAcentos(s){ return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase() }
   var FIGURAS = [
-    ['pasto', /pasto|alfombra|cesped/],
+    ['pasto', /pasto|alfombra|cesped/], ['melamina', /melamin|mdf/],
     ['mototaxi', /mototaxi/], ['motocarro', /motocarro|\bmc ?\d/], ['utv', /\butv\b|razer|side ?by/], ['gokart', /go ?kart/],
     ['atv', /\batv\b|cuatrimoto/], ['patin', /patin|scooter/], ['bici', /bici/], ['silla', /silla/],
     ['montacargas', /montacarga|maquinaria/], ['chasis', /chasis|manufactura|plataforma/], ['padel', /padel/],
