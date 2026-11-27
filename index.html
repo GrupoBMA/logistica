@@ -1260,5 +1260,49 @@ body.solo-lectura .ruta li[data-lugar],body.solo-lectura .ruta[data-lugar] heade
   sb.auth.getSession().then(function(r){ if(r.data && r.data.session) entrar(); else sesionVisible(false); });
 })();
 </script>
+<!-- Ojo para ver la contraseña en el inicio de sesión (27-nov-2026, igual en todas las apps) -->
+<style>
+.ojo-caja{position:relative;display:block;width:100%}
+.ojo-caja>input{width:100%;box-sizing:border-box;padding-right:46px!important}
+.ojo-caja>input::-ms-reveal,.ojo-caja>input::-ms-clear{display:none}
+.ojo-caja>button.ojo-btn{position:absolute!important;right:3px;top:50%;transform:translateY(-50%);width:40px!important;height:40px!important;min-width:0!important;min-height:0!important;padding:0!important;margin:0!important;display:grid;place-items:center;border:0!important;border-radius:10px!important;background:none!important;box-shadow:none!important;color:inherit!important;font-size:0!important;opacity:.5;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity .15s,transform .12s}
+.ojo-caja>button.ojo-btn:active{transform:translateY(-50%) scale(.9)}
+.ojo-caja>button.ojo-btn:focus-visible{outline:2px solid currentColor;outline-offset:-4px;opacity:.9}
+@media (hover:hover){.ojo-caja>button.ojo-btn:hover{opacity:.85}}
+.ojo-btn svg{width:20px;height:20px;display:block;pointer-events:none}
+</style>
+<script>
+(function(){
+  var ABIERTO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var CERRADO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.6 5.1A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-2.6 3.5M6.6 6.6C3.7 8.4 2 12 2 12s3.6 7 10 7c1.9 0 3.5-.6 4.9-1.4"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M3 3l18 18"/></svg>';
+  function poner(inp){
+    if(inp.dataset.ojo) return; inp.dataset.ojo='1';
+    var caja=document.createElement('span'); caja.className='ojo-caja';
+    inp.parentNode.insertBefore(caja,inp); caja.appendChild(inp);
+    var b=document.createElement('button'); b.type='button'; b.className='ojo-btn';
+    function pintar(){
+      var visible=inp.type==='text';
+      b.innerHTML=visible?CERRADO:ABIERTO;
+      b.setAttribute('aria-label',visible?'Ocultar contraseña':'Mostrar contraseña');
+      b.setAttribute('aria-pressed',visible?'true':'false');
+      b.title=visible?'Ocultar contraseña':'Mostrar contraseña';
+    }
+    function ocultar(){ if(inp.type!=='password'){ inp.type='password'; pintar(); } }
+    b.addEventListener('mousedown',function(e){ e.preventDefault(); });
+    b.addEventListener('click',function(e){
+      e.preventDefault(); e.stopPropagation();
+      inp.type=inp.type==='password'?'text':'password'; pintar();
+    });
+    caja.appendChild(b); pintar();
+    // Al entrar se vuelve a tapar, para que al salir no quede a la vista.
+    var raiz=inp.closest('form')||inp.closest('.login-card')||inp.parentNode.parentNode;
+    raiz.addEventListener('submit',ocultar,true);
+    raiz.addEventListener('click',function(e){ var t=e.target.closest&&e.target.closest('button'); if(t&&t!==b) ocultar(); },true);
+    inp.addEventListener('keydown',function(e){ if(e.key==='Enter') ocultar(); });
+  }
+  function todos(){ document.querySelectorAll('input[type=password]').forEach(poner); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',todos); else todos();
+})();
+</script>
 </body>
 </html>
