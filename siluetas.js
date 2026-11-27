@@ -103,12 +103,17 @@
       '<path d="M22 24.6h8l-1.2 5H23.2z"/><rect x="23.4" y="28.6" width="5.2" height="10" rx="2.2"/></g>' +
       '<circle cx="52" cy="31" r="5.6"/>' + LINEA('M47.6 28.2c2.6 1 4.4 3.2 4.8 7.6', 1.2),
     pasto:
-      // Solo de Logística (27-nov-2026, pedido del usuario: el mismo ícono para todos los pastos): rollo de pasto
-      // visto de lado, con su espiral, la parte desenrollada hacia la derecha y hojitas delgadas y desiguales
-      '<circle cx="15" cy="25.5" r="11.5"/>' +
-      '<path d="M15 24.3L15.23 24.23L15.49 24.2L15.77 24.23L16.04 24.32L16.31 24.47L16.56 24.68L16.77 24.95L16.93 25.27L17.04 25.63L17.07 26.02L17.03 26.42L16.91 26.82L16.7 27.21L16.42 27.57L16.06 27.88L15.63 28.12L15.16 28.28L14.64 28.36L14.1 28.33L13.56 28.21L13.04 27.98L12.55 27.64L12.13 27.21L11.78 26.7L11.52 26.11L11.37 25.47L11.35 24.8L11.44 24.12L11.67 23.45L12.03 22.82L12.5 22.26L13.09 21.78L13.76 21.4L14.51 21.15L15.31 21.04L16.13 21.08L16.95 21.28L17.74 21.62L18.46 22.11L19.09 22.74L19.61 23.49L19.98 24.33L20.21 25.25L20.26 26.2L20.14 27.17L19.83 28.11L19.35 29L18.71 29.8L17.92 30.48L17.01 31.01L15.99 31.38L14.92 31.55L13.81 31.53L12.7 31.3L11.64 30.87L10.67 30.25L9.81 29.44L9.1 28.48L8.57 27.39L8.24 26.21L8.13 24.97L8.25 23.72L8.59 22.49L9.17 21.32L9.95 20.27L10.93 19.37L12.06 18.65L13.33 18.14L14.68 17.87L16.08 17.84L17.47 18.07L18.82 18.56L20.06 19.29L21.17 20.25L22.1 21.4L22.81 22.72L23.28 24.16L23.48 25.68L23.4 27.22L23.04 28.75L22.4 30.19L21.5 31.52L20.36 32.66L19.02 33.6L17.52 34.28L15.9 34.68L14.22 34.79L12.53 34.58L10.89 34.07L9.36 33.27" fill="none" stroke="var(--hueco)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '<rect x="15" y="32.4" width="47" height="4.6" rx="1.6"/>' +
-      '<path d="M27.5 32.6Q26.9 29.63 26.7 27.2Q28.5 29.9 29.1 32.6ZM29.65 32.6Q30.13 28.64 31.73 25.4Q31.73 29 31.25 32.6ZM31.8 32.6Q31.44 30.07 31.64 28Q33.04 30.3 33.4 32.6ZM33.95 32.6Q34.67 28.97 36.67 26Q36.27 29.3 35.55 32.6ZM36.1 32.6Q35.86 28.2 36.26 24.6Q37.46 28.6 37.7 32.6ZM38.25 32.6Q38.85 29.85 40.65 27.6Q40.45 30.1 39.85 32.6ZM40.4 32.6Q39.68 29.19 39.28 26.4Q41.28 29.5 42 32.6ZM42.55 32.6Q42.91 28.42 44.31 25Q44.51 28.8 44.15 32.6ZM44.7 32.6Q44.22 29.96 44.22 27.8Q45.82 30.2 46.3 32.6ZM46.85 32.6Q47.51 28.86 49.41 25.8Q49.11 29.2 48.45 32.6ZM49 32.6Q48.7 29.52 49 27Q50.3 29.8 50.6 32.6ZM51.15 32.6Q51.69 28.53 53.39 25.2Q53.29 28.9 52.75 32.6ZM53.3 32.6Q52.7 30.18 52.5 28.2Q54.3 30.4 54.9 32.6ZM55.45 32.6Q55.87 29.08 57.37 26.2Q57.47 29.4 57.05 32.6ZM57.6 32.6Q57.24 28.75 57.44 25.6Q58.84 29.1 59.2 32.6ZM59.75 32.6Q60.35 29.74 62.15 27.4Q61.95 30 61.35 32.6Z"/>',
+      // Solo de Logística (27-nov-2026, pedido del usuario: el mismo ícono para todos los pastos, al estilo de una
+      // mata de pasto que mandó de ejemplo): seis hojas anchas y curvas que salen del piso, la más alta al centro.
+      // Cada hoja lleva orilla del color del fondo para que se separen donde se enciman.
+      '<path d="M9 35Q7 22 2 14Q15 19 17 35Z" stroke="var(--hueco)" stroke-width="1.6" stroke-linejoin="round"/>' +
+      '<path d="M15 35Q14 18 9 7Q22 14 24 35Z" stroke="var(--hueco)" stroke-width="1.6" stroke-linejoin="round"/>' +
+      '<path d="M22 35Q24 19 22 8Q32 17 31 35Z" stroke="var(--hueco)" stroke-width="1.6" stroke-linejoin="round"/>' +
+      '<path d="M29 35Q31 13 40 1.5Q39 17 37 35Z" stroke="var(--hueco)" stroke-width="1.6" stroke-linejoin="round"/>' +
+      '<path d="M36 35Q38 22 46 12Q44 24 44 35Z" stroke="var(--hueco)" stroke-width="1.6" stroke-linejoin="round"/>' +
+      '<path d="M41 35Q47 20 61 12Q51 22 50 35Z" stroke="var(--hueco)" stroke-width="1.6" stroke-linejoin="round"/>' +
+      // el piso va al final para tapar la orilla de abajo de las hojas
+      '<rect x="2" y="34.6" width="60" height="2.4" rx="1.2"/>',
     caja:
       // caja cerrada con su cinta
       '<path d="M12 12.4l20-7.4 20 7.4v18.4L32 38 12 30.8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>' +
