@@ -2,6 +2,7 @@
 -- y lo que hay en las bodegas (Bodega 1 = S-BD1, Granja; Bodega 2 = S-BD2), con los mismos productos de Odoo.
 -- Agrega a cada pedido: bodega (total), bodega1, bodega2 y bodega_colores (por color, las dos bodegas juntas).
 -- Y lo que pidió por color (pide_colores: [{color, n}]), cuando la sucursal lo dijo; se llena a mano con los pedidos.
+-- Y la marca (SUNL, PASTITO, ALZATOR): la primera parte de la categoría de Odoo de los productos que cuentan; null si no hay.
 
 alter table logistica.showroom_pedidos add column if not exists pide_colores jsonb not null default '[]';
 
@@ -23,6 +24,7 @@ begin
         'vendio', round(coalesce(v.vendio, 0) / coalesce(p.m2_rollo, 1), 1),
         'colores', case when p.m2_rollo is null then coalesce(x.colores, '[]') else '[]' end,
         'pide_colores', p.pide_colores,
+        'marca', mc.marca,
         'bodega', round(coalesce(b.hay, 0) / coalesce(p.m2_rollo, 1), 1),
         'bodega1', round(coalesce(b.b1, 0) / coalesce(p.m2_rollo, 1), 1),
         'bodega2', round(coalesce(b.b2, 0) / coalesce(p.m2_rollo, 1), 1),
@@ -57,6 +59,12 @@ begin
         where m.de_almacen = p.almacen and m.a_uso = 'customer' and m.fecha >= now() - interval '30 days'
           and pr.codigo like any (p.incluye) and not (pr.codigo like any (p.excluye))
       ) v on true
+      left join lateral (
+        select split_part(pr.categoria, ' / ', 1) marca
+        from bma.odoo_productos pr
+        where pr.categoria is not null and pr.codigo like any (p.incluye) and not (pr.codigo like any (p.excluye))
+        group by 1 order by count(*) desc limit 1
+      ) mc on true
     ), '[]'));
 end $$;
 

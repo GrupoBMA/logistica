@@ -60,9 +60,21 @@
       : lado('–', '', 'No está en Odoo');
     return '<div class="tarjeta sr-fila sr-' + p.nivel + '">' + pidio + suc + bod + '</div>';
   }
+  /* Separado por marca (pedido del usuario, 27-nov-2026): SUNL, Pastito, Alzator y lo que no tiene marca en Odoo.
+     La marca es la primera parte de la categoría de Odoo de los productos que cuentan (inv_showrooms la regresa). */
+  var MARCAS = [['SUNL', 'SUNL'], ['PASTITO', 'Pastito'], ['ALZATOR', 'Alzator'], ['', 'Otros']];
+  function marcaDe(p){
+    var m = String(p.marca || '').toUpperCase();
+    return MARCAS.some(function(x){ return x[0] === m }) ? m : '';
+  }
   function tabla(lista, conSuc){
-    return '<div class="sr-cols"><span>Lo que pidió</span><span>Inventario de la sucursal en Odoo</span><span>Inventario en bodega</span></div>' +
-      '<div class="tarjetas">' + lista.map(function(p){ return renglon(p, conSuc) }).join('') + '</div>';
+    var cab = '<div class="sr-cols"><span>Lo que pidió</span><span>Inventario de la sucursal en Odoo</span><span>Inventario en bodega</span></div>';
+    return MARCAS.map(function(mk){
+      var suyos = lista.filter(function(p){ return marcaDe(p) === mk[0] });
+      if(!suyos.length) return '';
+      return '<section class="sr-marca"><h2 class="sr-marca-t">' + esc(mk[1]) + '<span>' + suyos.length + '</span></h2>' + cab +
+        '<div class="tarjetas">' + suyos.map(function(p){ return renglon(p, conSuc) }).join('') + '</div></section>';
+    }).join('');
   }
 
   function pintar(){
