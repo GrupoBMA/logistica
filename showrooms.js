@@ -28,29 +28,40 @@
     return '<span class="sr-pt' + (c.length ? '' : ' sin') + '"' + (fondo ? ' style="background:' + fondo + '"' : '') + '></span>';
   }
 
-  /* Dos columnas por renglón: a la izquierda lo que pidió, a la derecha lo que hay en Odoo (con una fila por color) */
+  /* Una fila por color: el número a la izquierda, junto a su círculo, y todos los números en la misma columna */
+  function listaColores(cols){
+    if(!cols || !cols.length) return '';
+    return '<ul class="sr-colores">' + cols.map(function(c){
+      return '<li><b>' + num(c.n) + '</b>' + punto(c.color) + '<span>' + esc(c.color) + '</span></li>';
+    }).join('') + '</ul>';
+  }
+  function lado(cant, titulo, sub, cols, extra){
+    return '<div class="sr-lado"><div class="sr-arr"><span class="cant">' + cant + '</span>' +
+      '<span class="txt">' + (titulo ? '<b>' + titulo + '</b>' : '') + (sub ? '<small>' + sub + '</small>' : '') + '</span>' +
+      (extra || '') + '</div>' + listaColores(cols) + '</div>';
+  }
+
+  /* Tres columnas por renglón (pedido del usuario, 27-nov-2026): lo que pidió, lo que tiene la sucursal en Odoo
+     y lo que hay en las bodegas; cada una con sus colores, uno por fila */
   function renglon(p, conSuc){
-    var nv = NIVEL[p.nivel], u = p.rollo ? (p.hay == 1 ? 'rollo · ' : 'rollos · ') : '';
+    var nv = NIVEL[p.nivel], rollos = p.rollo ? 'Rollos' : '';
     var fig = window.Siluetas ? Siluetas.imagen(Siluetas.figura(p.texto + ' ' + (p.odoo || ''))) : '';
-    var pidio = '<div class="sr-lado">' + (conSuc ? cuadro(p.almacen) : '') + fig +
-      '<span class="cant">' + (p.cantidad == null ? '–' : esc(p.cantidad)) + '</span>' +
-      '<span class="txt"><b>' + esc(p.texto) + '</b>' +
-        (conSuc || p.cantidad == null ? '<small>' + [conSuc ? esc(p.suc) : '', p.cantidad == null ? 'No dijo cuántas' : ''].filter(Boolean).join(' · ') + '</small>' : '') +
-      '</span></div>';
-    var colores = (p.colores || []).map(function(c){
-      return '<li>' + punto(c.color) + '<span>' + esc(c.color) + '</span><b>' + num(c.n) + '</b></li>';
-    }).join('');
-    var hay = '<div class="sr-lado sr-hay"><div class="sr-arr">' +
-        '<span class="cant">' + (p.existe ? num(p.hay) : '–') + '</span>' +
-        '<span class="txt">' + (p.existe
-          ? '<b>' + esc(p.odoo) + '</b><small>' + u + 'Vendió ' + num(p.vendio) + ' en 30 días</small>'
-          : '<small>No está en Odoo</small>') + '</span>' +
-        '<span class="etq ' + nv.etq + '">' + nv.nombre + '</span></div>' +
-        (colores ? '<ul class="sr-colores">' + colores + '</ul>' : '') + '</div>';
-    return '<div class="tarjeta sr-fila sr-' + p.nivel + '">' + pidio + hay + '</div>';
+    // Si ya trae los colores aparte, el texto va sin el paréntesis de colores
+    var texto = (p.pide_colores || []).length ? p.texto.replace(/\s*\([^()]*\)\s*$/, '') : p.texto;
+    var pidio = '<div class="sr-lado sr-pidio">' + (conSuc ? cuadro(p.almacen) : '') + fig +
+      '<div class="sr-pidio-c">' + lado(p.cantidad == null ? '–' : esc(p.cantidad), esc(texto),
+        [conSuc ? esc(p.suc) : '', p.cantidad == null ? 'No dijo cuántas' : ''].filter(Boolean).join(' · '), p.pide_colores) + '</div></div>';
+    var suc = p.existe
+      ? lado(num(p.hay), esc(p.odoo), [rollos, 'Vendió ' + num(p.vendio) + ' en 30 días'].filter(Boolean).join(' · '), p.colores,
+          '<span class="etq ' + nv.etq + '">' + nv.nombre + '</span>')
+      : lado('–', '', 'No está en Odoo', null, '<span class="etq ' + nv.etq + '">' + nv.nombre + '</span>');
+    var bod = p.existe
+      ? lado(num(p.bodega), '', [rollos, 'Bodega 1: ' + num(p.bodega1), 'Bodega 2: ' + num(p.bodega2)].filter(Boolean).join(' · '), p.bodega_colores)
+      : lado('–', '', 'No está en Odoo');
+    return '<div class="tarjeta sr-fila sr-' + p.nivel + '">' + pidio + suc + bod + '</div>';
   }
   function tabla(lista, conSuc){
-    return '<div class="sr-cols"><span>Lo que pidió</span><span>Lo que hay en Odoo</span></div>' +
+    return '<div class="sr-cols"><span>Lo que pidió</span><span>Inventario de la sucursal en Odoo</span><span>Inventario en bodega</span></div>' +
       '<div class="tarjetas">' + lista.map(function(p){ return renglon(p, conSuc) }).join('') + '</div>';
   }
 

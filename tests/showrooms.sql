@@ -1,4 +1,4 @@
--- Pruebas de Showrooms (2026-11-27-showrooms.sql). Correr completas con execute_sql; terminan en rollback.
+-- Pruebas de Showrooms (2026-11-27-showrooms.sql y 2026-11-27-showrooms-bodega.sql). Correr completas con execute_sql; terminan en rollback.
 -- Usa un pedido inventado (no son datos reales).
 begin;
 insert into logistica.showroom_pedidos (almacen, texto, cantidad, odoo, incluye, excluye, m2_rollo)
@@ -16,6 +16,9 @@ begin
   if (p->>'existe')::boolean or (p->>'hay')::numeric <> 0 then raise exception 'FALLA 1: pedido sin producto %', p; end if;
   select x into p from jsonb_array_elements(r->'pedidos') x where x->>'texto' = 'Prueba pasto';
   if not (p->>'rollo')::boolean or jsonb_array_length(p->'colores') <> 0 then raise exception 'FALLA 1: pasto %', p; end if;
+  -- 3 columnas (27-nov-2026): cada pedido trae lo que hay en bodega y lo que pidió por color
+  if not (p ? 'bodega' and p ? 'bodega1' and p ? 'bodega2' and p ? 'bodega_colores' and p ? 'pide_colores') then raise exception 'FALLA 1: faltan datos de bodega %', p; end if;
+  if abs((p->>'bodega')::numeric - (p->>'bodega1')::numeric - (p->>'bodega2')::numeric) > 0.11 then raise exception 'FALLA 1: bodega no suma %', p; end if;
 end $$;
 reset role;
 

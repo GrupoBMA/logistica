@@ -478,17 +478,26 @@ svg.linea{display:block;width:100%;height:auto}
 .falta-txt,.tarjeta .txt small.falta-txt{color:var(--pz-pen)}
 /* Showrooms contra Odoo (27-nov-2026): el número grande es lo que tiene hoy; la etiqueta, qué tan sospechoso */
 .tarjeta .txt small.sr-odoo{color:var(--faint);font-size:13px}
-.sr-cols{display:grid;grid-template-columns:1fr 1fr;gap:0;padding:0 16px 8px;color:var(--muted);font-size:13px;font-weight:600}
-.sr-cols span:last-child{padding-left:16px}
-.tarjeta.sr-fila{display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:stretch}
-.sr-lado{display:flex;align-items:center;gap:14px;min-width:0}
+/* Showrooms: 3 columnas (lo que pidió · sucursal en Odoo · bodega), cada una con sus colores uno por fila */
+.sr-cols{display:grid;grid-template-columns:1.25fr 1fr 1fr;padding:0 16px 8px;color:var(--muted);font-size:13px;font-weight:600}
+.sr-cols span + span{padding-left:16px}
+.tarjeta.sr-fila{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:0;align-items:stretch}
 .sr-pantalla{margin-top:16px}
-.sr-hay{flex-direction:column;align-items:stretch;gap:8px;justify-content:center}
-.sr-arr{display:flex;align-items:center;gap:14px;min-width:0}
+.sr-lado{display:flex;flex-direction:column;gap:8px;min-width:0;justify-content:flex-start}
+.sr-lado + .sr-lado{border-left:1px solid var(--border);padding-left:16px}
+.sr-fila > .sr-lado:not(:last-child){padding-right:16px}
+.sr-pidio{flex-direction:row;align-items:flex-start;gap:12px}
+.sr-pidio-c{flex:1;min-width:0}
+.sr-pidio-c > .sr-lado{padding:0;border:0}
+.sr-arr{display:flex;align-items:center;gap:12px;min-width:0;min-height:40px}
+.sr-arr .cant{min-width:40px;text-align:right}
 .sr-arr .txt{flex:1;min-width:0}
-.sr-colores{list-style:none;margin:0;padding:0 0 0 70px;display:flex;flex-direction:column;gap:4px}
-.sr-colores li{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
-.sr-colores li b{margin-left:auto;color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+.sr-arr .etq{flex:none}
+/* Colores: número (alineado a la derecha, siempre en el mismo lugar), círculo y nombre */
+.sr-colores{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:40px 14px 1fr;column-gap:10px;row-gap:4px;align-items:center}
+.sr-colores li{display:contents;font-size:14px;color:var(--muted)}
+.sr-colores li b{text-align:right;color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+.sr-colores li span{min-width:0}
 .sr-pt{width:14px;height:14px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
 .sr-pt.sin{background:transparent;box-shadow:inset 0 0 0 1.5px var(--faint)}
 .suc-sig{width:38px;height:38px;border-radius:10px;flex:none;display:grid;place-items:center;background:var(--raised);color:var(--text);font-size:12px;font-weight:700;letter-spacing:.02em}
@@ -499,16 +508,12 @@ svg.linea{display:block;width:100%;height:auto}
 .sil-c{--hueco:color-mix(in srgb,var(--work) 11%,var(--surface));width:64px;aspect-ratio:64/40;border-radius:10px;flex:none;display:grid;place-items:center;background:var(--hueco);color:var(--work)}
 .sil{width:80%;height:auto;fill:currentColor}
 .sil .h{fill:var(--hueco)}
-.sr-lado + .sr-lado{border-left:1px solid var(--border);padding-left:16px;margin-left:0}
-.sr-fila .sr-lado:first-child{padding-right:16px}
-.tarjeta.sr-sospechoso .sr-lado + .sr-lado .cant{color:var(--neg)}
-.tarjeta.sr-noexiste .sr-lado + .sr-lado .cant,.tarjeta.sr-bien .sr-lado + .sr-lado .cant{color:var(--muted)}
-@media (max-width:700px){
+.tarjeta.sr-sospechoso > .sr-lado:nth-child(2) .cant{color:var(--neg)}
+@media (max-width:1100px){
   .sr-cols{display:none}
   .tarjeta.sr-fila{grid-template-columns:1fr}
   .sr-lado + .sr-lado{border-left:0;border-top:1px solid var(--border);padding:10px 0 0;margin-top:10px}
-  .sr-fila .sr-lado:first-child{padding-right:0}
-  .sr-colores{padding-left:0}
+  .sr-fila > .sr-lado:not(:last-child){padding-right:0}
 }
 /* 6 pestañas cuando se ve Showrooms */
 #tabs .tab[hidden]{display:none}
